@@ -45,6 +45,11 @@ android {
     }
 
     sourceSets["main"].kotlin.srcDir("src/main/kotlin")
+    sourceSets["test"].kotlin.srcDir("src/test/kotlin")
+
+    testOptions {
+        unitTests.all { it.useJUnitPlatform() }
+    }
 }
 
 dependencies {
@@ -57,4 +62,15 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+
+    // RunController is the bridge between the sensor stream and the engine, and it is the part
+    // that cannot be reached on a device without someone physically holding the phone against
+    // their head. It has to be provable on the JVM instead.
+    // Explicit coordinates rather than kotlin("test"): the Android plugin does not supply a
+    // version for that helper the way the JVM plugin does, and the dependency silently resolves
+    // to nothing.
+    testImplementation("org.jetbrains.kotlin:kotlin-test:2.4.20")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:2.4.20")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.11.4")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

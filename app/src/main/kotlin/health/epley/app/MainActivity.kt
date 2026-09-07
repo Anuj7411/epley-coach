@@ -41,6 +41,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import health.epley.core.MountMode
+import health.epley.core.Side
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -58,6 +59,8 @@ import java.io.File
 class MainActivity : ComponentActivity() {
 
     private lateinit var tracker: HeadTracker
+
+    private val runController = RunController()
 
     /**
      * Written from a single collector coroutine, read from the UI thread on toggle.
@@ -83,19 +86,35 @@ class MainActivity : ComponentActivity() {
         // anyone reintroducing.
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                tracker.state.collect { state -> logger?.append(state) }
+                tracker.state.collect { state ->
+                    logger?.append(state)
+                    runController.onTrackerState(state)
+                }
             }
         }
 
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
-                    ProbeScreen(
-                        tracker = tracker,
-                        onToggleLogging = ::toggleLogging,
-                        isLogging = logger != null,
-                        logDirectory = getExternalFilesDir(null)?.absolutePath ?: "",
-                    )
+                    val run by runController.state.collectAsState()
+                    val trackerState by tracker.state.collectAsState()
+
+                    if (run.running) {
+                        RunScreen(
+                            run = run,
+                            toleranceDegrees = trackerState.mode.toleranceDegrees,
+                            onStop = runController::stop,
+                        )
+                    } else {
+                        ProbeScreen(
+                            tracker = tracker,
+                            run = run,
+                            controller = runController,
+                            onToggleLogging = ::toggleLogging,
+                            isLogging = logger != null,
+                            logDirectory = getExternalFilesDir(null)?.absolutePath ?: "",
+                        )
+                    }
                 }
             }
         }
@@ -130,6 +149,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun ProbeScreen(
     tracker: HeadTracker,
+    run: RunUiState,
+    controller: RunController,
     onToggleLogging: () -> Boolean,
     isLogging: Boolean,
     logDirectory: String,
@@ -291,6 +312,20 @@ private fun ProbeScreen(
             )
         }
 
+        if (state.isCalibrated) {
+            GuidedRunSetup(
+                run = run,
+                controller = controller,
+                trackerState = state,
+                onStart = {
+                    controller.start(
+                        toleranceDegrees = state.mode.toleranceDegrees,
+                        stillnessThresholdDegPerSec = HeadTracker.STILLNESS_THRESHOLD_DEG_PER_SEC,
+                    )
+                },
+            )
+        }
+
         Button(
             onClick = { logging = onToggleLogging() },
             modifier = Modifier.fillMaxWidth(),
@@ -304,6 +339,79 @@ private fun ProbeScreen(
                 fontFamily = FontFamily.Monospace,
             )
         }
+    }
+}
+
+/**
+ * The two things a guided run needs that calibration does not supply.
+ *
+ * Which ear the user reports as affected, and — separately — which way the sensor's positive
+ * rotation points. The second cannot be derived from the first: the sign falls out of which cheek
+ * the phone is against and which way round it sits, so it is learned by asking for one turn and
+ * watching what happens. Assuming it would run the whole manoeuvre mirrored.
+ */
+@Composable
+private fun GuidedRunSetup(
+    run: RunUiState,
+    controller: RunController,
+    trackerState: TrackerState,
+    onStart: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            "WHICH EAR WERE YOU TOLD IS AFFECTED",
+            color = Color(0xFF888888),
+            fontSize = 11.sp,
+            fontFamily = FontFamily.Monospace,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            for (side in Side.entries) {
+                val selected = side == run.side
+                Button(
+                    onClick = { controller.setSide(side) },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (selected) Color(0xFF2A4A7F) else Color(0xFF1A1A1A),
+                        contentColor = if (selected) Color.White else Color(0xFF999999),
+                    ),
+                ) { Text(if (side == Side.LEFT) "LEFT" else "RIGHT") }
+            }
+        }
+
+        Text(
+            text = if (run.polarity == null) {
+                "Now turn your head toward that side, hold it there, and tap below. This teaches " +
+                    "the app which direction is which — it cannot work that out on its own."
+            } else {
+                "Direction learned."
+            },
+            color = if (run.polarity == null) Color(0xFFCCCCCC) else Color(0xFF6BCB77),
+            fontSize = 13.sp,
+        )
+
+        run.polarityMessage?.let {
+            Text(it, color = Color(0xFFFF6B6B), fontSize = 13.sp)
+        }
+
+        OutlinedButton(
+            onClick = { controller.learnPolarity(trackerState) },
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text(if (run.polarity == null) "I AM TURNED THAT WAY" else "LEARN DIRECTION AGAIN") }
+
+        Button(
+            onClick = onStart,
+            enabled = run.canStart,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF2E6B3E),
+                contentColor = Color.White,
+                disabledContainerColor = Color(0xFF1A1A1A),
+                disabledContentColor = Color(0xFF666666),
+            ),
+        ) { Text("START GUIDED RUN") }
     }
 }
 
