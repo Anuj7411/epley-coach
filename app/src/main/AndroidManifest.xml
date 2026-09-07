@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      Declared but not required: a device without a gyroscope can still install the app, and we
+      detect the missing sensor at startup and say so plainly rather than reporting a wrong angle.
+      Some budget Android phones ship without one.
+    -->
+    <uses-feature
+        android:name="android.hardware.sensor.gyroscope"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.sensor.accelerometer"
+        android:required="false" />
+
+    <application
+        android:allowBackup="true"
+        android:label="Epley Angle Probe"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Epley">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="Epley Angle Probe"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Epley">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

@@ -1,0 +1,23 @@
+# Machine-specific
+local.properties
+
+# Gradle / build output
+.gradle/
+build/
+*/build/
+captures/
+.cxx/
+
+# Android artifacts
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# IDE
+.idea/
+*.iml
+
+# Logs and captured data from device runs
+*.log
+data/raw/
