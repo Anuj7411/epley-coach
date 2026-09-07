@@ -165,13 +165,51 @@ class MountCalibrationQualityTest {
     private fun aboutAxis(x: Double, y: Double, z: Double, degrees: Double) =
         Quaternion.fromAxisAngle(Vector3(x, y, z), Math.toRadians(degrees))
 
+    /** Phone standing on its short edge, screen facing sideways: any of the three holds. */
+    private val heldUpright = aboutAxis(1.0, 0.0, 0.0, 90.0)
+
     @Test
     fun `a phone held upright against the cheek calibrates cleanly`() {
-        // Identity: the phone's negative X axis lies in the horizontal plane, which is what the
-        // cheek hold produces when someone sits up and faces forward.
-        val calibration = MountCalibration.fromUprightSample(Quaternion.IDENTITY, MountMode.CHEEK)
+        val calibration = MountCalibration.fromUprightSample(heldUpright, MountMode.CHEEK)
         assertTrue(calibration.isUsable)
         assertEquals(1.0, calibration.hintHorizontality, 1e-6)
+        assertEquals(1.0, calibration.screenUprightness, 1e-6)
+    }
+
+    @Test
+    fun `a phone lying face up on a desk is refused for every mount`() {
+        // The mistake people actually make. Identity is a phone flat on a table, screen at the
+        // ceiling. Its forward axis is perfectly well determined — the long edge points somewhere
+        // horizontal — so a check that only asked about forward would wave this through, and the
+        // app would spend the session reporting angles for a desk.
+        for (mode in MountMode.entries) {
+            val calibration = MountCalibration.fromUprightSample(Quaternion.IDENTITY, mode)
+            assertFalse(
+                calibration.isUsable,
+                "${mode.name} accepted a phone lying flat: uprightness " +
+                    "${calibration.screenUprightness}, horizontality ${calibration.hintHorizontality}",
+            )
+        }
+    }
+
+    @Test
+    fun `screen uprightness is judged separately from the forward axis`() {
+        // Flat on a desk: forward is fine, the screen is not.
+        val flat = MountCalibration.fromUprightSample(Quaternion.IDENTITY, MountMode.CHEEK)
+        assertEquals(1.0, flat.hintHorizontality, 1e-6)
+        assertEquals(0.0, flat.screenUprightness, 1e-6)
+
+        // Tipped fully back: the screen is on edge, but the face now points at the ceiling.
+        val tippedBack = MountCalibration.fromUprightSample(
+            aboutAxis(0.0, 1.0, 0.0, 90.0),
+            MountMode.CHEEK,
+        )
+        assertEquals(0.0, tippedBack.hintHorizontality, 1e-6)
+        assertEquals(1.0, tippedBack.screenUprightness, 1e-6)
+
+        // Two independent ways to be wrong, and both are refused.
+        assertFalse(flat.isUsable)
+        assertFalse(tippedBack.isUsable)
     }
 
     @Test
@@ -194,18 +232,16 @@ class MountCalibrationQualityTest {
         assertFalse(flat.isUsable)
 
         // Stood upright with the screen toward the user, it is fully determined.
-        val upright = MountCalibration.fromUprightSample(
-            aboutAxis(1.0, 0.0, 0.0, 90.0),
-            MountMode.IN_HAND,
-        )
+        val upright = MountCalibration.fromUprightSample(heldUpright, MountMode.IN_HAND)
         assertTrue(upright.isUsable)
         assertEquals(1.0, upright.hintHorizontality, 1e-6)
     }
 
     @Test
     fun `a usable calibration still measures zero at the pose it was taken in`() {
-        val phone = Quaternion.IDENTITY
+        val phone = heldUpright
         val calibration = MountCalibration.fromUprightSample(phone, MountMode.CHEEK)
+        assertTrue(calibration.isUsable)
         val pose = HeadAngles.compute(phone, calibration)
         assertEquals(0.0, pose.neckExtensionDegrees, 1e-6)
         assertEquals(0.0, pose.headRotationDegrees, 1e-6)

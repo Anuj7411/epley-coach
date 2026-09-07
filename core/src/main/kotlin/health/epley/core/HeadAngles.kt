@@ -104,10 +104,29 @@ data class MountCalibration(
      * how a caller refuses it instead of building an entire session on it.
      */
     val hintHorizontality: Double = 1.0,
+    /**
+     * How close the screen is to vertical, 0 (flat) to 1 (upright).
+     *
+     * A separate question from [hintHorizontality], and the one that catches the mistake people
+     * actually make. A phone lying face-up on a desk has a perfectly well determined forward axis
+     * — its long edge points somewhere horizontal — so the forward check passes it happily. It is
+     * still not on anyone's head. Every mount we support holds the screen roughly on edge: facing
+     * out from the cheek, out from a headband, or back at the user in the hand. A screen pointing
+     * at the ceiling means the phone is on a table, not a person.
+     */
+    val screenUprightness: Double = 1.0,
 ) {
 
-    /** Whether this calibration determined the forward axis well enough to build on. */
-    val isUsable: Boolean get() = hintHorizontality >= MIN_HINT_HORIZONTALITY
+    /**
+     * Whether this calibration describes a phone actually being held the way the mode asks.
+     *
+     * Both conditions, because they fail independently: a phone can be upright with its face
+     * pointing straight up (forward undetermined) or perfectly forward-facing while lying flat
+     * (not on a head).
+     */
+    val isUsable: Boolean
+        get() = hintHorizontality >= MIN_HINT_HORIZONTALITY &&
+            screenUprightness >= MIN_SCREEN_UPRIGHTNESS
 
     companion object {
         /**
@@ -119,6 +138,15 @@ data class MountCalibration(
          * the calibration again costs three seconds and saves the whole session.
          */
         const val MIN_HINT_HORIZONTALITY = 0.5
+
+        /**
+         * Below this the screen is too close to flat for the phone to be on a head or in a hand.
+         *
+         * 0.5 allows the screen to lean 60 degrees off vertical before the calibration is
+         * refused, which is far more slop than any of the three holds needs and still rejects a
+         * phone resting on a desk or a bed outright.
+         */
+        const val MIN_SCREEN_UPRIGHTNESS = 0.5
 
         /** Derive the mount for a given way of holding the phone. */
         fun fromUprightSample(phone: Quaternion, mode: MountMode): MountCalibration =
@@ -161,11 +189,17 @@ data class MountCalibration(
             }
             val forward = inverse.rotate(forwardWorld).normalized()
 
+            // Where the screen is pointing. Its horizontal component is 1 when the screen is on
+            // edge and 0 when it faces the ceiling or the floor.
+            val screenNormalWorld = phone.rotate(Vector3(0.0, 0.0, 1.0)).normalized()
+            val uprightness = Vector3(screenNormalWorld.x, screenNormalWorld.y, 0.0).length
+
             return MountCalibration(
                 reference = phone.normalized(),
                 forwardInPhoneFrame = forward,
                 longAxisInPhoneFrame = longAxis,
                 hintHorizontality = horizontality,
+                screenUprightness = uprightness,
             )
         }
     }

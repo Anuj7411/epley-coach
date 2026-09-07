@@ -253,8 +253,9 @@ private fun ProbeScreen(
                     CalibrationResult.OK -> null
                     CalibrationResult.NO_SAMPLES -> "No sensor data yet — wait a second and retry."
                     CalibrationResult.PHONE_TOO_FLAT ->
-                        "Too flat to calibrate. The phone needs to be upright enough to tell " +
-                            "which way you are facing — stand it up and try again."
+                        "The phone is not being held the way this mount needs. It has to be on " +
+                            "edge — not lying flat, not tipped fully back — so it can tell which " +
+                            "way you are facing. Position it and try again."
                 }
             },
             modifier = Modifier.fillMaxWidth(),
