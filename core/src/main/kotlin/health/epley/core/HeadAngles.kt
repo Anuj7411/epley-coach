@@ -94,8 +94,36 @@ data class MountCalibration(
     val reference: Quaternion,
     val forwardInPhoneFrame: Vector3,
     val longAxisInPhoneFrame: Vector3,
+    /**
+     * How much of the forward hint survived being flattened into the horizontal plane, 0 to 1.
+     *
+     * Near 1 the phone was held the way the instructions asked and the forward direction is well
+     * determined. Near 0 the hint was pointing almost straight up or down — a phone lying flat on
+     * a bed, say — and the forward axis is whatever numerical noise happened to be left over. This
+     * is the calibration equivalent of a division by something close to zero, and [isUsable] is
+     * how a caller refuses it instead of building an entire session on it.
+     */
+    val hintHorizontality: Double = 1.0,
 ) {
+
+    /** Whether this calibration determined the forward axis well enough to build on. */
+    val isUsable: Boolean get() = hintHorizontality >= MIN_HINT_HORIZONTALITY
+
     companion object {
+        /**
+         * Below this the forward axis is not determined and the calibration must be rejected.
+         *
+         * 0.5 is a face pointing at least 30 degrees away from vertical. Someone sitting upright
+         * and following the instruction scores close to 1.0, so this only fires when the phone is
+         * held nearly flat — face-up on a bed, or tipped fully back — at which point asking for
+         * the calibration again costs three seconds and saves the whole session.
+         */
+        const val MIN_HINT_HORIZONTALITY = 0.5
+
+        /** Derive the mount for a given way of holding the phone. */
+        fun fromUprightSample(phone: Quaternion, mode: MountMode): MountCalibration =
+            fromUprightSample(phone, mode.phoneForwardHint)
+
         /**
          * Derive the mount from a single upright, forward-facing sample.
          *
@@ -119,9 +147,14 @@ data class MountCalibration(
             val longAxis = inverse.rotate(Vector3.UP).normalized()
 
             // Take the hinted phone axis, flatten it into the horizontal plane, and bring it back.
-            val hintWorld = phone.rotate(phoneForwardHint)
+            val hintWorld = phone.rotate(phoneForwardHint).normalized()
             val horizontal = Vector3(hintWorld.x, hintWorld.y, 0.0)
-            val forwardWorld = if (horizontal.lengthSquared > 1e-6) {
+
+            // How much of the hint was actually horizontal. The hint is a unit vector, so this
+            // falls straight out as a 0..1 quality score rather than needing a separate estimate.
+            val horizontality = horizontal.length
+
+            val forwardWorld = if (horizontality > 1e-3) {
                 horizontal.normalized()
             } else {
                 Vector3(1.0, 0.0, 0.0)
@@ -132,6 +165,7 @@ data class MountCalibration(
                 reference = phone.normalized(),
                 forwardInPhoneFrame = forward,
                 longAxisInPhoneFrame = longAxis,
+                hintHorizontality = horizontality,
             )
         }
     }

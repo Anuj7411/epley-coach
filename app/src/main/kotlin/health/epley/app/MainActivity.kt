@@ -7,6 +7,8 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +19,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import health.epley.core.MountMode
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -131,11 +136,13 @@ private fun ProbeScreen(
 ) {
     val state by tracker.state.collectAsState()
     var logging by remember { mutableStateOf(isLogging) }
+    var calibrationMessage by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .safeDrawingPadding()
+            .verticalScroll(rememberScrollState())
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -146,13 +153,50 @@ private fun ProbeScreen(
             fontFamily = FontFamily.Monospace,
         )
 
-        Spacer(Modifier.height(8.dp))
+        MountPicker(
+            selected = state.mode,
+            onSelect = {
+                tracker.setMode(it)
+                calibrationMessage = null
+            },
+        )
+
+        Text(
+            text = state.mode.instruction,
+            color = Color(0xFFCCCCCC),
+            fontSize = 14.sp,
+        )
+
+        if (!state.mode.tracksTheHead) {
+            // This mode measures a hand. Saying so once, plainly, is the difference between a
+            // practice feature and a false claim about someone's treatment.
+            Text(
+                text = "PRACTICE ONLY — this reads the phone, not your head. Nothing here is a treatment.",
+                color = Color(0xFFFFD93D),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+
+        if (state.isJolted) {
+            Text(
+                text = "MOUNT MOVED — the phone turned faster than a neck can (peak " +
+                    "${state.peakRateDegPerSec.toInt()}°/s). Recalibrate before trusting these numbers.",
+                color = Color(0xFFFF6B6B),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+
+        calibrationMessage?.let {
+            Text(text = it, color = Color(0xFFFF6B6B), fontSize = 13.sp)
+        }
 
         if (!state.isCalibrated) {
             Text(
-                text = "Sit upright, face forward, hold the phone to your cheek, then calibrate.",
-                color = Color(0xFFCCCCCC),
-                fontSize = 16.sp,
+                text = "Get into that position, hold still, then calibrate.",
+                color = Color(0xFF888888),
+                fontSize = 14.sp,
             )
         }
 
@@ -204,9 +248,47 @@ private fun ProbeScreen(
         Spacer(Modifier.height(12.dp))
 
         Button(
-            onClick = { tracker.calibrate() },
+            onClick = {
+                calibrationMessage = when (tracker.calibrate()) {
+                    CalibrationResult.OK -> null
+                    CalibrationResult.NO_SAMPLES -> "No sensor data yet — wait a second and retry."
+                    CalibrationResult.PHONE_TOO_FLAT ->
+                        "Too flat to calibrate. The phone needs to be upright enough to tell " +
+                            "which way you are facing — stand it up and try again."
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
         ) { Text(if (state.isCalibrated) "RE-CALIBRATE" else "CALIBRATE") }
+
+        if (state.isCalibrated) {
+            OutlinedButton(
+                onClick = { tracker.recordUprightCheck() },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("BACK UPRIGHT — CHECK DRIFT") }
+
+            // The one honest measurement of whether the mount held. Truth here is zero on both
+            // angles, so whatever it reads is the error, and it costs nothing to take.
+            Text(
+                text = if (state.residualChecks == 0) {
+                    "Return to the calibration pose and tap the button: whatever it reads then " +
+                        "is how far the mount has drifted."
+                } else {
+                    "drift  last %.1f°   worst %.1f°   over %d check(s)   tolerance %.0f°".format(
+                        state.lastResidualDegrees ?: 0.0,
+                        state.worstResidualDegrees,
+                        state.residualChecks,
+                        state.mode.toleranceDegrees,
+                    )
+                },
+                color = when {
+                    state.residualChecks == 0 -> Color(0xFF888888)
+                    state.worstResidualDegrees <= state.mode.toleranceDegrees / 2 -> Color(0xFF6BCB77)
+                    else -> Color(0xFFFF6B6B)
+                },
+                fontSize = 12.sp,
+                fontFamily = FontFamily.Monospace,
+            )
+        }
 
         Button(
             onClick = { logging = onToggleLogging() },
@@ -220,6 +302,45 @@ private fun ProbeScreen(
                 fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace,
             )
+        }
+    }
+}
+
+/**
+ * Choose how the phone is being held.
+ *
+ * On screen before anything else, because the mount decides both the tolerance the app can promise
+ * and which way it thinks the face points. A user with no headband picks the first option and
+ * loses nothing but two degrees of tolerance; a reviewer with no intention of lying on a bed picks
+ * the last and sees the whole thing work in their hand.
+ */
+@Composable
+private fun MountPicker(
+    selected: MountMode,
+    onSelect: (MountMode) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            "HOW ARE YOU HOLDING THE PHONE",
+            color = Color(0xFF888888),
+            fontSize = 11.sp,
+            fontFamily = FontFamily.Monospace,
+        )
+        for (mode in MountMode.entries) {
+            val isSelected = mode == selected
+            Button(
+                onClick = { onSelect(mode) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isSelected) Color(0xFF2A4A7F) else Color(0xFF1A1A1A),
+                    contentColor = if (isSelected) Color.White else Color(0xFF999999),
+                ),
+            ) {
+                Text(
+                    text = "${mode.displayName}   ±${mode.toleranceDegrees.toInt()}°",
+                    fontSize = 14.sp,
+                )
+            }
         }
     }
 }
@@ -274,9 +395,11 @@ internal class CsvLogger(directory: File) {
         // swing_deg and rotation_reliable are diagnostics, not clinical values. They record how
         // well-conditioned the twist decomposition was for each sample, so a suspicious reading
         // can be checked after the fact rather than argued about.
+        // mount_mode and is_jolted turn an unexplained recording into an explained one: a run
+        // full of nonsense is very different evidence if the mount was already flagged as moved.
         writer.write(
-            "timestamp_nanos,neck_extension_deg,head_rotation_deg,swing_deg," +
-                "rotation_reliable,rate_deg_per_sec,is_still\n",
+            "timestamp_nanos,mount_mode,neck_extension_deg,head_rotation_deg,swing_deg," +
+                "rotation_reliable,rate_deg_per_sec,is_still,is_jolted\n",
         )
     }
 
@@ -284,12 +407,14 @@ internal class CsvLogger(directory: File) {
         val pose = state.pose ?: return
         writer.write(
             "${state.lastTimestampNanos}," +
+                "${state.mode.name}," +
                 "%.3f,".format(pose.neckExtensionDegrees) +
                 "%.3f,".format(pose.headRotationDegrees) +
                 "%.3f,".format(pose.swingDegrees) +
                 "${pose.isRotationReliable}," +
                 "%.3f,".format(state.angularRateDegPerSec) +
-                "${state.isStill}\n",
+                "${state.isStill}," +
+                "${state.isJolted}\n",
         )
     }
 
