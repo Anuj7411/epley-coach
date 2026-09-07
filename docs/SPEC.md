@@ -84,8 +84,8 @@ The manoeuvre is not the bottleneck. Doing it at the right angle is.
 | ID | Requirement | Rationale |
 |---|---|---|
 | NFR-1 | Angle accuracy within 5° of a physical inclinometer, static | The error being corrected is 40–51°; 5° is an order of magnitude inside it |
-| NFR-2 | No sample-to-sample discontinuity above 30° | 30° at 50 Hz is 1,500°/s, far beyond human head motion. **Verified: worst observed 5.16°** |
-| NFR-3 | Yaw drift under 10° over a 90-second session | The manoeuvre runs ~60 s from calibration. **Measured: −4.2° over 264 s** |
+| NFR-2 | No sample-to-sample discontinuity above 30° | 30° at 50 Hz is 1,500°/s, far beyond human head motion. **Verified: worst observed 5.16°; 3.08° in the 8 Sept session** |
+| NFR-3 | Yaw drift under 10° over a 90-second session | The manoeuvre runs ~60 s from calibration. **Measured: −4.2° over 264 s moving; +0.006° over 107 s at rest** |
 | NFR-4 | Screen stays on for the whole session | Non-wakeup sensors stop delivering when the CPU suspends |
 | NFR-5 | Zero network access on the measurement path | Nothing to breach, nothing to consent to |
 | NFR-6 | No health data touches the purchase path | Ethical floor for monetising a health tool |
