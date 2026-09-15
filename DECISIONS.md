@@ -1,5 +1,7 @@
 # Decision log
 
+> **Current product: Epley Coach (BPPV), not CRT.** CRT was abandoned after the red-team review below. BPPV, killed once in this log, was revived; the objections recorded against it are re-examined and partly corrected in [docs/RESEARCH.md](docs/RESEARCH.md).
+
 Everything decided, and everything killed, with the evidence. Written so any future session
 can pick this up cold without re-running the research.
 

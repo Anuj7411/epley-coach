@@ -1,5 +1,7 @@
 # Epley Coach — product specification and architecture
 
+> Evidence re-verified 2026-09-16. Sources and corrections in [RESEARCH.md](RESEARCH.md).
+
 Shipaton 2026, Next Gen track. Android. Solo build.
 Written 2026-09-08. Deadline 2026-09-30.
 
@@ -22,22 +24,29 @@ and works. It only works if the head angles are right.
 | Of those, receive effective treatment | **8%** |
 | Head-angle error, self-administered from a video | **40–51°** |
 | Head-angle error, expert-guided | 14–24° |
-| Head-angle error, IMU + audio guidance (published) | **7.6°** |
-| Self-treatment outcome with IMU guidance vs specialist | 61.1% vs 66.7% — **statistically equivalent** (n=88) |
+| IMU + audio guidance, attempts within specialist target range (published, dedicated wearable) | **95.9%** |
+| Self-treatment outcome with IMU guidance vs specialist | 61.1% vs 66.7%, P>0.05 (n=88) — **non-randomised; authors call it hypothesis-generating** |
+| Recurrent BPPV self-treated with validated triage questionnaire vs previous diagnosis (RCT, n=585) | **72.4% vs 42.9%** |
 
-The manoeuvre is not the bottleneck. Doing it at the right angle is.
+The manoeuvre is not the bottleneck. Two things are, and each has a trial behind it: treating
+the **right canal** (recurrences move — reusing the last diagnosis resolves 42.9%), and holding
+the **right angles** (unaided self-treatment is off by 40–51°).
 
 ### One-line pitch
 
-> For someone diagnosed with BPPV, Epley Coach turns the phone into a head-angle instrument, so
-> they can perform the manoeuvre at the angles that actually work instead of guessing from a video.
+> BPPV comes back for half of patients within about three and a half years. Epley Coach does the
+> two things the trials show matter when it does: it identifies the canal with the questionnaire
+> validated in a 585-patient RCT, then guides the manoeuvre at the right angles using the phone's
+> own sensor.
 
 ---
 
 ## 2. Scope
 
 ### In scope
+- Six-question canal triage from JAMA Neurology 2023, with exits for non-BPPV and horizontal canal
 - Guided **posterior-canal Epley** manoeuvre, four positions
+- Post-manoeuvre guidance and a recurrence log
 - Real-time head-angle measurement (neck extension, head rotation)
 - **Audio-first** guidance: spoken cues + haptics. Screen is secondary
 - Dwell-gated hold timers — the timer will not start unless the head is in range *and* still
@@ -48,7 +57,7 @@ The manoeuvre is not the bottleneck. Doing it at the right angle is.
 ### Explicitly out of scope, and why
 | Excluded | Reason |
 |---|---|
-| Diagnosing **which ear** is affected | Requires observing nystagmus. Phone is against the face, eyes are shut. Physically impossible with one phone |
+| **Confirming** the canal by observing nystagmus | Phone is against the face, eyes are shut. Physically impossible with one phone. We use the validated symptom triage instead, and state its 71.2% accuracy |
 | Diagnosing BPPV at all | The user must already have been told they have it. We guide treatment, we do not diagnose |
 | Other canals (horizontal, anterior) | Different manoeuvres. Scope creep. Posterior canal is 85–95% of BPPV |
 | Cloud sync, accounts, analytics on health data | No server means no breach, no consent burden, no data-protection surface |
@@ -71,7 +80,7 @@ The manoeuvre is not the bottleneck. Doing it at the right angle is.
 | FR-9 | Mark head rotation unreliable when the twist decomposition is ill-conditioned, rather than reporting a confident wrong number | Must |
 | FR-10 | Record each session locally: timestamps, angles achieved, holds completed, aborts | Should |
 | FR-11 | Export session history as CSV | Should — **this is the paid feature** |
-| FR-12 | Offer left/right side selection, explicitly labelled as the user's own report, not a diagnosis | Should |
+| FR-12 | Determine canal and side with the six-question triage validated in JAMA Neurology 2023, not by asking which ear was affected last time — that approach was the trial's control arm and resolved 42.9%. Exit if questions 1-3 indicate non-BPPV; refuse the Epley if the answers indicate the horizontal canal | **Must** — see docs/RESEARCH.md §6 |
 | FR-13 | Replay a completed session's angle trace | Could |
 | FR-14 | Support three mounts — cheek hold, headband, and in-hand practice — each with its own stated tolerance. No mount requires equipment the user does not already own | Must |
 | FR-15 | Refuse a calibration taken with the phone too near flat, with a message saying what to do instead, rather than building the session on an undetermined forward axis | Must |
@@ -281,11 +290,14 @@ proving about efficacy is not, and is out of reach.** Saying so plainly is the h
    recalibration. And because the Epley returns the user to sitting upright each cycle, which is
    the pose the calibration was taken in, the app can check itself against a known answer of zero
    and report the drift it actually finds. The residual is measured, not assumed.
-2. **We cannot determine which ear is affected.** The user tells us which side felt worse. A 2023
-   JAMA Neurology trial showed symptom-based lateralisation still produces 72.4% vs 42.9%
-   resolution, so it is good enough to help — and it is labelled as a guess.
-3. **DizzyFIX built essentially this, won an RCT, then delisted the app** and sold a plastic
-   device instead. No public explanation exists. We cannot claim to know something they did not.
+2. **We cannot observe which canal is affected.** We use the six-question triage from the 2023
+   JAMA Neurology RCT, which resolved 72.4% of recurrences against 42.9% for reusing the previous
+   diagnosis. Its accuracy in the authors' earlier study was 71.2%, and we say so. It is better
+   than guessing from last time; it is not a diagnosis.
+3. **Phone-as-sensor has no clinical outcome data.** The published outcome studies used a
+   dedicated wearable IMU. DizzyFIX used an iPhone, but its randomised study was 41 medical
+   students on a healthy volunteer, scored for correctness — no patients, no cure rates. We can
+   claim angle accuracy once bench-tested, and nothing about outcomes.
 4. **The app category has almost no users.** Highest rating count across the entire iOS vertigo
    category is 67. This is a real market signal and we will not make market-size claims.
 5. **Yaw drifts.** Gravity anchors tilt but not rotation-about-gravity. Measured, reported, and
