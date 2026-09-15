@@ -199,7 +199,7 @@ drift, verified accuracy, and honest limits written down.
 ## 10. Build priorities for the remaining 14 days, in order
 
 1. Replace "which ear were you told" with the six-question triage, including the exit paths
-2. Audio and haptic guidance — required for position four
+2. Guidance in two channels: illustrated pose preview and live head-over-target figure on screen, plus voice and haptics for the moments the screen is out of sight — the successful trial arms all showed patients the manoeuvre (video), not only told them
 3. Unskippable red-flag screen
 4. Post-manoeuvre guidance and a recurrence log (the gap the 2026 authors named)
 5. Bench accuracy test with an angle finder → the headline number

@@ -48,7 +48,7 @@ the **right angles** (unaided self-treatment is off by 40–51°).
 - Guided **posterior-canal Epley** manoeuvre, four positions
 - Post-manoeuvre guidance and a recurrence log
 - Real-time head-angle measurement (neck extension, head rotation)
-- **Audio-first** guidance: spoken cues + haptics. Screen is secondary
+- **Guidance split by what the user can perceive**: illustrated pose preview before each position (user is upright and can see); live head-over-target figure during holds (for a helper, practice mode, the video); voice and haptics whenever the screen is out of sight — cheek hold, face down, eyes shut
 - Dwell-gated hold timers — the timer will not start unless the head is in range *and* still
 - Blocking red-flag safety screener before any manoeuvre
 - Session history, on device
@@ -87,6 +87,8 @@ the **right angles** (unaided self-treatment is off by 40–51°).
 | FR-16 | Latch a warning when the phone rotates faster than a neck can, and require recalibration before the reading is trusted again | Must |
 | FR-17 | Offer a return-to-upright drift check that reports the measured mount error, since upright is a pose whose true reading is known to be zero | Must |
 | FR-18 | In practice mode, state on screen that the reading describes the phone and not the user's head | Must |
+| FR-19 | Before each position, while the user is still able to see the screen, show an illustration of the target pose with its angles, and speak it | Must |
+| FR-20 | During a hold, show a live head figure that moves with the sensor over a dashed outline of the target, turning green when they overlap, with a countdown ring. Serves a helper holding the phone, practice mode, and the demo video | Must |
 
 ## 4. Non-functional requirements
 
