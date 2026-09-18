@@ -83,7 +83,11 @@ class HeadTracker(
         rotationUnwrapper.reset()
         mountMonitor.clear()
         mountResidual.reset()
-        _state.value = TrackerState(mode = mode, sampleCount = _state.value.sampleCount)
+        _state.value = TrackerState(
+            mode = mode,
+            sampleCount = _state.value.sampleCount,
+            calibrationGeneration = _state.value.calibrationGeneration + 1,
+        )
     }
 
     fun start() {
@@ -127,6 +131,7 @@ class HeadTracker(
             samplesSinceCalibration = 0,
             lastCalibrationRejected = false,
             isJolted = false,
+            calibrationGeneration = _state.value.calibrationGeneration + 1,
         )
         return CalibrationResult.OK
     }
@@ -153,7 +158,10 @@ class HeadTracker(
     fun clearCalibration() {
         calibration = null
         rotationUnwrapper.reset()
-        _state.value = _state.value.copy(isCalibrated = false)
+        _state.value = _state.value.copy(
+            isCalibrated = false,
+            calibrationGeneration = _state.value.calibrationGeneration + 1,
+        )
     }
 
     override fun onSensorChanged(event: SensorEvent) {
@@ -248,6 +256,12 @@ data class TrackerState(
     val samplesSinceCalibration: Long = 0,
     val sensorAccuracy: Int = SensorManager.SENSOR_STATUS_UNRELIABLE,
     val lastTimestampNanos: Long = 0,
+    /**
+     * Bumped every time the mounting reference changes — a new calibration, a cleared one, or a
+     * new mount mode. Anything learned relative to the old reference, such as which way counts
+     * as a turn toward the affected ear, is void once this moves.
+     */
+    val calibrationGeneration: Int = 0,
 ) {
 
     /** Whether the current pose is close enough to a target for the mount in use. */

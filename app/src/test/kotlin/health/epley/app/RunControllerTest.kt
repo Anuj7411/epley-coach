@@ -37,12 +37,14 @@ class RunControllerTest {
         pose: HeadPose,
         nanos: Long,
         rate: Double = 0.0,
+        calibration: Int = 1,
     ) = TrackerState(
         pose = pose,
         mode = MountMode.CHEEK,
         angularRateDegPerSec = rate,
         isCalibrated = true,
         lastTimestampNanos = nanos,
+        calibrationGeneration = calibration,
     )
 
     /** Feed steady samples at 50 Hz starting from [fromNanos]; returns the next free timestamp. */
@@ -125,6 +127,39 @@ class RunControllerTest {
         c.learnPolarity(sample(HeadPose(0.0, 40.0), nanos = 0))
         assertNotNull(c.state.value.polarity)
         c.confirmTriage(TriageOutcome.PosteriorCanal(Side.RIGHT))
+        assertNull(c.state.value.polarity)
+        assertFalse(c.state.value.canStart)
+    }
+
+    @Test
+    fun `recalibrating discards the learned direction`() {
+        // Which way counts as positive is fixed by the calibration. Moving the phone to the other
+        // cheek and recalibrating can invert it, so a direction learned before no longer holds.
+        val c = RunController()
+        c.confirmTriage(TriageOutcome.PosteriorCanal(Side.LEFT))
+        c.learnPolarity(sample(HeadPose(0.0, 40.0), nanos = 0, calibration = 1))
+        assertTrue(c.state.value.canStart)
+
+        c.onTrackerState(sample(HeadPose(0.0, 0.0), nanos = 20_000_000, calibration = 2))
+        assertNull(c.state.value.polarity)
+        assertFalse(c.state.value.canStart)
+        assertNotNull(c.state.value.polarityMessage)
+    }
+
+    @Test
+    fun `losing calibration discards the learned direction`() {
+        val c = RunController()
+        c.confirmTriage(TriageOutcome.PosteriorCanal(Side.LEFT))
+        c.learnPolarity(sample(HeadPose(0.0, 40.0), nanos = 0))
+        c.onTrackerState(TrackerState(pose = null, isCalibrated = false, lastTimestampNanos = 1))
+        assertNull(c.state.value.polarity)
+    }
+
+    @Test
+    fun `a stopped or finished run asks the questions again next time`() {
+        val c = controllerReadyToRun()
+        c.stop()
+        assertNull(c.state.value.triage)
         assertNull(c.state.value.polarity)
         assertFalse(c.state.value.canStart)
     }

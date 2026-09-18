@@ -26,6 +26,9 @@ class RunController {
     private var lastTimestampNanos: Long = 0L
     private var secondsSinceStepCompleted = 0.0
 
+    /** The calibration the learned direction belongs to. See [TrackerState.calibrationGeneration]. */
+    private var polarityGeneration = -1
+
     /**
      * Record what the six-question triage concluded.
      *
@@ -64,6 +67,7 @@ class RunController {
                     "${RotationPolarity.MIN_LEARNING_TURN_DEGREES.toInt()}° — then tap again.",
             )
         } else {
+            polarityGeneration = state.calibrationGeneration
             _state.value.copy(polarity = learned, polarityMessage = null)
         }
     }
@@ -87,13 +91,39 @@ class RunController {
         _state.value = _state.value.copy(running = true, engineState = null)
     }
 
+    /**
+     * End the run, finished or abandoned.
+     *
+     * The triage and the learned direction go with it. The next attack may be in the other ear or
+     * a different canal, and reusing today's answers is exactly the habit the questionnaire exists
+     * to replace.
+     */
     fun stop() {
         engine = null
-        _state.value = _state.value.copy(running = false, engineState = null)
+        _state.value = _state.value.copy(
+            running = false,
+            engineState = null,
+            triage = null,
+            polarity = null,
+            polarityMessage = null,
+        )
     }
 
     /** Feed one sensor sample into the run. */
     fun onTrackerState(tracker: TrackerState) {
+        // The direction is only meaningful against the calibration it was learned under. Moving
+        // the phone to the other cheek and recalibrating can invert it, and a stale one would run
+        // the whole manoeuvre mirrored toward the healthy ear.
+        if (_state.value.polarity != null &&
+            (!tracker.isCalibrated || tracker.calibrationGeneration != polarityGeneration)
+        ) {
+            val side = if (_state.value.side == Side.LEFT) "left" else "right"
+            _state.value = _state.value.copy(
+                polarity = null,
+                polarityMessage = "The phone was recalibrated, so turn toward your $side again and tap.",
+            )
+        }
+
         val e = engine ?: return
         val pose = tracker.pose ?: return
 
