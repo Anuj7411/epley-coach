@@ -42,6 +42,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import health.epley.core.MountMode
 import health.epley.core.Side
+import health.epley.core.TriageOutcome
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -98,8 +99,17 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
                     val run by runController.state.collectAsState()
                     val trackerState by tracker.state.collectAsState()
+                    var showTriage by remember { mutableStateOf(false) }
 
-                    if (run.running) {
+                    if (showTriage) {
+                        TriageScreen(
+                            onFinished = {
+                                runController.confirmTriage(it)
+                                showTriage = false
+                            },
+                            onCancel = { showTriage = false },
+                        )
+                    } else if (run.running) {
                         RunScreen(
                             run = run,
                             toleranceDegrees = trackerState.mode.toleranceDegrees,
@@ -110,6 +120,7 @@ class MainActivity : ComponentActivity() {
                             tracker = tracker,
                             run = run,
                             controller = runController,
+                            onOpenTriage = { showTriage = true },
                             onToggleLogging = ::toggleLogging,
                             isLogging = logger != null,
                             logDirectory = getExternalFilesDir(null)?.absolutePath ?: "",
@@ -151,6 +162,7 @@ private fun ProbeScreen(
     tracker: HeadTracker,
     run: RunUiState,
     controller: RunController,
+    onOpenTriage: () -> Unit,
     onToggleLogging: () -> Boolean,
     isLogging: Boolean,
     logDirectory: String,
@@ -312,11 +324,12 @@ private fun ProbeScreen(
             )
         }
 
-        if (state.isCalibrated) {
+        run {
             GuidedRunSetup(
                 run = run,
                 controller = controller,
                 trackerState = state,
+                onOpenTriage = onOpenTriage,
                 onStart = {
                     controller.start(
                         toleranceDegrees = state.mode.toleranceDegrees,
@@ -345,46 +358,70 @@ private fun ProbeScreen(
 /**
  * The two things a guided run needs that calibration does not supply.
  *
- * Which ear the user reports as affected, and — separately — which way the sensor's positive
- * rotation points. The second cannot be derived from the first: the sign falls out of which cheek
- * the phone is against and which way round it sits, so it is learned by asking for one turn and
- * watching what happens. Assuming it would run the whole manoeuvre mirrored.
+ * Which canal and side are involved — from the six-question triage, never from what the user
+ * remembers being told last time — and, separately, which way the sensor's positive rotation
+ * points. The second cannot be derived from the first: the sign falls out of which cheek the phone
+ * is against and which way round it sits, so it is learned by asking for one turn and watching.
  */
 @Composable
 private fun GuidedRunSetup(
     run: RunUiState,
     controller: RunController,
     trackerState: TrackerState,
+    onOpenTriage: () -> Unit,
     onStart: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            "WHICH EAR WERE YOU TOLD IS AFFECTED",
+            "WHICH EAR, AND WHICH TYPE",
             color = Color(0xFF888888),
             fontSize = 11.sp,
             fontFamily = FontFamily.Monospace,
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            for (side in Side.entries) {
-                val selected = side == run.side
-                Button(
-                    onClick = { controller.setSide(side) },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (selected) Color(0xFF2A4A7F) else Color(0xFF1A1A1A),
-                        contentColor = if (selected) Color.White else Color(0xFF999999),
-                    ),
-                ) { Text(if (side == Side.LEFT) "LEFT" else "RIGHT") }
+
+        val triage = run.triage
+        if (triage !is TriageOutcome.PosteriorCanal) {
+            Text(
+                text = when (triage) {
+                    is TriageOutcome.HorizontalCanal ->
+                        "Your last answers pointed to a type the Epley doesn't treat."
+                    is TriageOutcome.NotConsistentWithBppv ->
+                        "Your last answers didn't match the BPPV pattern. See a doctor."
+                    else -> "BPPV often comes back in a different ear or canal, so answer six " +
+                        "quick questions each time rather than going by last time."
+                },
+                color = if (triage == null) Color(0xFFCCCCCC) else Color(0xFFFFD93D),
+                fontSize = 13.sp,
+            )
+            Button(onClick = onOpenTriage, modifier = Modifier.fillMaxWidth()) {
+                Text(if (triage == null) "ANSWER 6 QUESTIONS" else "ANSWER AGAIN")
             }
+            return@Column
+        }
+
+        val sideWord = if (triage.side == Side.LEFT) "left" else "right"
+        Text(
+            "Posterior canal, $sideWord ear — from your answers.",
+            color = Color(0xFF6BCB77),
+            fontSize = 14.sp,
+        )
+        OutlinedButton(onClick = onOpenTriage, modifier = Modifier.fillMaxWidth()) {
+            Text("ANSWER AGAIN")
+        }
+
+        if (!trackerState.isCalibrated) {
+            Text(
+                "Next: hold the phone as chosen above and calibrate, then come back here.",
+                color = Color(0xFF888888),
+                fontSize = 13.sp,
+            )
+            return@Column
         }
 
         Text(
             text = if (run.polarity == null) {
-                "Now turn your head toward that side, hold it there, and tap below. This teaches " +
-                    "the app which direction is which — it cannot work that out on its own."
+                "Now turn your head toward your $sideWord, hold it there, and tap below. This " +
+                    "teaches the app which direction is which — it cannot work that out on its own."
             } else {
                 "Direction learned."
             },
@@ -399,7 +436,7 @@ private fun GuidedRunSetup(
         OutlinedButton(
             onClick = { controller.learnPolarity(trackerState) },
             modifier = Modifier.fillMaxWidth(),
-        ) { Text(if (run.polarity == null) "I AM TURNED THAT WAY" else "LEARN DIRECTION AGAIN") }
+        ) { Text(if (run.polarity == null) "I'M TURNED TO MY ${sideWord.uppercase()}" else "LEARN DIRECTION AGAIN") }
 
         Button(
             onClick = onStart,

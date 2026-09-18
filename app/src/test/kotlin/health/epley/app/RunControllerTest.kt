@@ -5,7 +5,9 @@ import health.epley.core.Guidance
 import health.epley.core.HeadPose
 import health.epley.core.MountMode
 import health.epley.core.RotationPolarity
+import health.epley.core.HorizontalType
 import health.epley.core.Side
+import health.epley.core.TriageOutcome
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -26,7 +28,7 @@ class RunControllerTest {
     private val stillness = HeadTracker.STILLNESS_THRESHOLD_DEG_PER_SEC
 
     private fun controllerReadyToRun(): RunController = RunController().apply {
-        setSide(Side.LEFT)
+        confirmTriage(TriageOutcome.PosteriorCanal(Side.LEFT))
         learnPolarity(sample(HeadPose(0.0, 45.0), nanos = 0))
         start(tolerance, stillness)
     }
@@ -60,9 +62,35 @@ class RunControllerTest {
     }
 
     @Test
+    fun `a run cannot start without a posterior canal triage`() {
+        // The Epley treats the posterior canal only. Anything else the questionnaire concludes
+        // must leave the start button unreachable, however the direction step went.
+        for (outcome in listOf(
+            null,
+            TriageOutcome.HorizontalCanal(Side.LEFT, HorizontalType.CANALITHIASIS),
+            TriageOutcome.NotConsistentWithBppv(listOf(3)),
+            TriageOutcome.Incomplete(4),
+        )) {
+            val c = RunController()
+            if (outcome != null) c.confirmTriage(outcome)
+            c.learnPolarity(sample(HeadPose(0.0, 45.0), nanos = 0))
+            assertFalse(c.state.value.canStart, "could start after $outcome")
+            c.start(tolerance, stillness)
+            assertFalse(c.state.value.running)
+        }
+    }
+
+    @Test
+    fun `the side comes from the triage, not from a guess`() {
+        val c = RunController()
+        c.confirmTriage(TriageOutcome.PosteriorCanal(Side.RIGHT))
+        assertEquals(Side.RIGHT, c.state.value.side)
+    }
+
+    @Test
     fun `a run cannot start before the direction is learned`() {
         val c = RunController()
-        c.setSide(Side.LEFT)
+        c.confirmTriage(TriageOutcome.PosteriorCanal(Side.LEFT))
         assertFalse(c.state.value.canStart)
         c.start(tolerance, stillness)
         assertFalse(c.state.value.running)
@@ -80,6 +108,7 @@ class RunControllerTest {
     @Test
     fun `a clear turn teaches the direction and clears the complaint`() {
         val c = RunController()
+        c.confirmTriage(TriageOutcome.PosteriorCanal(Side.LEFT))
         c.learnPolarity(sample(HeadPose(0.0, -40.0), nanos = 0))
         assertNotNull(c.state.value.polarity)
         assertNull(c.state.value.polarityMessage)
@@ -89,12 +118,13 @@ class RunControllerTest {
     }
 
     @Test
-    fun `changing the affected side discards the learned direction`() {
+    fun `a new triage discards the learned direction`() {
         // The turn was learned for the old side. Carrying it over would mirror the manoeuvre.
         val c = RunController()
+        c.confirmTriage(TriageOutcome.PosteriorCanal(Side.LEFT))
         c.learnPolarity(sample(HeadPose(0.0, 40.0), nanos = 0))
         assertNotNull(c.state.value.polarity)
-        c.setSide(Side.RIGHT)
+        c.confirmTriage(TriageOutcome.PosteriorCanal(Side.RIGHT))
         assertNull(c.state.value.polarity)
         assertFalse(c.state.value.canStart)
     }
@@ -196,7 +226,7 @@ class RunControllerTest {
     @Test
     fun `the polarity learned is the one the run actually uses`() {
         val c = RunController()
-        c.setSide(Side.RIGHT)
+        c.confirmTriage(TriageOutcome.PosteriorCanal(Side.RIGHT))
         // The user turned right and the sensor read negative, so targets must be mirrored.
         c.learnPolarity(sample(HeadPose(0.0, -38.0), nanos = 0))
         c.start(tolerance, stillness)

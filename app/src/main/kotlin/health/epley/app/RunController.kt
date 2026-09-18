@@ -6,6 +6,7 @@ import health.epley.core.Guidance
 import health.epley.core.ManeuverEngine
 import health.epley.core.RotationPolarity
 import health.epley.core.Side
+import health.epley.core.TriageOutcome
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -25,9 +26,22 @@ class RunController {
     private var lastTimestampNanos: Long = 0L
     private var secondsSinceStepCompleted = 0.0
 
-    /** Record which side the user reports as affected. Their report, not a diagnosis. */
-    fun setSide(side: Side) {
-        _state.value = _state.value.copy(side = side, polarity = null, polarityMessage = null)
+    /**
+     * Record what the six-question triage concluded.
+     *
+     * The affected side comes from here and nowhere else. Asking the user which ear was affected
+     * last time is exactly the control arm of the JAMA Neurology 2023 trial, which resolved 42.9%
+     * against 72.4% for the questionnaire — recurrences often move. Any new triage discards the
+     * learned turn direction, because that was learned toward the old side.
+     */
+    fun confirmTriage(outcome: TriageOutcome) {
+        val side = (outcome as? TriageOutcome.PosteriorCanal)?.side ?: _state.value.side
+        _state.value = _state.value.copy(
+            triage = outcome,
+            side = side,
+            polarity = null,
+            polarityMessage = null,
+        )
     }
 
     /**
@@ -54,8 +68,13 @@ class RunController {
         }
     }
 
-    /** Begin a guided run. Does nothing without a learned direction. */
+    /**
+     * Begin a guided run. Does nothing unless [RunUiState.canStart] — a posterior-canal triage and
+     * a learned direction. The check lives here and not only on the button, so no other caller can
+     * start an Epley the questionnaire ruled out.
+     */
     fun start(toleranceDegrees: Double, stillnessThresholdDegPerSec: Double) {
+        if (!_state.value.canStart) return
         val polarity = _state.value.polarity ?: return
         engine = ManeuverEngine(
             steps = Epley.steps(),
@@ -123,6 +142,9 @@ data class RunUiState(
     val polarity: RotationPolarity? = null,
     val polarityMessage: String? = null,
     val engineState: EngineState? = null,
+    val triage: TriageOutcome? = null,
 ) {
-    val canStart: Boolean get() = polarity != null
+    /** The Epley treats the posterior canal only, so nothing else the triage says can start it. */
+    val canStart: Boolean
+        get() = triage is TriageOutcome.PosteriorCanal && polarity != null
 }
