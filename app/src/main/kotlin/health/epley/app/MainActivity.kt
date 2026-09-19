@@ -41,6 +41,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import health.epley.core.MountMode
+import health.epley.core.SafetyOutcome
 import health.epley.core.Side
 import health.epley.core.TriageOutcome
 import kotlinx.coroutines.launch
@@ -105,8 +106,17 @@ class MainActivity : ComponentActivity() {
                     val run by runController.state.collectAsState()
                     val trackerState by tracker.state.collectAsState()
                     var showTriage by remember { mutableStateOf(false) }
+                    var showSafety by remember { mutableStateOf(false) }
 
-                    if (showTriage) {
+                    if (showSafety) {
+                        SafetyScreen(
+                            onFinished = {
+                                runController.confirmSafety(it)
+                                showSafety = false
+                            },
+                            onCancel = { showSafety = false },
+                        )
+                    } else if (showTriage) {
                         TriageScreen(
                             onFinished = {
                                 runController.confirmTriage(it)
@@ -129,6 +139,7 @@ class MainActivity : ComponentActivity() {
                             run = run,
                             controller = runController,
                             onOpenTriage = { showTriage = true },
+                            onOpenSafety = { showSafety = true },
                             onToggleLogging = ::toggleLogging,
                             isLogging = logger != null,
                             logDirectory = getExternalFilesDir(null)?.absolutePath ?: "",
@@ -176,6 +187,7 @@ private fun ProbeScreen(
     run: RunUiState,
     controller: RunController,
     onOpenTriage: () -> Unit,
+    onOpenSafety: () -> Unit,
     onToggleLogging: () -> Boolean,
     isLogging: Boolean,
     logDirectory: String,
@@ -343,6 +355,7 @@ private fun ProbeScreen(
                 controller = controller,
                 trackerState = state,
                 onOpenTriage = onOpenTriage,
+                onOpenSafety = onOpenSafety,
                 onStart = {
                     controller.start(
                         stillnessThresholdDegPerSec = HeadTracker.STILLNESS_THRESHOLD_DEG_PER_SEC,
@@ -382,9 +395,28 @@ private fun GuidedRunSetup(
     controller: RunController,
     trackerState: TrackerState,
     onOpenTriage: () -> Unit,
+    onOpenSafety: () -> Unit,
     onStart: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Safety first, every run, before anything else can be reached.
+        if (run.safety != SafetyOutcome.Clear) {
+            Text(
+                text = when (run.safety) {
+                    SafetyOutcome.Emergency -> "Your safety check found emergency signs. Get help now."
+                    SafetyOutcome.SeeDoctor -> "Your safety check said to see a doctor before self-treating."
+                    else -> "Before every run: a two-question safety check."
+                },
+                color = if (run.safety == null) Color(0xFFCCCCCC) else Color(0xFFFF6B6B),
+                fontSize = 13.sp,
+            )
+            Button(onClick = onOpenSafety, modifier = Modifier.fillMaxWidth()) {
+                Text(if (run.safety == null) "SAFETY CHECK" else "CHECK AGAIN")
+            }
+            return@Column
+        }
+        Text("Safety check passed.", color = Color(0xFF6BCB77), fontSize = 13.sp)
+
         Text(
             "WHICH EAR, AND WHICH TYPE",
             color = Color(0xFF888888),

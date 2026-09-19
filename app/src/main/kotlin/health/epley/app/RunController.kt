@@ -8,6 +8,7 @@ import health.epley.core.Guidance
 import health.epley.core.HeadPose
 import health.epley.core.ManeuverEngine
 import health.epley.core.RotationPolarity
+import health.epley.core.SafetyOutcome
 import health.epley.core.Side
 import health.epley.core.TriageOutcome
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +37,15 @@ class RunController(
 
     /** The calibration the learned direction belongs to. See [TrackerState.calibrationGeneration]. */
     private var polarityGeneration = -1
+
+    /**
+     * Record the safety screen's result. Only [SafetyOutcome.Clear] lets a run start, and it is
+     * cleared again when the run ends: symptoms change between attacks, so a check passed
+     * yesterday says nothing about today.
+     */
+    fun confirmSafety(outcome: SafetyOutcome) {
+        _state.value = _state.value.copy(safety = outcome)
+    }
 
     /**
      * Record what the six-question triage concluded.
@@ -126,6 +136,7 @@ class RunController(
             running = false,
             engineState = null,
             triage = null,
+            safety = null,
             polarity = null,
             polarityMessage = null,
         )
@@ -197,12 +208,19 @@ data class RunUiState(
     val polarityMessage: String? = null,
     val engineState: EngineState? = null,
     val triage: TriageOutcome? = null,
+    /** The safety screen's result for this run. Unskippable, never paywalled. */
+    val safety: SafetyOutcome? = null,
     /** The latest head pose during a run, for the live head dials. */
     val pose: HeadPose? = null,
     /** Practice mode: the phone stands in for the head, and the words say so. */
     val practice: Boolean = false,
 ) {
-    /** The Epley treats the posterior canal only, so nothing else the triage says can start it. */
+    /**
+     * A run needs all three: a cleared safety check, a posterior-canal triage (the only type the
+     * Epley treats), and a learned turn direction.
+     */
     val canStart: Boolean
-        get() = triage is TriageOutcome.PosteriorCanal && polarity != null
+        get() = safety == SafetyOutcome.Clear &&
+            triage is TriageOutcome.PosteriorCanal &&
+            polarity != null
 }
