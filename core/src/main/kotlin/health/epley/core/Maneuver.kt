@@ -246,6 +246,9 @@ class ManeuverEngine(
     private var secondsOutOfPosition = 0.0
     private var finished = false
 
+    /** True while a hold is running. Keeping one takes less stillness than starting one. */
+    private var holding = false
+
     /**
      * Advance the manoeuvre by one sample.
      *
@@ -263,18 +266,25 @@ class ManeuverEngine(
         val correction = Correction(pitchError, rotationError)
 
         val inPosition = maxOf(abs(pitchError), abs(rotationError)) <= step.toleranceDegrees
-        val isStill = abs(angularRateDegPerSec) < stillnessThresholdDegPerSec
+        // Hysteresis. Starting a hold needs real stillness, so a head sweeping through the target
+        // is never credited. Keeping one only needs the absence of real movement: a hand-held
+        // phone trembles around the start threshold, and without this the state flipped between
+        // holding and settling several times a second on hardware.
+        val threshold = if (holding) stillnessThresholdDegPerSec * HOLD_HYSTERESIS else stillnessThresholdDegPerSec
+        val isStill = abs(angularRateDegPerSec) < threshold
 
         // A rotation reading we do not trust cannot be allowed to satisfy a hold. Reporting
         // SEEKING is the honest response: the user is told to reposition rather than credited for
         // a position we cannot confirm.
         if (!pose.isRotationReliable) {
+            holding = false
             secondsOutOfPosition += deltaSeconds
             if (secondsOutOfPosition >= RESET_AFTER_SECONDS_OUT) heldSeconds = 0.0
             return state(Guidance.SEEKING, correction)
         }
 
         if (!inPosition) {
+            holding = false
             secondsOutOfPosition += deltaSeconds
             if (secondsOutOfPosition >= RESET_AFTER_SECONDS_OUT) heldSeconds = 0.0
             return state(Guidance.SEEKING, correction)
@@ -282,8 +292,12 @@ class ManeuverEngine(
 
         secondsOutOfPosition = 0.0
 
-        if (!isStill) return state(Guidance.SETTLING, correction)
+        if (!isStill) {
+            holding = false
+            return state(Guidance.SETTLING, correction)
+        }
 
+        holding = true
         heldSeconds += deltaSeconds
         if (heldSeconds >= step.holdSeconds) {
             return state(Guidance.STEP_COMPLETE, correction)
@@ -299,6 +313,7 @@ class ManeuverEngine(
      */
     fun advance() {
         if (finished) return
+        holding = false
         heldSeconds = 0.0
         secondsOutOfPosition = 0.0
         if (index >= steps.lastIndex) {
@@ -311,6 +326,7 @@ class ManeuverEngine(
 
     /** Start the current step again, keeping the manoeuvre where it is. */
     fun restartStep() {
+        holding = false
         heldSeconds = 0.0
         secondsOutOfPosition = 0.0
     }
@@ -341,5 +357,13 @@ class ManeuverEngine(
          * for time the crystals spent going the wrong way.
          */
         const val RESET_AFTER_SECONDS_OUT = 2.0
+
+        /**
+         * Once holding, how many times the start threshold it takes to count as moving.
+         *
+         * Three times 5 deg/s is 15: above hand and head tremor, and still a quarter of the
+         * roughly 60 deg/s of someone deliberately repositioning.
+         */
+        const val HOLD_HYSTERESIS = 3.0
     }
 }

@@ -220,6 +220,32 @@ class ManeuverEngineTest {
     }
 
     @Test
+    fun `tremor does not break a hold that has started`() {
+        // Reported from hardware: a hand-held phone trembles around the stillness threshold, so
+        // the state flipped between holding and settling several times a second. Starting a
+        // hold needs real stillness; keeping one only needs the absence of real movement.
+        val e = engine()
+        e.feed(pose(-90.0, 45.0), seconds = 1.0, rate = 0.0)
+        val shaky = e.feed(pose(-90.0, 45.0), seconds = 0.5, rate = stillness * 2)
+        assertEquals(Guidance.HOLDING, shaky.guidance)
+        assertEquals(1.5, shaky.heldSeconds, 0.05)
+    }
+
+    @Test
+    fun `real movement still breaks a hold`() {
+        val e = engine()
+        e.feed(pose(-90.0, 45.0), seconds = 1.0, rate = 0.0)
+        assertEquals(Guidance.SETTLING, e.onSample(pose(-90.0, 45.0), 40.0, 0.02).guidance)
+    }
+
+    @Test
+    fun `tremor-level motion is not enough to start a hold`() {
+        // The hysteresis only helps a hold already running; it must not let one begin mid-sweep.
+        val e = engine()
+        assertEquals(Guidance.SETTLING, e.onSample(pose(-90.0, 45.0), stillness * 2, 0.02).guidance)
+    }
+
+    @Test
     fun `a still head in position accrues hold time`() {
         val e = engine()
         val state = e.feed(pose(-90.0, 45.0), seconds = 1.0, rate = 0.5)

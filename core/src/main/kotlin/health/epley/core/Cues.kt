@@ -46,6 +46,7 @@ class CuePlanner(
     private var graceUntil = 0.0
     private var lastInstructionAt = 0.0
     private var holdAnnouncedThisStep = false
+    private var lastShortPhraseAt: Double? = null
     private var lastCorrectionAt: Double? = null
     private var tenSecondsAnnounced = false
     private var finishedAnnounced = false
@@ -81,13 +82,18 @@ class CuePlanner(
         when (state.guidance) {
             Guidance.HOLDING -> {
                 if (previous != Guidance.HOLDING) {
-                    cues += Cue.Buzz(Haptic.IN_POSITION)
-                    // The full sentence once per position. Back in position after a wobble, one
-                    // word is enough: hearing "hold for 45 seconds" on every re-entry is what a
-                    // practice run on hardware found irritating.
-                    cues += Cue.Speak(
-                        if (holdAnnouncedThisStep) "Hold" else "Good. Hold still for $remaining seconds.",
-                    )
+                    // The full sentence once per position. After that, only a real return from
+                    // out of position is acknowledged, and only with a buzz and one word; a
+                    // flicker back from settling says nothing. A practice run on hardware found
+                    // "hold still, hold, hold still, hold" at full volume gave a headache.
+                    if (!holdAnnouncedThisStep) {
+                        cues += Cue.Buzz(Haptic.IN_POSITION)
+                        cues += Cue.Speak("Good. Hold still for $remaining seconds.")
+                        lastShortPhraseAt = nowSeconds
+                    } else if (previous == Guidance.SEEKING) {
+                        cues += Cue.Buzz(Haptic.IN_POSITION)
+                        sayShort("Hold", nowSeconds, cues)
+                    }
                     holdAnnouncedThisStep = true
                     // Resuming a hold that is already nearly done: no separate countdown cue.
                     if (remaining <= 10) tenSecondsAnnounced = true
@@ -105,8 +111,10 @@ class CuePlanner(
                 cues += Cue.Speak("Done.")
             }
 
-            Guidance.SETTLING -> if (previous != Guidance.SETTLING) {
-                cues += Cue.Speak("Hold still")
+            // Only when arriving in position still moving. Dropping from a hold into settling is
+            // tremor, and naming it every time is exactly the loop that caused the headache.
+            Guidance.SETTLING -> if (previous == Guidance.SEEKING || previous == null) {
+                sayShort("Hold still", nowSeconds, cues)
             }
 
             Guidance.SEEKING -> {
@@ -138,8 +146,7 @@ class CuePlanner(
                         }
                         nowSeconds >= graceUntil &&
                             (lastSpoken == null || nowSeconds - lastSpoken >= CORRECTION_REPEAT_SECONDS) -> {
-                            cues += Cue.Speak(phrase.text)
-                            lastCorrectionAt = nowSeconds
+                            if (sayShort(phrase.text, nowSeconds, cues)) lastCorrectionAt = nowSeconds
                         }
                     }
                 }
@@ -150,6 +157,20 @@ class CuePlanner(
 
         lastGuidance = state.guidance
         return cues
+    }
+
+    /**
+     * Say a short phrase unless one was said moments ago. Returns whether it was said.
+     *
+     * The floor under everything that is not an instruction or an urgent "you moved": however the
+     * states bounce, short phrases stay at least [QUIET_GAP_SECONDS] apart.
+     */
+    private fun sayShort(text: String, nowSeconds: Double, cues: MutableList<Cue>): Boolean {
+        val last = lastShortPhraseAt
+        if (last != null && nowSeconds - last < QUIET_GAP_SECONDS) return false
+        cues += Cue.Speak(text)
+        lastShortPhraseAt = nowSeconds
+        return true
     }
 
     /** Speak a step's instruction and give it time to be heard before any correction. */
@@ -178,6 +199,9 @@ class CuePlanner(
 
         /** Spoken pace at the app's slowed speech rate. */
         const val SECONDS_PER_WORD = 0.5
+
+        /** The least time between two short phrases, whatever the states do in between. */
+        const val QUIET_GAP_SECONDS = 3.0
 
         /** Seeking this long since the instruction was last said: say it again. */
         const val REANNOUNCE_SECONDS = 20.0

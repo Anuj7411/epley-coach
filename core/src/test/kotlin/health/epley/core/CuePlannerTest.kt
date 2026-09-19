@@ -105,6 +105,33 @@ class CuePlannerTest {
     }
 
     @Test
+    fun `flicker around a hold is silent`() {
+        // Reported from hardware: "hold still, hold, hold still, hold", continuously, at full
+        // volume. Once the hold has been announced, bouncing in and out of it says nothing.
+        val p = planner()
+        p.onState(state(Guidance.SEEKING), 0.0)
+        p.onState(state(Guidance.HOLDING, held = 0.02), 1.0)
+        val spoken = mutableListOf<String>()
+        var t = 1.0
+        repeat(40) { i ->
+            t += 0.1
+            val g = if (i % 2 == 0) Guidance.SETTLING else Guidance.HOLDING
+            spoken += p.onState(state(g, held = 1.0), t).spoken()
+        }
+        assertEquals(emptyList(), spoken)
+    }
+
+    @Test
+    fun `short phrases never come closer together than the quiet gap`() {
+        val p = planner()
+        p.onState(state(Guidance.SEEKING), 0.0)
+        p.onState(state(Guidance.SETTLING), 10.0)                 // "Hold still"
+        p.onState(state(Guidance.SEEKING, correction = Correction(0.0, 35.0)), 10.5)
+        val tooSoon = p.onState(state(Guidance.SETTLING), 11.0)
+        assertTrue(tooSoon.spoken().isEmpty(), "spoke again after one second: ${tooSoon.spoken()}")
+    }
+
+    @Test
     fun `settling is prompted once, not on every sample`() {
         val p = planner()
         p.onState(state(Guidance.SEEKING), 0.0)
