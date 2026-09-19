@@ -1,6 +1,8 @@
 package health.epley.app
 
+import health.epley.core.Cue
 import health.epley.core.Epley
+import health.epley.core.Haptic
 import health.epley.core.Guidance
 import health.epley.core.HeadPose
 import health.epley.core.MountMode
@@ -24,13 +26,12 @@ import kotlin.test.assertTrue
  */
 class RunControllerTest {
 
-    private val tolerance = MountMode.CHEEK.toleranceDegrees
     private val stillness = HeadTracker.STILLNESS_THRESHOLD_DEG_PER_SEC
 
     private fun controllerReadyToRun(): RunController = RunController().apply {
         confirmTriage(TriageOutcome.PosteriorCanal(Side.LEFT))
-        learnPolarity(sample(HeadPose(0.0, 45.0), nanos = 0))
-        start(tolerance, stillness)
+        learnPolarity(sample(HeadPose(0.0, 45.0, pitchDegrees = -90.0), nanos = 0))
+        start(stillness)
     }
 
     private fun sample(
@@ -75,9 +76,9 @@ class RunControllerTest {
         )) {
             val c = RunController()
             if (outcome != null) c.confirmTriage(outcome)
-            c.learnPolarity(sample(HeadPose(0.0, 45.0), nanos = 0))
+            c.learnPolarity(sample(HeadPose(0.0, 45.0, pitchDegrees = -90.0), nanos = 0))
             assertFalse(c.state.value.canStart, "could start after $outcome")
-            c.start(tolerance, stillness)
+            c.start(stillness)
             assertFalse(c.state.value.running)
         }
     }
@@ -94,14 +95,14 @@ class RunControllerTest {
         val c = RunController()
         c.confirmTriage(TriageOutcome.PosteriorCanal(Side.LEFT))
         assertFalse(c.state.value.canStart)
-        c.start(tolerance, stillness)
+        c.start(stillness)
         assertFalse(c.state.value.running)
     }
 
     @Test
     fun `too small a turn is refused with an explanation rather than guessed`() {
         val c = RunController()
-        c.learnPolarity(sample(HeadPose(0.0, 5.0), nanos = 0))
+        c.learnPolarity(sample(HeadPose(0.0, 5.0, pitchDegrees = -90.0), nanos = 0))
         assertNull(c.state.value.polarity)
         assertNotNull(c.state.value.polarityMessage)
         assertFalse(c.state.value.canStart)
@@ -111,7 +112,7 @@ class RunControllerTest {
     fun `a clear turn teaches the direction and clears the complaint`() {
         val c = RunController()
         c.confirmTriage(TriageOutcome.PosteriorCanal(Side.LEFT))
-        c.learnPolarity(sample(HeadPose(0.0, -40.0), nanos = 0))
+        c.learnPolarity(sample(HeadPose(0.0, -40.0, pitchDegrees = -90.0), nanos = 0))
         assertNotNull(c.state.value.polarity)
         assertNull(c.state.value.polarityMessage)
         assertTrue(c.state.value.canStart)
@@ -124,7 +125,7 @@ class RunControllerTest {
         // The turn was learned for the old side. Carrying it over would mirror the manoeuvre.
         val c = RunController()
         c.confirmTriage(TriageOutcome.PosteriorCanal(Side.LEFT))
-        c.learnPolarity(sample(HeadPose(0.0, 40.0), nanos = 0))
+        c.learnPolarity(sample(HeadPose(0.0, 40.0, pitchDegrees = -90.0), nanos = 0))
         assertNotNull(c.state.value.polarity)
         c.confirmTriage(TriageOutcome.PosteriorCanal(Side.RIGHT))
         assertNull(c.state.value.polarity)
@@ -137,10 +138,10 @@ class RunControllerTest {
         // cheek and recalibrating can invert it, so a direction learned before no longer holds.
         val c = RunController()
         c.confirmTriage(TriageOutcome.PosteriorCanal(Side.LEFT))
-        c.learnPolarity(sample(HeadPose(0.0, 40.0), nanos = 0, calibration = 1))
+        c.learnPolarity(sample(HeadPose(0.0, 40.0, pitchDegrees = -90.0), nanos = 0, calibration = 1))
         assertTrue(c.state.value.canStart)
 
-        c.onTrackerState(sample(HeadPose(0.0, 0.0), nanos = 20_000_000, calibration = 2))
+        c.onTrackerState(sample(HeadPose(0.0, 0.0, pitchDegrees = -90.0), nanos = 20_000_000, calibration = 2))
         assertNull(c.state.value.polarity)
         assertFalse(c.state.value.canStart)
         assertNotNull(c.state.value.polarityMessage)
@@ -150,7 +151,7 @@ class RunControllerTest {
     fun `losing calibration discards the learned direction`() {
         val c = RunController()
         c.confirmTriage(TriageOutcome.PosteriorCanal(Side.LEFT))
-        c.learnPolarity(sample(HeadPose(0.0, 40.0), nanos = 0))
+        c.learnPolarity(sample(HeadPose(0.0, 40.0, pitchDegrees = -90.0), nanos = 0))
         c.onTrackerState(TrackerState(pose = null, isCalibrated = false, lastTimestampNanos = 1))
         assertNull(c.state.value.polarity)
     }
@@ -165,6 +166,26 @@ class RunControllerTest {
     }
 
     @Test
+    fun `a run speaks the first position and buzzes when it is reached`() {
+        val cues = mutableListOf<Cue>()
+        val c = RunController(onCue = { cues += it })
+        c.confirmTriage(TriageOutcome.PosteriorCanal(Side.LEFT))
+        c.learnPolarity(sample(HeadPose(0.0, 45.0, pitchDegrees = -90.0), nanos = 0))
+        c.start(stillness)
+        c.feed(HeadPose(0.0, 45.0, pitchDegrees = -90.0), seconds = 1.0, fromNanos = 0)
+
+        assertEquals(Epley.steps().first().spoken, (cues.first() as Cue.Speak).text)
+        assertTrue(Cue.Buzz(Haptic.IN_POSITION) in cues)
+    }
+
+    @Test
+    fun `the live pose is exposed for the head dials`() {
+        val c = controllerReadyToRun()
+        c.feed(HeadPose(12.0, 30.0), seconds = 0.1, fromNanos = 0)
+        assertEquals(HeadPose(12.0, 30.0), c.state.value.pose)
+    }
+
+    @Test
     fun `no pose means nothing to learn from`() {
         val c = RunController()
         c.onTrackerState(TrackerState(pose = null, lastTimestampNanos = 1))
@@ -176,7 +197,7 @@ class RunControllerTest {
     @Test
     fun `the first sample sets the clock without crediting any hold`() {
         val c = controllerReadyToRun()
-        c.onTrackerState(sample(HeadPose(0.0, 45.0), nanos = 5_000_000_000))
+        c.onTrackerState(sample(HeadPose(0.0, 45.0, pitchDegrees = -90.0), nanos = 5_000_000_000))
         // Nothing to measure elapsed time against yet, so no time may be counted.
         assertNull(c.state.value.engineState)
     }
@@ -184,7 +205,7 @@ class RunControllerTest {
     @Test
     fun `holding the first position drives the timer`() {
         val c = controllerReadyToRun()
-        c.feed(HeadPose(0.0, 45.0), seconds = 2.0, fromNanos = 0)
+        c.feed(HeadPose(0.0, 45.0, pitchDegrees = -90.0), seconds = 2.0, fromNanos = 0)
         val engineState = c.state.value.engineState!!
         assertEquals(Guidance.HOLDING, engineState.guidance)
         assertEquals(2.0, engineState.heldSeconds, 0.05)
@@ -193,7 +214,7 @@ class RunControllerTest {
     @Test
     fun `being out of position reports a correction instead of a countdown`() {
         val c = controllerReadyToRun()
-        c.feed(HeadPose(0.0, 0.0), seconds = 0.5, fromNanos = 0)
+        c.feed(HeadPose(0.0, 0.0, pitchDegrees = -90.0), seconds = 0.5, fromNanos = 0)
         val engineState = c.state.value.engineState!!
         assertEquals(Guidance.SEEKING, engineState.guidance)
         assertEquals(45.0, engineState.correction!!.headRotationDegrees, 1e-6)
@@ -204,43 +225,43 @@ class RunControllerTest {
     fun `a completed position advances on its own after the pause`() {
         val c = controllerReadyToRun()
         // Step one asks for three seconds; the pause before advancing is two more.
-        c.feed(HeadPose(0.0, 45.0), seconds = 3.5, fromNanos = 0)
+        c.feed(HeadPose(0.0, 45.0, pitchDegrees = -90.0), seconds = 3.5, fromNanos = 0)
         assertEquals("prepare", c.state.value.engineState!!.step?.id)
-        c.feed(HeadPose(0.0, 45.0), seconds = 2.5, fromNanos = 3_500_000_000)
+        c.feed(HeadPose(0.0, 45.0, pitchDegrees = -90.0), seconds = 2.5, fromNanos = 3_500_000_000)
         assertEquals("lie-back", c.state.value.engineState!!.step?.id)
     }
 
     @Test
     fun `time spent backgrounded is not credited as a hold`() {
         val c = controllerReadyToRun()
-        c.onTrackerState(sample(HeadPose(0.0, 45.0), nanos = 1_000_000_000))
+        c.onTrackerState(sample(HeadPose(0.0, 45.0, pitchDegrees = -90.0), nanos = 1_000_000_000))
         // The screen went off for a minute. Counting the gap would hand over a finished hold for
         // time the phone spent asleep.
-        c.onTrackerState(sample(HeadPose(0.0, 45.0), nanos = 61_000_000_000))
+        c.onTrackerState(sample(HeadPose(0.0, 45.0, pitchDegrees = -90.0), nanos = 61_000_000_000))
         assertNull(c.state.value.engineState)
 
         // The stream resumes normally afterwards rather than staying wedged.
-        c.feed(HeadPose(0.0, 45.0), seconds = 1.0, fromNanos = 61_000_000_000)
+        c.feed(HeadPose(0.0, 45.0, pitchDegrees = -90.0), seconds = 1.0, fromNanos = 61_000_000_000)
         assertEquals(1.0, c.state.value.engineState!!.heldSeconds, 0.05)
     }
 
     @Test
     fun `a non-advancing timestamp is ignored`() {
         val c = controllerReadyToRun()
-        c.onTrackerState(sample(HeadPose(0.0, 45.0), nanos = 1_000_000_000))
-        c.onTrackerState(sample(HeadPose(0.0, 45.0), nanos = 1_000_000_000))
+        c.onTrackerState(sample(HeadPose(0.0, 45.0, pitchDegrees = -90.0), nanos = 1_000_000_000))
+        c.onTrackerState(sample(HeadPose(0.0, 45.0, pitchDegrees = -90.0), nanos = 1_000_000_000))
         assertNull(c.state.value.engineState)
     }
 
     @Test
     fun `stopping mid-run ends it and drops the engine`() {
         val c = controllerReadyToRun()
-        c.feed(HeadPose(0.0, 45.0), seconds = 1.0, fromNanos = 0)
+        c.feed(HeadPose(0.0, 45.0, pitchDegrees = -90.0), seconds = 1.0, fromNanos = 0)
         c.stop()
         assertFalse(c.state.value.running)
         assertNull(c.state.value.engineState)
         // Samples arriving after a stop must not resurrect the run.
-        c.feed(HeadPose(0.0, 45.0), seconds = 1.0, fromNanos = 5_000_000_000)
+        c.feed(HeadPose(0.0, 45.0, pitchDegrees = -90.0), seconds = 1.0, fromNanos = 5_000_000_000)
         assertNull(c.state.value.engineState)
     }
 
@@ -251,7 +272,7 @@ class RunControllerTest {
         var t = 0L
         for (step in Epley.steps()) {
             val rotation = polarity.toSensor(step.target.headRotationDegrees)
-            val pose = HeadPose(step.target.neckExtensionDegrees, rotation)
+            val pose = HeadPose(0.0, rotation, pitchDegrees = step.target.pitchDegrees)
             // Hold long enough to finish the step and clear the pause before the next one.
             t = c.feed(pose, seconds = step.holdSeconds + 3.0, fromNanos = t)
         }
@@ -263,15 +284,15 @@ class RunControllerTest {
         val c = RunController()
         c.confirmTriage(TriageOutcome.PosteriorCanal(Side.RIGHT))
         // The user turned right and the sensor read negative, so targets must be mirrored.
-        c.learnPolarity(sample(HeadPose(0.0, -38.0), nanos = 0))
-        c.start(tolerance, stillness)
+        c.learnPolarity(sample(HeadPose(0.0, -38.0, pitchDegrees = -90.0), nanos = 0))
+        c.start(stillness)
 
         // The unmirrored pose is wrong ...
-        c.feed(HeadPose(0.0, 45.0), seconds = 1.0, fromNanos = 0)
+        c.feed(HeadPose(0.0, 45.0, pitchDegrees = -90.0), seconds = 1.0, fromNanos = 0)
         assertEquals(Guidance.SEEKING, c.state.value.engineState!!.guidance)
 
         // ... and the mirrored one is right.
-        c.feed(HeadPose(0.0, -45.0), seconds = 1.0, fromNanos = 2_000_000_000)
+        c.feed(HeadPose(0.0, -45.0, pitchDegrees = -90.0), seconds = 1.0, fromNanos = 2_000_000_000)
         assertEquals(Guidance.HOLDING, c.state.value.engineState!!.guidance)
     }
 
@@ -279,7 +300,7 @@ class RunControllerTest {
     fun `a sweep through the target does not earn hold time`() {
         val c = controllerReadyToRun()
         // Dead on the target the whole way, but moving at 40 deg/s.
-        c.feed(HeadPose(0.0, 45.0), seconds = 2.0, fromNanos = 0, rate = 40.0)
+        c.feed(HeadPose(0.0, 45.0, pitchDegrees = -90.0), seconds = 2.0, fromNanos = 0, rate = 40.0)
         val engineState = c.state.value.engineState!!
         assertEquals(Guidance.SETTLING, engineState.guidance)
         assertEquals(0.0, engineState.heldSeconds, 1e-9)

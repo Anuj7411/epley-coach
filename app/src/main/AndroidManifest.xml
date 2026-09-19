@@ -13,16 +13,30 @@
         android:name="android.hardware.sensor.accelerometer"
         android:required="false" />
 
+    <!-- Haptic cues: the only signal that reaches someone face-down with their eyes shut. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!--
+      Since Android 11, an app must declare it looks for a text-to-speech engine or it cannot bind
+      to one, and speech silently does nothing. That failure would only show up on the manoeuvre's
+      hardest position, so it is worth this comment.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="true"
-        android:label="Epley Angle Probe"
+        android:label="Epley Coach"
         android:supportsRtl="true"
         android:theme="@style/Theme.Epley">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="Epley Angle Probe"
+            android:label="Epley Coach"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.Epley">
             <intent-filter>

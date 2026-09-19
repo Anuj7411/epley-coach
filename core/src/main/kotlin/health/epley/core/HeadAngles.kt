@@ -65,10 +65,18 @@ object HeadAngles {
         // the swing and let the caller decide.
         val swingDegrees = Math.toDegrees(decomposition.swing.angleRadians)
 
+        // Where the crown points, against gravity. This — not the face direction — is what the
+        // Epley is written in: "head hanging 20-30 degrees below horizontal" is the long axis. Lying
+        // back with the head hanging, the face points at the ceiling, so a face-based angle reads
+        // about -65 at the exact moment the head is in position.
+        val longAxisWorld = phone.rotate(mount.longAxisInPhoneFrame).normalized()
+        val pitchRadians = asin((longAxisWorld dot Vector3.DOWN).coerceIn(-1.0, 1.0))
+
         return HeadPose(
             neckExtensionDegrees = Math.toDegrees(extensionRadians),
             headRotationDegrees = Math.toDegrees(normalizeSigned(rotationRadians)),
             swingDegrees = swingDegrees,
+            pitchDegrees = Math.toDegrees(pitchRadians),
         )
     }
 
@@ -223,6 +231,12 @@ data class HeadPose(
      * rotation reading stops meaning anything, and [isRotationReliable] says so.
      */
     val swingDegrees: Double = 0.0,
+    /**
+     * The head's long axis below horizontal: -90 sitting upright, 0 lying flat, positive with the
+     * head hanging off the bed. Measured against gravity, so it does not drift. The manoeuvre's
+     * targets are written in this and [headRotationDegrees].
+     */
+    val pitchDegrees: Double = 0.0,
 ) {
 
     /**
@@ -237,7 +251,7 @@ data class HeadPose(
         get() = swingDegrees < MAX_RELIABLE_SWING_DEGREES
     /** How far this pose is from a target, as the larger of the two angular errors. */
     fun errorAgainst(target: TargetPose): Double = maxOf(
-        abs(neckExtensionDegrees - target.neckExtensionDegrees),
+        abs(pitchDegrees - target.pitchDegrees),
         abs(headRotationDegrees - target.headRotationDegrees),
     )
 
@@ -253,8 +267,14 @@ data class HeadPose(
  */
 const val MAX_RELIABLE_SWING_DEGREES = 150.0
 
-/** A position the manoeuvre asks the head to reach and hold. */
+/**
+ * A position the manoeuvre asks the head to reach and hold.
+ *
+ * [pitchDegrees] is the head's long axis below horizontal (see [HeadPose.pitchDegrees]).
+ * [headRotationDegrees] is written as degrees toward the affected side, and converted to the
+ * sensor's sign by [RotationPolarity].
+ */
 data class TargetPose(
-    val neckExtensionDegrees: Double,
+    val pitchDegrees: Double,
     val headRotationDegrees: Double,
 )

@@ -42,14 +42,13 @@ class RotationPolarityTest {
         val right = RotationPolarity(false)
         for (p in listOf(left, right)) {
             val engine = engineWith(p)
-            assertEquals(25.0, engine.sensorTarget(TargetPose(25.0, 45.0)).neckExtensionDegrees, 1e-9)
+            assertEquals(25.0, engine.sensorTarget(TargetPose(25.0, 45.0)).pitchDegrees, 1e-9)
         }
     }
 
     private fun engineWith(polarity: RotationPolarity) = ManeuverEngine(
         steps = Epley.steps(),
         polarity = polarity,
-        toleranceDegrees = 7.0,
         stillnessThresholdDegPerSec = 5.0,
     )
 }
@@ -76,13 +75,37 @@ class EpleyStepsTest {
     }
 
     @Test
-    fun `the head stays extended through the middle of the manoeuvre`() {
-        // Letting the head come up between positions is the classic self-treatment error: it
-        // lets the crystals fall back. The targets have to keep it down.
+    fun `targets are written in head pitch, the angle the guideline uses`() {
+        // Pitch is the crown below horizontal: -90 sitting, 0 lying flat, positive hanging.
         val byId = Epley.steps().associateBy { it.id }
-        assertTrue(byId.getValue("lie-back").target.neckExtensionDegrees >= 20.0)
-        assertTrue(byId.getValue("turn-across").target.neckExtensionDegrees >= 20.0)
-        assertTrue(byId.getValue("roll").target.neckExtensionDegrees >= 20.0)
+        assertEquals(-90.0, byId.getValue("prepare").target.pitchDegrees, 1e-9)
+        assertEquals(-90.0, byId.getValue("sit-up").target.pitchDegrees, 1e-9)
+        // Head hanging off the bed, within the guideline's 20-30 degrees.
+        for (id in listOf("lie-back", "turn-across")) {
+            val pitch = byId.getValue(id).target.pitchDegrees
+            assertTrue(pitch in 20.0..30.0, "$id pitch $pitch outside the 20-30 hanging range")
+        }
+        // Rolled onto the side with the neck angle kept, the long axis lies level: the hang
+        // becomes sideways, not downward. This is geometry, not a guess.
+        assertEquals(0.0, byId.getValue("roll").target.pitchDegrees, 1e-9)
+    }
+
+    @Test
+    fun `the therapeutic bands are the published specialist ranges`() {
+        // Kwon et al., Sci Rep 2023: acceptable range = specialist mean error + half SD.
+        val byId = Epley.steps().associateBy { it.id }
+        assertEquals(26.1, byId.getValue("lie-back").toleranceDegrees, 1e-9)
+        assertEquals(31.0, byId.getValue("turn-across").toleranceDegrees, 1e-9)
+        assertEquals(18.9, byId.getValue("roll").toleranceDegrees, 1e-9)
+    }
+
+    @Test
+    fun `no band is tighter than the sensor can promise`() {
+        // A band narrower than the worst mount's own accuracy would reject correct positions.
+        val loosestMount = MountMode.entries.maxOf { it.toleranceDegrees }
+        for (step in Epley.steps()) {
+            assertTrue(step.toleranceDegrees > loosestMount, "${step.id} band ${step.toleranceDegrees}")
+        }
     }
 
     @Test
@@ -99,7 +122,7 @@ class EpleyStepsTest {
     fun `the last step returns to the calibration pose`() {
         // Which is what lets it double as the drift check: the true answer here is zero.
         val last = Epley.steps().last().target
-        assertEquals(0.0, last.neckExtensionDegrees, 1e-9)
+        assertEquals(-90.0, last.pitchDegrees, 1e-9)
         assertEquals(0.0, last.headRotationDegrees, 1e-9)
     }
 
@@ -108,10 +131,7 @@ class EpleyStepsTest {
         // Every target must sit inside the region where the twist decomposition still means
         // something, or the engine would be asking for a position it then refuses to credit.
         for (step in Epley.steps()) {
-            val worst = maxOf(
-                kotlin.math.abs(step.target.neckExtensionDegrees),
-                kotlin.math.abs(step.target.headRotationDegrees),
-            )
+            val worst = kotlin.math.abs(step.target.headRotationDegrees)
             assertTrue(
                 worst < MAX_RELIABLE_SWING_DEGREES,
                 "${step.id} asks for $worst degrees, past the reliable limit",
@@ -122,18 +142,17 @@ class EpleyStepsTest {
 
 class ManeuverEngineTest {
 
-    private val tolerance = 7.0
     private val stillness = 5.0
 
     private fun engine(polarity: Boolean = true) = ManeuverEngine(
         steps = Epley.steps(),
         polarity = RotationPolarity(polarity),
-        toleranceDegrees = tolerance,
         stillnessThresholdDegPerSec = stillness,
     )
 
-    private fun pose(neck: Double, rotation: Double, swing: Double = 30.0) =
-        HeadPose(neck, rotation, swing)
+    /** A pose by pitch and rotation — the two angles the targets are written in. */
+    private fun pose(pitch: Double, rotation: Double, swing: Double = 30.0) =
+        HeadPose(neckExtensionDegrees = 0.0, headRotationDegrees = rotation, swingDegrees = swing, pitchDegrees = pitch)
 
     /** Feed the same pose for a number of seconds at 50 Hz. */
     private fun ManeuverEngine.feed(
@@ -150,13 +169,13 @@ class ManeuverEngineTest {
     @Test
     fun `an out of position head is told which way to move`() {
         val e = engine()
-        // Step one wants 0 extension and 45 rotation. The head is at 0 and 10.
-        val state = e.onSample(pose(0.0, 10.0), 0.0, 0.02)
+        // Step one wants pitch -90 (sitting) and 45 rotation. The head is sitting, turned 10.
+        val state = e.onSample(pose(-90.0, 10.0), 0.0, 0.02)
         assertEquals(Guidance.SEEKING, state.guidance)
         val correction = state.correction!!
         assertEquals(35.0, correction.headRotationDegrees, 1e-9)
-        assertEquals(0.0, correction.neckExtensionDegrees, 1e-9)
-        assertFalse(correction.worstAxisIsExtension)
+        assertEquals(0.0, correction.pitchDegrees, 1e-9)
+        assertFalse(correction.worstAxisIsPitch)
     }
 
     @Test
@@ -164,7 +183,7 @@ class ManeuverEngineTest {
         // The failure this whole class exists to prevent. The head is exactly on target, but
         // moving at 60 deg/s, which is a head passing through rather than a head holding.
         val e = engine()
-        val state = e.onSample(pose(0.0, 45.0), 60.0, 0.02)
+        val state = e.onSample(pose(-90.0, 45.0), 60.0, 0.02)
         assertEquals(Guidance.SETTLING, state.guidance)
         assertEquals(0.0, state.heldSeconds, 1e-9)
     }
@@ -172,7 +191,7 @@ class ManeuverEngineTest {
     @Test
     fun `a still head in position accrues hold time`() {
         val e = engine()
-        val state = e.feed(pose(0.0, 45.0), seconds = 1.0, rate = 0.5)
+        val state = e.feed(pose(-90.0, 45.0), seconds = 1.0, rate = 0.5)
         assertEquals(Guidance.HOLDING, state.guidance)
         assertEquals(1.0, state.heldSeconds, 0.05)
     }
@@ -181,19 +200,19 @@ class ManeuverEngineTest {
     fun `the step completes only after the full hold`() {
         val e = engine()
         // Step one asks for three seconds.
-        val early = e.feed(pose(0.0, 45.0), seconds = 2.0, rate = 0.0)
+        val early = e.feed(pose(-90.0, 45.0), seconds = 2.0, rate = 0.0)
         assertEquals(Guidance.HOLDING, early.guidance)
-        val done = e.feed(pose(0.0, 45.0), seconds = 1.5, rate = 0.0)
+        val done = e.feed(pose(-90.0, 45.0), seconds = 1.5, rate = 0.0)
         assertEquals(Guidance.STEP_COMPLETE, done.guidance)
     }
 
     @Test
     fun `a brief wobble pauses the hold instead of resetting it`() {
         val e = engine()
-        e.feed(pose(0.0, 45.0), seconds = 2.0, rate = 0.0)
+        e.feed(pose(-90.0, 45.0), seconds = 2.0, rate = 0.0)
         // Half a second well outside the band, then back.
-        e.feed(pose(0.0, 20.0), seconds = 0.5, rate = 0.0)
-        val back = e.onSample(pose(0.0, 45.0), 0.0, 0.02)
+        e.feed(pose(-90.0, 20.0), seconds = 0.5, rate = 0.0)
+        val back = e.onSample(pose(-90.0, 45.0), 0.0, 0.02)
         assertTrue(
             back.heldSeconds > 1.9,
             "a half second wobble cost ${2.0 - back.heldSeconds} seconds of hold",
@@ -203,8 +222,8 @@ class ManeuverEngineTest {
     @Test
     fun `a sustained departure resets the hold`() {
         val e = engine()
-        e.feed(pose(0.0, 45.0), seconds = 2.0, rate = 0.0)
-        val out = e.feed(pose(0.0, 0.0), seconds = 3.0, rate = 0.0)
+        e.feed(pose(-90.0, 45.0), seconds = 2.0, rate = 0.0)
+        val out = e.feed(pose(-90.0, 0.0), seconds = 3.0, rate = 0.0)
         assertEquals(Guidance.SEEKING, out.guidance)
         assertEquals(0.0, out.heldSeconds, 1e-9)
     }
@@ -214,7 +233,7 @@ class ManeuverEngineTest {
         val e = engine()
         // Exactly on target by the numbers, but the decomposition has degenerated, so the
         // numbers do not mean anything.
-        val state = e.onSample(pose(0.0, 45.0, swing = 170.0), 0.0, 0.02)
+        val state = e.onSample(pose(-90.0, 45.0, swing = 170.0), 0.0, 0.02)
         assertEquals(Guidance.SEEKING, state.guidance)
         assertEquals(0.0, state.heldSeconds, 1e-9)
     }
@@ -222,7 +241,7 @@ class ManeuverEngineTest {
     @Test
     fun `advancing moves to the next position and clears the timer`() {
         val e = engine()
-        e.feed(pose(0.0, 45.0), seconds = 3.5, rate = 0.0)
+        e.feed(pose(-90.0, 45.0), seconds = 3.5, rate = 0.0)
         e.advance()
         val state = e.onSample(pose(25.0, 45.0), 0.0, 0.02)
         assertEquals("lie-back", state.step?.id)
@@ -236,7 +255,7 @@ class ManeuverEngineTest {
     fun `the manoeuvre finishes after the last step`() {
         val e = engine()
         repeat(Epley.steps().size) { e.advance() }
-        val state = e.onSample(pose(0.0, 0.0), 0.0, 0.02)
+        val state = e.onSample(pose(-90.0, 0.0), 0.0, 0.02)
         assertEquals(Guidance.FINISHED, state.guidance)
         assertNull(state.step)
     }
@@ -245,25 +264,25 @@ class ManeuverEngineTest {
     fun `a mirrored polarity mirrors the position the user is asked for`() {
         val mirrored = engine(polarity = false)
         // Step one still asks for 45 toward the affected side, which is now -45 on the sensor.
-        val wrongWay = mirrored.onSample(pose(0.0, 45.0), 0.0, 0.02)
+        val wrongWay = mirrored.onSample(pose(-90.0, 45.0), 0.0, 0.02)
         assertEquals(Guidance.SEEKING, wrongWay.guidance)
-        val rightWay = mirrored.onSample(pose(0.0, -45.0), 0.0, 0.02)
+        val rightWay = mirrored.onSample(pose(-90.0, -45.0), 0.0, 0.02)
         assertEquals(Guidance.HOLDING, rightWay.guidance)
     }
 
     @Test
     fun `hold progress reports how far through the hold the user is`() {
         val e = engine()
-        val state = e.feed(pose(0.0, 45.0), seconds = 1.5, rate = 0.0)
+        val state = e.feed(pose(-90.0, 45.0), seconds = 1.5, rate = 0.0)
         assertEquals(0.5, state.holdProgress, 0.05)
     }
 
     @Test
     fun `restarting a step clears the timer without losing the position`() {
         val e = engine()
-        e.feed(pose(0.0, 45.0), seconds = 2.0, rate = 0.0)
+        e.feed(pose(-90.0, 45.0), seconds = 2.0, rate = 0.0)
         e.restartStep()
-        val state = e.onSample(pose(0.0, 45.0), 0.0, 0.02)
+        val state = e.onSample(pose(-90.0, 45.0), 0.0, 0.02)
         assertEquals("prepare", state.step?.id)
         assertEquals(0.02, state.heldSeconds, 1e-6)
     }
@@ -273,12 +292,12 @@ class ManeuverEngineTest {
         val e = engine()
         for (step in Epley.steps()) {
             val target = e.sensorTarget(step.target)
-            val at = pose(target.neckExtensionDegrees, target.headRotationDegrees)
+            val at = pose(target.pitchDegrees, target.headRotationDegrees)
             val state = e.feed(at, seconds = step.holdSeconds + 1.0, rate = 0.0)
             assertEquals(Guidance.STEP_COMPLETE, state.guidance, "stalled on ${step.id}")
             e.advance()
         }
-        assertEquals(Guidance.FINISHED, e.onSample(pose(0.0, 0.0), 0.0, 0.02).guidance)
+        assertEquals(Guidance.FINISHED, e.onSample(pose(-90.0, 0.0), 0.0, 0.02).guidance)
     }
 
     @Test
@@ -288,11 +307,11 @@ class ManeuverEngineTest {
         // arrives as 100 samples or 40.
         val fast = engine()
         var last: EngineState? = null
-        repeat(100) { last = fast.onSample(pose(0.0, 45.0), 0.0, 0.02) }
+        repeat(100) { last = fast.onSample(pose(-90.0, 45.0), 0.0, 0.02) }
         assertEquals(2.0, last!!.heldSeconds, 1e-6)
 
         val slow = engine()
-        repeat(40) { last = slow.onSample(pose(0.0, 45.0), 0.0, 0.05) }
+        repeat(40) { last = slow.onSample(pose(-90.0, 45.0), 0.0, 0.05) }
         assertEquals(2.0, last!!.heldSeconds, 1e-6)
     }
 }

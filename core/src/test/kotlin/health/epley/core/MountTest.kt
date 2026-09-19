@@ -263,3 +263,47 @@ class MountCalibrationQualityTest {
         assertFalse(justOutside.isUsable, "horizontality ${justOutside.hintHorizontality}")
     }
 }
+
+/**
+ * Head pitch: the angle of the head's long axis (the crown direction) below horizontal. This is the
+ * measure the Epley is written in — "head hanging about 20-30 degrees below horizontal" — and it
+ * reads -90 sitting up, 0 lying flat, positive once the head hangs off the bed.
+ */
+class HeadPitchTest {
+
+    private fun aboutAxis(x: Double, y: Double, z: Double, degrees: Double) =
+        Quaternion.fromAxisAngle(Vector3(x, y, z), Math.toRadians(degrees))
+
+    // Phone upright against the cheek. Its negative X faces forward (world -X), so lying back
+    // rotates the long axis toward world +X: a rotation about world Y.
+    private val upright = aboutAxis(1.0, 0.0, 0.0, 90.0)
+    private val mount = MountCalibration.fromUprightSample(upright, MountMode.CHEEK)
+    private fun lieBack(degrees: Double, from: Quaternion = upright) = aboutAxis(0.0, 1.0, 0.0, degrees) * from
+
+    @Test
+    fun `sitting upright is minus ninety`() {
+        kotlin.test.assertEquals(-90.0, HeadAngles.compute(upright, mount).pitchDegrees, 1e-6)
+    }
+
+    @Test
+    fun `lying flat is zero`() {
+        kotlin.test.assertEquals(0.0, HeadAngles.compute(lieBack(90.0), mount).pitchDegrees, 1e-6)
+    }
+
+    @Test
+    fun `hanging twenty five degrees off the bed reads plus twenty five`() {
+        // The position this bug made unreachable: the old face-based measure reads about -65 here.
+        val pose = HeadAngles.compute(lieBack(115.0), mount)
+        kotlin.test.assertEquals(25.0, pose.pitchDegrees, 1e-6)
+        kotlin.test.assertEquals(0.0, pose.headRotationDegrees, 1e-6, "lying back is not a turn")
+    }
+
+    @Test
+    fun `a head turn made sitting up survives lying back`() {
+        // Epley step one to step two: turn 45, then lie back with the turn held.
+        val turned = aboutAxis(0.0, 0.0, 1.0, 45.0) * upright
+        val pose = HeadAngles.compute(lieBack(115.0, from = turned), mount)
+        kotlin.test.assertEquals(25.0, pose.pitchDegrees, 1e-6)
+        kotlin.test.assertEquals(45.0, kotlin.math.abs(pose.headRotationDegrees), 1e-6)
+    }
+}

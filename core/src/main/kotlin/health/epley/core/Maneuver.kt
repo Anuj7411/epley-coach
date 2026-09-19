@@ -55,6 +55,15 @@ data class ManeuverStep(
     /** Said when the user is out of position, after the direction of correction. */
     val target: TargetPose,
     val holdSeconds: Int,
+    /**
+     * How far from [target] still counts as in position, on either axis.
+     *
+     * For the three therapeutic positions this is the acceptable range Kwon et al. (Sci Rep 2023)
+     * derived from specialists' own accuracy — mean error plus half a standard deviation. Holding
+     * a patient to a tighter band than an experienced specialist achieves would leave them hunting
+     * for a position that was already good enough.
+     */
+    val toleranceDegrees: Double,
 )
 
 /**
@@ -74,8 +83,10 @@ data class ManeuverStep(
  * [RotationPolarity]. So step three's -45 means 45 degrees away from the affected side, which is
  * the 90-degree turn the manoeuvre calls for, measured from where the head already was.
  *
- * Extension is the angle of the face below horizontal, measured against gravity, which is the one
- * angle that cannot drift.
+ * Pitch is the head's long axis below horizontal, measured against gravity so it cannot drift:
+ * -90 sitting, 0 lying flat, +25 hanging off the bed. It is the crown, not the face, that the
+ * guideline's "20-30 degrees below horizontal" describes — lying back, the face points at the
+ * ceiling.
  */
 object Epley {
 
@@ -85,34 +96,42 @@ object Epley {
             title = "Sit up and turn",
             spoken = "Sit upright on the edge of the bed. Turn your head forty five degrees " +
                 "toward your affected side.",
-            target = TargetPose(neckExtensionDegrees = 0.0, headRotationDegrees = 45.0),
+            target = TargetPose(pitchDegrees = -90.0, headRotationDegrees = 45.0),
             // Short: this only confirms the starting position, it is not a therapeutic hold.
             holdSeconds = 3,
+            // No published range for the seated steps. Sitting and turning is the easy part, so
+            // this is narrower than any therapeutic band while still wider than the sensor error.
+            toleranceDegrees = 15.0,
         ),
         ManeuverStep(
             id = "lie-back",
             title = "Lie back, head hanging",
             spoken = "Keeping your head turned, lie back quickly so your head hangs off the edge " +
                 "of the bed. You may feel the spinning start. That is expected. Stay still.",
-            target = TargetPose(neckExtensionDegrees = 25.0, headRotationDegrees = 45.0),
+            target = TargetPose(pitchDegrees = 25.0, headRotationDegrees = 45.0),
             holdSeconds = 45,
+            toleranceDegrees = 26.1,
         ),
         ManeuverStep(
             id = "turn-across",
             title = "Turn to the other side",
             spoken = "Slowly turn your head ninety degrees, to face the other way. Keep your head " +
                 "hanging back.",
-            target = TargetPose(neckExtensionDegrees = 25.0, headRotationDegrees = -45.0),
+            target = TargetPose(pitchDegrees = 25.0, headRotationDegrees = -45.0),
             holdSeconds = 45,
+            toleranceDegrees = 31.0,
         ),
         ManeuverStep(
             id = "roll",
             title = "Roll onto your shoulder",
             spoken = "Roll onto that shoulder and turn your head further, until you are looking " +
                 "down at the floor.",
-            // Face down at 45 degrees, head turned a further 90 from the previous step.
-            target = TargetPose(neckExtensionDegrees = 45.0, headRotationDegrees = -135.0),
+            // Head turned a further 90 from the previous step, so the face points toward the floor.
+            // Rolled onto the side with the neck angle kept, the hang that pointed downward now
+            // points sideways, so the long axis lies level: pitch 0.
+            target = TargetPose(pitchDegrees = 0.0, headRotationDegrees = -135.0),
             holdSeconds = 45,
+            toleranceDegrees = 18.9,
         ),
         ManeuverStep(
             id = "sit-up",
@@ -120,8 +139,9 @@ object Epley {
             spoken = "Slowly sit up, and bring your head back to facing forward.",
             // Also the drift check: this is the pose the calibration was taken in, so the true
             // reading here is zero and anything else is measured mount error.
-            target = TargetPose(neckExtensionDegrees = 0.0, headRotationDegrees = 0.0),
+            target = TargetPose(pitchDegrees = -90.0, headRotationDegrees = 0.0),
             holdSeconds = 5,
+            toleranceDegrees = 15.0,
         ),
     )
 }
@@ -151,12 +171,12 @@ enum class Guidance {
  * "turn toward your affected side" without re-deriving anything.
  */
 data class Correction(
-    val neckExtensionDegrees: Double,
+    val pitchDegrees: Double,
     val headRotationDegrees: Double,
 ) {
     /** The axis that is furthest out, which is the one worth speaking about first. */
-    val worstAxisIsExtension: Boolean
-        get() = abs(neckExtensionDegrees) >= abs(headRotationDegrees)
+    val worstAxisIsPitch: Boolean
+        get() = abs(pitchDegrees) >= abs(headRotationDegrees)
 }
 
 /** Everything the UI, the voice and the log need about where the manoeuvre has got to. */
@@ -195,7 +215,6 @@ data class EngineState(
 class ManeuverEngine(
     private val steps: List<ManeuverStep>,
     private val polarity: RotationPolarity,
-    private val toleranceDegrees: Double,
     private val stillnessThresholdDegPerSec: Double,
 ) {
 
@@ -216,11 +235,11 @@ class ManeuverEngine(
         val step = steps[index]
         val target = sensorTarget(step.target)
 
-        val extensionError = target.neckExtensionDegrees - pose.neckExtensionDegrees
+        val pitchError = target.pitchDegrees - pose.pitchDegrees
         val rotationError = target.headRotationDegrees - pose.headRotationDegrees
-        val correction = Correction(extensionError, rotationError)
+        val correction = Correction(pitchError, rotationError)
 
-        val inPosition = maxOf(abs(extensionError), abs(rotationError)) <= toleranceDegrees
+        val inPosition = maxOf(abs(pitchError), abs(rotationError)) <= step.toleranceDegrees
         val isStill = abs(angularRateDegPerSec) < stillnessThresholdDegPerSec
 
         // A rotation reading we do not trust cannot be allowed to satisfy a hold. Reporting
@@ -275,7 +294,7 @@ class ManeuverEngine(
 
     /** Express a step's target, written in degrees toward the affected side, in sensor terms. */
     fun sensorTarget(target: TargetPose): TargetPose = TargetPose(
-        neckExtensionDegrees = target.neckExtensionDegrees,
+        pitchDegrees = target.pitchDegrees,
         headRotationDegrees = polarity.toSensor(target.headRotationDegrees),
     )
 

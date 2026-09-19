@@ -61,7 +61,11 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var tracker: HeadTracker
 
-    private val runController = RunController()
+    private lateinit var guidance: GuidanceOutput
+
+    private val runController = RunController(onCue = { cue ->
+        if (::guidance.isInitialized) guidance.play(cue)
+    })
 
     /**
      * Written from a single collector coroutine, read from the UI thread on toggle.
@@ -81,6 +85,7 @@ class MainActivity : ComponentActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         tracker = HeadTracker(getSystemService(Context.SENSOR_SERVICE) as SensorManager)
+        guidance = GuidanceOutput(this)
 
         // Drain the sensor stream into the CSV whenever logging is active. Without this the file
         // gets its header and nothing else — which is exactly the bug this comment exists to stop
@@ -112,8 +117,10 @@ class MainActivity : ComponentActivity() {
                     } else if (run.running) {
                         RunScreen(
                             run = run,
-                            toleranceDegrees = trackerState.mode.toleranceDegrees,
-                            onStop = runController::stop,
+                            onStop = {
+                                guidance.silence()
+                                runController.stop()
+                            },
                         )
                     } else {
                         ProbeScreen(
@@ -134,6 +141,11 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         tracker.start()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        guidance.release()
     }
 
     override fun onPause() {
@@ -234,9 +246,9 @@ private fun ProbeScreen(
         }
 
         AngleReadout(
-            label = "NECK EXTENSION",
-            degrees = state.pose?.neckExtensionDegrees,
-            hint = "angle to gravity — does not drift",
+            label = "HEAD PITCH",
+            degrees = state.pose?.pitchDegrees,
+            hint = "crown below horizontal: −90 sitting, 0 lying flat, + hanging — does not drift",
         )
 
         AngleReadout(
@@ -332,7 +344,6 @@ private fun ProbeScreen(
                 onOpenTriage = onOpenTriage,
                 onStart = {
                     controller.start(
-                        toleranceDegrees = state.mode.toleranceDegrees,
                         stillnessThresholdDegPerSec = HeadTracker.STILLNESS_THRESHOLD_DEG_PER_SEC,
                     )
                 },
@@ -544,7 +555,7 @@ internal class CsvLogger(directory: File) {
         // mount_mode and is_jolted turn an unexplained recording into an explained one: a run
         // full of nonsense is very different evidence if the mount was already flagged as moved.
         writer.write(
-            "timestamp_nanos,mount_mode,neck_extension_deg,head_rotation_deg,swing_deg," +
+            "timestamp_nanos,mount_mode,neck_extension_deg,pitch_deg,head_rotation_deg,swing_deg," +
                 "rotation_reliable,rate_deg_per_sec,is_still,is_jolted\n",
         )
     }
@@ -555,6 +566,7 @@ internal class CsvLogger(directory: File) {
             "${state.lastTimestampNanos}," +
                 "${state.mode.name}," +
                 "%.3f,".format(pose.neckExtensionDegrees) +
+                "%.3f,".format(pose.pitchDegrees) +
                 "%.3f,".format(pose.headRotationDegrees) +
                 "%.3f,".format(pose.swingDegrees) +
                 "${pose.isRotationReliable}," +

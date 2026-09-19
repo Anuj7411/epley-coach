@@ -1,8 +1,11 @@
 package health.epley.app
 
+import health.epley.core.Cue
+import health.epley.core.CuePlanner
 import health.epley.core.EngineState
 import health.epley.core.Epley
 import health.epley.core.Guidance
+import health.epley.core.HeadPose
 import health.epley.core.ManeuverEngine
 import health.epley.core.RotationPolarity
 import health.epley.core.Side
@@ -17,7 +20,10 @@ import kotlinx.coroutines.flow.StateFlow
  * the JVM. Everything here is about turning a stream of [TrackerState] into one, which means
  * timekeeping and knowing when to move on.
  */
-class RunController {
+class RunController(
+    /** Where spoken and haptic cues go. The Android side speaks and vibrates; tests collect them. */
+    private val onCue: (Cue) -> Unit = {},
+) {
 
     private val _state = MutableStateFlow(RunUiState())
     val state: StateFlow<RunUiState> = _state
@@ -25,6 +31,8 @@ class RunController {
     private var engine: ManeuverEngine? = null
     private var lastTimestampNanos: Long = 0L
     private var secondsSinceStepCompleted = 0.0
+    private var planner: CuePlanner? = null
+    private var runSeconds = 0.0
 
     /** The calibration the learned direction belongs to. See [TrackerState.calibrationGeneration]. */
     private var polarityGeneration = -1
@@ -77,17 +85,18 @@ class RunController {
      * a learned direction. The check lives here and not only on the button, so no other caller can
      * start an Epley the questionnaire ruled out.
      */
-    fun start(toleranceDegrees: Double, stillnessThresholdDegPerSec: Double) {
+    fun start(stillnessThresholdDegPerSec: Double) {
         if (!_state.value.canStart) return
         val polarity = _state.value.polarity ?: return
         engine = ManeuverEngine(
             steps = Epley.steps(),
             polarity = polarity,
-            toleranceDegrees = toleranceDegrees,
             stillnessThresholdDegPerSec = stillnessThresholdDegPerSec,
         )
         lastTimestampNanos = 0L
         secondsSinceStepCompleted = 0.0
+        runSeconds = 0.0
+        planner = CuePlanner(polarity, _state.value.side)
         _state.value = _state.value.copy(running = true, engineState = null)
     }
 
@@ -100,6 +109,7 @@ class RunController {
      */
     fun stop() {
         engine = null
+        planner = null
         _state.value = _state.value.copy(
             running = false,
             engineState = null,
@@ -136,6 +146,8 @@ class RunController {
         if (deltaSeconds <= 0.0 || deltaSeconds > MAX_PLAUSIBLE_GAP_SECONDS) return
 
         val engineState = e.onSample(pose, tracker.angularRateDegPerSec, deltaSeconds)
+        runSeconds += deltaSeconds
+        planner?.onState(engineState, runSeconds)?.forEach(onCue)
 
         // Hold on the completed position for a moment before moving on, so the user has time to
         // register that it finished. Counted in sample time like everything else.
@@ -149,7 +161,7 @@ class RunController {
             secondsSinceStepCompleted = 0.0
         }
 
-        _state.value = _state.value.copy(engineState = engineState)
+        _state.value = _state.value.copy(engineState = engineState, pose = pose)
     }
 
     private companion object {
@@ -173,6 +185,8 @@ data class RunUiState(
     val polarityMessage: String? = null,
     val engineState: EngineState? = null,
     val triage: TriageOutcome? = null,
+    /** The latest head pose during a run, for the live head dials. */
+    val pose: HeadPose? = null,
 ) {
     /** The Epley treats the posterior canal only, so nothing else the triage says can start it. */
     val canStart: Boolean
