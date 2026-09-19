@@ -3,8 +3,10 @@ package health.epley.app
 import android.content.Context
 import android.hardware.SensorManager
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
@@ -26,6 +28,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,7 +44,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import health.epley.core.Cue
 import health.epley.core.Episode
+import health.epley.core.Feeling
 import health.epley.core.EpisodeLog
 import health.epley.core.Guidance
 import health.epley.core.MountMode
@@ -51,16 +56,18 @@ import health.epley.core.TriageOutcome
 import kotlinx.coroutines.launch
 import java.io.File
 
+/** Where the user is in the app when no run is in progress. */
+enum class Screen { HOME, SAFETY, TRIAGE, PRACTICE_SIDE, HOLD, CALIBRATE, DIRECTION, READY, INSTRUMENT }
+
 /**
- * Angle probe.
+ * The app: a home screen, a six-step flow into a guided run, and the after-care that follows.
  *
- * This is not the product. It is the instrument that tells us whether the product is possible: it
- * streams head angles from the phone's orientation sensor, shows them large enough to read from
- * across a room, and logs every sample to CSV.
+ * Treatment: safety check, six questions, how the phone is held, calibrate, learn direction,
+ * ready. Practice skips the first three — the phone stands in for the head, so there is nothing
+ * to screen and no ear to identify — and asks only which side to rehearse.
  *
- * The test it exists for: rest the phone on a digital angle finder at 0, 20, 30, 45, 60, 90, 110
- * and 135 degrees, and compare. That comparison is the difference between believing this works and
- * knowing it does — and the resulting table is also what goes in the README.
+ * The engineering probe that proved the sensor works is still here, behind "Instrument" on the
+ * home screen: it is what the angle-finder accuracy test uses.
  */
 class MainActivity : ComponentActivity() {
 
@@ -83,6 +90,10 @@ class MainActivity : ComponentActivity() {
     @Volatile
     private var logger: CsvLogger? = null
 
+    private var screen by mutableStateOf(Screen.HOME)
+    private var episodes by mutableStateOf<List<Episode>>(emptyList())
+    private var calibrationMessage by mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -94,6 +105,7 @@ class MainActivity : ComponentActivity() {
         tracker = HeadTracker(getSystemService(Context.SENSOR_SERVICE) as SensorManager)
         guidance = GuidanceOutput(this)
         episodeStore = EpisodeStore(this)
+        episodes = episodeStore.load()
 
         // Drain the sensor stream into the CSV whenever logging is active. Without this the file
         // gets its header and nothing else — which is exactly the bug this comment exists to stop
@@ -108,86 +120,171 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            // A dark scheme to match the black screens. The default light scheme drew outlined
-            // buttons (BACK, DONE) in a grey that was nearly invisible on black — found on the
-            // phone, and exactly the contrast failure docs/DESIGN.md warns about.
-            MaterialTheme(
-                colorScheme = darkColorScheme(
-                    primary = Color(0xFF8FB8FF),
-                    onPrimary = Color(0xFF0A1B33),
-                    outline = Color(0xFFBBBBBB),
-                    onSurface = Color(0xFFEEEEEE),
-                    background = Color.Black,
-                    surface = Color.Black,
-                ),
-            ) {
-                Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
-                    val run by runController.state.collectAsState()
-                    val trackerState by tracker.state.collectAsState()
-                    var showTriage by remember { mutableStateOf(false) }
-                    var showSafety by remember { mutableStateOf(false) }
-                    var episodes by remember { mutableStateOf(episodeStore.load()) }
-
-                    // Every run ends in the history, finished or not, so the record is honest
-                    // about abandoned attempts too.
-                    fun endRun(completed: Boolean, feeling: health.epley.core.Feeling?) {
-                        episodes = episodeStore.append(
-                            Episode(
-                                epochMillis = System.currentTimeMillis(),
-                                side = run.side,
-                                completed = completed,
-                                feeling = feeling,
-                                practice = run.practice,
-                            ),
-                        )
-                        guidance.silence()
-                        runController.stop()
-                    }
-
-                    if (showSafety) {
-                        SafetyScreen(
-                            onFinished = {
-                                runController.confirmSafety(it)
-                                showSafety = false
-                            },
-                            onCancel = { showSafety = false },
-                        )
-                    } else if (showTriage) {
-                        TriageScreen(
-                            onFinished = {
-                                runController.confirmTriage(it)
-                                showTriage = false
-                            },
-                            onCancel = { showTriage = false },
-                        )
-                    } else if (run.running && run.engineState?.guidance == Guidance.FINISHED) {
-                        AfterCareScreen(
-                            practice = run.practice,
-                            runsBefore = EpisodeLog.runsThisEpisode(episodes, System.currentTimeMillis()),
-                            onDone = { feeling -> endRun(completed = true, feeling = feeling) },
-                        )
-                    } else if (run.running) {
-                        RunScreen(
-                            run = run,
-                            onRepeat = runController::repeatInstruction,
-                            onStop = { endRun(completed = false, feeling = null) },
-                        )
-                    } else {
-                        ProbeScreen(
-                            tracker = tracker,
-                            run = run,
-                            controller = runController,
-                            onOpenTriage = { showTriage = true },
-                            onOpenSafety = { showSafety = true },
-                            episodes = episodes,
-                            onToggleLogging = ::toggleLogging,
-                            isLogging = logger != null,
-                            logDirectory = getExternalFilesDir(null)?.absolutePath ?: "",
-                        )
-                    }
+            EpleyTheme {
+                Surface(modifier = Modifier.fillMaxSize(), color = Palette.Background) {
+                    App()
                 }
             }
         }
+    }
+
+    @Composable
+    private fun App() {
+        val run by runController.state.collectAsState()
+        val trackerState by tracker.state.collectAsState()
+        val practice = run.practice
+
+        // Once the direction is learned there is nothing to confirm; move on by itself.
+        LaunchedEffect(run.polarity, screen) {
+            if (screen == Screen.DIRECTION && run.polarity != null) screen = Screen.READY
+        }
+        BackHandler(enabled = screen != Screen.HOME && !run.running) { screen = Screen.HOME }
+
+        fun label(treatment: Int, practiceStep: Int) =
+            if (practice) "Practice · step $practiceStep of 4" else "Step $treatment of 6"
+        fun progress(treatment: Int, practiceStep: Int) =
+            if (practice) practiceStep / 4f else treatment / 6f
+
+        when {
+            run.running && run.engineState?.guidance == Guidance.FINISHED -> AfterCareScreen(
+                practice = practice,
+                runsBefore = EpisodeLog.runsThisEpisode(episodes, System.currentTimeMillis()),
+                onDone = { feeling -> endRun(completed = true, feeling = feeling) },
+            )
+
+            run.running -> RunScreen(
+                run = run,
+                onRepeat = runController::repeatInstruction,
+                onStop = { endRun(completed = false, feeling = null) },
+            )
+
+            else -> when (screen) {
+                Screen.HOME -> HomeScreen(
+                    episodes = episodes,
+                    onStart = { screen = Screen.SAFETY },
+                    onPractice = { screen = Screen.PRACTICE_SIDE },
+                    onInstrument = { screen = Screen.INSTRUMENT },
+                )
+
+                Screen.SAFETY -> SafetyScreen(
+                    onFinished = {
+                        runController.confirmSafety(it)
+                        screen = if (it == SafetyOutcome.Clear) Screen.TRIAGE else Screen.HOME
+                    },
+                    onCancel = { screen = Screen.HOME },
+                )
+
+                Screen.TRIAGE -> TriageScreen(
+                    onFinished = {
+                        runController.confirmTriage(it)
+                        screen = if (it is TriageOutcome.PosteriorCanal) Screen.HOLD else Screen.HOME
+                    },
+                    onCancel = { screen = Screen.HOME },
+                )
+
+                Screen.PRACTICE_SIDE -> PracticeSideScreen(
+                    onSide = {
+                        runController.preparePractice(it)
+                        tracker.setMode(MountMode.IN_HAND)
+                        calibrationMessage = null
+                        screen = Screen.CALIBRATE
+                    },
+                    onBack = { screen = Screen.HOME },
+                )
+
+                Screen.HOLD -> HoldScreen(
+                    onMode = {
+                        tracker.setMode(it)
+                        calibrationMessage = null
+                        screen = Screen.CALIBRATE
+                    },
+                    onBack = { screen = Screen.HOME },
+                )
+
+                Screen.CALIBRATE -> CalibrateScreen(
+                    stepLabel = label(4, 2),
+                    progress = progress(4, 2),
+                    mode = trackerState.mode,
+                    message = calibrationMessage,
+                    onCalibrate = {
+                        when (tracker.calibrate()) {
+                            CalibrationResult.OK -> {
+                                calibrationMessage = null
+                                screen = Screen.DIRECTION
+                            }
+                            CalibrationResult.NO_SAMPLES ->
+                                calibrationMessage = "No sensor reading yet. Wait a second and try again."
+                            CalibrationResult.PHONE_TOO_FLAT ->
+                                calibrationMessage = "The phone is lying too flat to tell which way " +
+                                    "you're facing. Hold it on its edge, as described, and try again."
+                        }
+                    },
+                    onBack = { screen = if (practice) Screen.PRACTICE_SIDE else Screen.HOLD },
+                )
+
+                Screen.DIRECTION -> DirectionScreen(
+                    stepLabel = label(5, 3),
+                    progress = progress(5, 3),
+                    side = run.side,
+                    practice = practice,
+                    message = run.polarityMessage,
+                    onLearn = { runController.learnPolarity(trackerState) },
+                    onBack = { screen = Screen.CALIBRATE },
+                )
+
+                Screen.READY -> ReadyScreen(
+                    stepLabel = label(6, 4),
+                    progress = progress(6, 4),
+                    side = run.side,
+                    mode = trackerState.mode,
+                    practice = practice,
+                    onStart = { runController.start(HeadTracker.STILLNESS_THRESHOLD_DEG_PER_SEC) },
+                    onBack = { screen = Screen.DIRECTION },
+                )
+
+                Screen.INSTRUMENT -> ProbeScreen(
+                    tracker = tracker,
+                    onBack = { screen = Screen.HOME },
+                    onToggleLogging = ::toggleLogging,
+                    isLogging = logger != null,
+                    logDirectory = getExternalFilesDir(null)?.absolutePath ?: "",
+                )
+            }
+        }
+    }
+
+    /** Every run ends in the history, finished or not, so the record is honest about stops too. */
+    private fun endRun(completed: Boolean, feeling: Feeling?) {
+        val run = runController.state.value
+        episodes = episodeStore.append(
+            Episode(
+                epochMillis = System.currentTimeMillis(),
+                side = run.side,
+                completed = completed,
+                feeling = feeling,
+                practice = run.practice,
+            ),
+        )
+        guidance.silence()
+        runController.stop()
+        screen = Screen.HOME
+    }
+
+    /**
+     * Either volume button stops a run.
+     *
+     * Someone face-down with their eyes shut cannot find a STOP button on a screen pressed to
+     * their cheek. A physical button they can feel is the one control that works in every
+     * position (spec FR-8). Outside a run the buttons change the volume as normal.
+     */
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        val volumeKey = keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
+        if (volumeKey && runController.state.value.running) {
+            endRun(completed = false, feeling = null)
+            guidance.play(Cue.Speak("Stopped.", interrupt = true))
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
     override fun onResume() {
@@ -224,11 +321,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun ProbeScreen(
     tracker: HeadTracker,
-    run: RunUiState,
-    controller: RunController,
-    onOpenTriage: () -> Unit,
-    onOpenSafety: () -> Unit,
-    episodes: List<Episode>,
+    onBack: () -> Unit,
     onToggleLogging: () -> Boolean,
     isLogging: Boolean,
     logDirectory: String,
@@ -245,6 +338,8 @@ private fun ProbeScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        SecondaryButton("Back to home", onBack)
+
         Text(
             text = if (tracker.isSupported) tracker.sensorName else "NO ORIENTATION SENSOR",
             color = if (tracker.isSupported) Color(0xFF7FB3FF) else Color(0xFFFF6B6B),
@@ -390,24 +485,6 @@ private fun ProbeScreen(
             )
         }
 
-        EpisodeHistory(episodes)
-
-        run {
-            GuidedRunSetup(
-                run = run,
-                controller = controller,
-                trackerState = state,
-                onOpenTriage = onOpenTriage,
-                onOpenSafety = onOpenSafety,
-                onStart = {
-                    controller.start(
-                        stillnessThresholdDegPerSec = HeadTracker.STILLNESS_THRESHOLD_DEG_PER_SEC,
-                        practice = !state.mode.tracksTheHead,
-                    )
-                },
-            )
-        }
-
         Button(
             onClick = { logging = onToggleLogging() },
             modifier = Modifier.fillMaxWidth(),
@@ -421,156 +498,6 @@ private fun ProbeScreen(
                 fontFamily = FontFamily.Monospace,
             )
         }
-    }
-}
-
-/**
- * The last few real treatment runs. Practice runs are left out: they measured a phone.
- *
- * A recurrence log is the feature the one new competitor ships and we lacked, and it is what makes
- * "BPPV comes back" visible to the person it keeps coming back to.
- */
-@Composable
-private fun EpisodeHistory(episodes: List<Episode>) {
-    val treatments = EpisodeLog.treatments(episodes)
-    if (treatments.isEmpty()) return
-    val format = java.text.SimpleDateFormat("d MMM, h:mm a", java.util.Locale.getDefault())
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("YOUR RUNS", color = Color(0xFF9E9E9E), fontSize = 14.sp, fontFamily = FontFamily.Monospace)
-        for (e in treatments.take(5)) {
-            val outcome = when {
-                !e.completed -> "stopped early"
-                e.feeling == health.epley.core.Feeling.BETTER -> "felt better"
-                e.feeling == health.epley.core.Feeling.SAME -> "no change"
-                e.feeling == health.epley.core.Feeling.WORSE -> "felt worse"
-                else -> "finished"
-            }
-            val ear = if (e.side == Side.LEFT) "left" else "right"
-            Text(
-                "${format.format(java.util.Date(e.epochMillis))} · $ear ear · $outcome",
-                color = Color(0xFFDDDDDD),
-                fontSize = 15.sp,
-            )
-        }
-        if (treatments.size > 1) {
-            Text("${treatments.size} runs recorded on this phone", color = Color(0xFF9E9E9E), fontSize = 14.sp)
-        }
-    }
-}
-
-/**
- * The two things a guided run needs that calibration does not supply.
- *
- * Which canal and side are involved — from the six-question triage, never from what the user
- * remembers being told last time — and, separately, which way the sensor's positive rotation
- * points. The second cannot be derived from the first: the sign falls out of which cheek the phone
- * is against and which way round it sits, so it is learned by asking for one turn and watching.
- */
-@Composable
-private fun GuidedRunSetup(
-    run: RunUiState,
-    controller: RunController,
-    trackerState: TrackerState,
-    onOpenTriage: () -> Unit,
-    onOpenSafety: () -> Unit,
-    onStart: () -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Safety first, every run, before anything else can be reached.
-        if (run.safety != SafetyOutcome.Clear) {
-            Text(
-                text = when (run.safety) {
-                    SafetyOutcome.Emergency -> "Your safety check found emergency signs. Get help now."
-                    SafetyOutcome.SeeDoctor -> "Your safety check said to see a doctor before self-treating."
-                    else -> "Before every run: a two-question safety check."
-                },
-                color = if (run.safety == null) Color(0xFFCCCCCC) else Color(0xFFFF6B6B),
-                fontSize = 13.sp,
-            )
-            Button(onClick = onOpenSafety, modifier = Modifier.fillMaxWidth()) {
-                Text(if (run.safety == null) "SAFETY CHECK" else "CHECK AGAIN")
-            }
-            return@Column
-        }
-        Text("Safety check passed.", color = Color(0xFF6BCB77), fontSize = 13.sp)
-
-        Text(
-            "WHICH EAR, AND WHICH TYPE",
-            color = Color(0xFF888888),
-            fontSize = 11.sp,
-            fontFamily = FontFamily.Monospace,
-        )
-
-        val triage = run.triage
-        if (triage !is TriageOutcome.PosteriorCanal) {
-            Text(
-                text = when (triage) {
-                    is TriageOutcome.HorizontalCanal ->
-                        "Your last answers pointed to a type the Epley doesn't treat."
-                    is TriageOutcome.NotConsistentWithBppv ->
-                        "Your last answers didn't match the BPPV pattern. See a doctor."
-                    else -> "BPPV often comes back in a different ear or canal, so answer six " +
-                        "quick questions each time rather than going by last time."
-                },
-                color = if (triage == null) Color(0xFFCCCCCC) else Color(0xFFFFD93D),
-                fontSize = 13.sp,
-            )
-            Button(onClick = onOpenTriage, modifier = Modifier.fillMaxWidth()) {
-                Text(if (triage == null) "ANSWER 6 QUESTIONS" else "ANSWER AGAIN")
-            }
-            return@Column
-        }
-
-        val sideWord = if (triage.side == Side.LEFT) "left" else "right"
-        Text(
-            "Posterior canal, $sideWord ear — from your answers.",
-            color = Color(0xFF6BCB77),
-            fontSize = 14.sp,
-        )
-        OutlinedButton(onClick = onOpenTriage, modifier = Modifier.fillMaxWidth()) {
-            Text("ANSWER AGAIN")
-        }
-
-        if (!trackerState.isCalibrated) {
-            Text(
-                "Next: hold the phone as chosen above and calibrate, then come back here.",
-                color = Color(0xFF888888),
-                fontSize = 13.sp,
-            )
-            return@Column
-        }
-
-        Text(
-            text = if (run.polarity == null) {
-                "Now turn your head toward your $sideWord, hold it there, and tap below. This " +
-                    "teaches the app which direction is which — it cannot work that out on its own."
-            } else {
-                "Direction learned."
-            },
-            color = if (run.polarity == null) Color(0xFFCCCCCC) else Color(0xFF6BCB77),
-            fontSize = 13.sp,
-        )
-
-        run.polarityMessage?.let {
-            Text(it, color = Color(0xFFFF6B6B), fontSize = 13.sp)
-        }
-
-        OutlinedButton(
-            onClick = { controller.learnPolarity(trackerState) },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text(if (run.polarity == null) "I'M TURNED TO MY ${sideWord.uppercase()}" else "LEARN DIRECTION AGAIN") }
-
-        Button(
-            onClick = onStart,
-            enabled = run.canStart,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF2E6B3E),
-                contentColor = Color.White,
-                disabledContainerColor = Color(0xFF1A1A1A),
-                disabledContentColor = Color(0xFF666666),
-            ),
-        ) { Text("START GUIDED RUN") }
     }
 }
 

@@ -44,7 +44,24 @@ class RunController(
      * yesterday says nothing about today.
      */
     fun confirmSafety(outcome: SafetyOutcome) {
-        _state.value = _state.value.copy(safety = outcome)
+        // The treatment flow starts here, so any practice exemption ends here.
+        _state.value = _state.value.copy(safety = outcome, practice = false)
+    }
+
+    /**
+     * Set up a practice run: the phone stands in for the head, so there is no one to screen for
+     * stroke signs and no ear to identify. Only the side to rehearse, and then a learned direction.
+     * The exemption lasts until the run stops or the treatment flow begins.
+     */
+    fun preparePractice(side: Side) {
+        _state.value = _state.value.copy(
+            practice = true,
+            side = side,
+            safety = null,
+            triage = null,
+            polarity = null,
+            polarityMessage = null,
+        )
     }
 
     /**
@@ -95,8 +112,9 @@ class RunController(
      * a learned direction. The check lives here and not only on the button, so no other caller can
      * start an Epley the questionnaire ruled out.
      */
-    fun start(stillnessThresholdDegPerSec: Double, practice: Boolean = false) {
+    fun start(stillnessThresholdDegPerSec: Double) {
         if (!_state.value.canStart) return
+        val practice = _state.value.practice
         val polarity = _state.value.polarity ?: return
         engine = ManeuverEngine(
             steps = Epley.steps(),
@@ -139,6 +157,7 @@ class RunController(
             safety = null,
             polarity = null,
             polarityMessage = null,
+            practice = false,
         )
     }
 
@@ -216,11 +235,11 @@ data class RunUiState(
     val practice: Boolean = false,
 ) {
     /**
-     * A run needs all three: a cleared safety check, a posterior-canal triage (the only type the
-     * Epley treats), and a learned turn direction.
+     * A treatment run needs all three: a cleared safety check, a posterior-canal triage (the only
+     * type the Epley treats), and a learned turn direction. A practice run measures a phone in the
+     * hand, so it needs only the direction.
      */
     val canStart: Boolean
-        get() = safety == SafetyOutcome.Clear &&
-            triage is TriageOutcome.PosteriorCanal &&
-            polarity != null
+        get() = polarity != null &&
+            (practice || (safety == SafetyOutcome.Clear && triage is TriageOutcome.PosteriorCanal))
 }

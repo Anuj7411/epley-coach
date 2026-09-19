@@ -107,6 +107,41 @@ class RunControllerTest {
     }
 
     @Test
+    fun `practice needs no safety check or questionnaire, only a direction`() {
+        // Practice measures a phone in the hand. Asking about stroke signs first would be noise.
+        val c = RunController()
+        c.preparePractice(Side.RIGHT)
+        assertFalse(c.state.value.canStart)
+        c.learnPolarity(sample(HeadPose(0.0, 40.0), nanos = 0))
+        assertTrue(c.state.value.canStart)
+        c.start(stillness)
+        assertTrue(c.state.value.running)
+        assertTrue(c.state.value.practice)
+        assertEquals(Side.RIGHT, c.state.value.side)
+    }
+
+    @Test
+    fun `a real run after practice needs the safety check again`() {
+        // The practice exemption must not leak into treatment.
+        val c = RunController()
+        c.preparePractice(Side.RIGHT)
+        c.learnPolarity(sample(HeadPose(0.0, 40.0), nanos = 0))
+        c.start(stillness)
+        c.stop()
+        assertFalse(c.state.value.practice)
+        c.learnPolarity(sample(HeadPose(0.0, 40.0), nanos = 0))
+        assertFalse(c.state.value.canStart)
+    }
+
+    @Test
+    fun `starting the treatment flow leaves practice mode`() {
+        val c = RunController()
+        c.preparePractice(Side.RIGHT)
+        c.confirmSafety(SafetyOutcome.Clear)
+        assertFalse(c.state.value.practice)
+    }
+
+    @Test
     fun `the side comes from the triage, not from a guess`() {
         val c = RunController()
         c.confirmTriage(TriageOutcome.PosteriorCanal(Side.RIGHT))
@@ -213,10 +248,9 @@ class RunControllerTest {
     fun `say it again repeats the current instruction, in the run's own mode`() {
         val cues = mutableListOf<Cue>()
         val c = RunController(onCue = { cues += it })
-        c.confirmTriage(TriageOutcome.PosteriorCanal(Side.LEFT))
-        c.confirmSafety(SafetyOutcome.Clear)
+        c.preparePractice(Side.LEFT)
         c.learnPolarity(sample(HeadPose(0.0, 45.0, pitchDegrees = -90.0), nanos = 0))
-        c.start(stillness, practice = true)
+        c.start(stillness)
         c.feed(HeadPose(0.0, 0.0, pitchDegrees = -90.0), seconds = 0.2, fromNanos = 0)
         cues.clear()
 

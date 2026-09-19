@@ -1,31 +1,23 @@
 package health.epley.app
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import health.epley.core.CorrectionPhrase
 import health.epley.core.CuePlanner
 import health.epley.core.Guidance
 import health.epley.core.Phrasing
@@ -34,10 +26,11 @@ import kotlin.math.roundToInt
 /**
  * The guided run.
  *
- * Top to bottom: what position this is, a picture of it, the live dials against the target, and
- * one block of feedback. The picture is for the moments the screen can be seen — before lying back,
- * or by a helper; the voice and vibration carry the rest. Colour carries the state on its own:
- * amber move, blue settle, green hold.
+ * Top to bottom: which position, a picture of it, the live head gauges against the target zone,
+ * and one status card. The card follows the phone spirit level: when you are in position the whole
+ * card turns blue and says so; when you are not, it is outlined orange and says which way and how
+ * far, in words. Colour is never the only signal. Nothing animates except the heads and the hold
+ * bar (docs/DESIGN.md).
  *
  * Corrections come from [Phrasing], the same source the voice uses, so the screen and the speaker
  * can never give different instructions.
@@ -51,163 +44,98 @@ fun RunScreen(
     val engineState = run.engineState
     val step = engineState?.step
     val guidance = engineState?.guidance ?: Guidance.SEEKING
-    val holding = guidance == Guidance.HOLDING || guidance == Guidance.STEP_COMPLETE
     val polarity = run.polarity
 
-    val accent = when (guidance) {
-        Guidance.HOLDING, Guidance.STEP_COMPLETE, Guidance.FINISHED -> Color(0xFF6BCB77)
-        Guidance.SETTLING -> Color(0xFF7FB3FF)
-        Guidance.SEEKING -> Color(0xFFFFD93D)
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .safeDrawingPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+    FlowFrame(
+        stepLabel = "Position ${(engineState?.stepIndex ?: 0) + 1} of 5" + if (run.practice) " · practice" else "",
+        progress = null,
+        onBack = null,
+        bottom = {
+            SecondaryButton("Say it again", onRepeat)
+            SecondaryButton("Stop  ·  or press a volume button", onStop)
+        },
     ) {
-        if (guidance == Guidance.FINISHED) {
-            FinishedPanel(onStop)
-            return@Column
-        }
-
-        Text(
-            text = "STEP ${(engineState?.stepIndex ?: 0) + 1} OF 5",
-            color = Color(0xFF888888),
-            fontSize = 13.sp,
-            fontFamily = FontFamily.Monospace,
-        )
-        Text(
-            text = step?.title ?: "Getting ready",
-            color = Color.White,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-        )
-
+        Title(step?.title ?: "Getting ready")
         if (step != null) PoseIllustration(step, run.side)
-
         if (step != null && polarity != null) {
             HeadDials(pose = run.pose, step = step, polarity = polarity, side = run.side)
         }
 
-        // The whole of the feedback, in one block, in one colour.
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF111111))
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = when (guidance) {
-                    Guidance.SEEKING -> "MOVE INTO POSITION"
-                    Guidance.SETTLING -> "ALMOST — HOLD STILL"
-                    Guidance.HOLDING -> "HOLDING"
-                    Guidance.STEP_COMPLETE -> "POSITION COMPLETE"
-                    Guidance.FINISHED -> "DONE"
-                },
-                color = accent,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
+        val phrases = if (engineState?.correction != null && step != null && polarity != null) {
+            Phrasing.corrections(
+                engineState.correction!!, polarity, run.side,
+                toleranceDegrees = step.toleranceDegrees,
+                seated = step.target.pitchDegrees < CuePlanner.SEATED_BELOW_PITCH,
+                practice = run.practice,
             )
+        } else {
+            emptyList()
+        }
 
-            val correction = engineState?.correction
-            if (!holding && correction != null && step != null && polarity != null) {
-                val phrases = Phrasing.corrections(
-                    correction, polarity, run.side,
-                    toleranceDegrees = step.toleranceDegrees,
-                    seated = step.target.pitchDegrees < CuePlanner.SEATED_BELOW_PITCH,
-                    practice = run.practice,
-                )
-                if (phrases.isEmpty()) {
-                    Text("In position — hold still", color = Color(0xFF7FB3FF), fontSize = 18.sp)
+        when (guidance) {
+            Guidance.HOLDING, Guidance.STEP_COMPLETE -> {
+                val remaining = engineState?.let { (it.holdSecondsRequired - it.heldSeconds).coerceAtLeast(0.0) } ?: 0.0
+                StatusCard(background = Palette.ActionTint, border = Palette.Action) {
+                    Text(
+                        if (guidance == Guidance.STEP_COMPLETE) "✓ Position complete" else "✓ In position",
+                        color = Palette.Action, fontSize = 17.sp, fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        if (guidance == Guidance.STEP_COMPLETE) "Next position coming" else "Hold still",
+                        color = Palette.TextPrimary, fontSize = 22.sp, fontWeight = FontWeight.Medium,
+                    )
+                    Text("${remaining.roundToInt()}s", color = Palette.TextPrimary, fontSize = 52.sp, fontWeight = FontWeight.Medium)
+                    ProgressBar(engineState?.holdProgress?.toFloat() ?: 0f)
                 }
-                for (phrase in phrases) CorrectionRow(phrase.text, phrase.degrees)
             }
 
-            if (holding && engineState != null) {
-                val remaining = (engineState.holdSecondsRequired - engineState.heldSeconds).coerceAtLeast(0.0)
-                Text(
-                    text = "${remaining.roundToInt()}s",
-                    color = accent,
-                    fontSize = 64.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                )
-                LinearProgressIndicator(
-                    progress = { engineState.holdProgress.toFloat() },
-                    modifier = Modifier.fillMaxWidth().height(10.dp),
-                    color = accent,
-                    trackColor = Color(0xFF333333),
-                )
+            Guidance.SETTLING -> StatusCard(background = Palette.Surface, border = Palette.Action) {
+                Text("Almost there", color = Palette.Action, fontSize = 17.sp, fontWeight = FontWeight.Medium)
+                Text("Hold still", color = Palette.TextPrimary, fontSize = 26.sp, fontWeight = FontWeight.Medium)
             }
+
+            Guidance.SEEKING -> StatusCard(background = Palette.Surface, border = Palette.Move) {
+                Text("Move", color = Palette.Move, fontSize = 17.sp, fontWeight = FontWeight.Medium)
+                val first: CorrectionPhrase? = phrases.firstOrNull()
+                if (first == null) {
+                    Text("Get into the position shown", color = Palette.TextPrimary, fontSize = 22.sp, fontWeight = FontWeight.Medium)
+                } else {
+                    Text(first.text, color = Palette.TextPrimary, fontSize = 22.sp, fontWeight = FontWeight.Medium)
+                    Text("${first.degrees}° more", color = Palette.Move, fontSize = 40.sp, fontWeight = FontWeight.Medium)
+                    for (other in phrases.drop(1)) {
+                        Text("Also: ${other.text.lowercase()}, ${other.degrees}°", color = Palette.TextSecondary, fontSize = 16.sp)
+                    }
+                }
+            }
+
+            Guidance.FINISHED -> Unit
         }
 
-        if (step != null) {
-            Text(
-                text = step.instruction(run.side, run.practice),
-                color = Color(0xFFCCCCCC),
-                fontSize = 16.sp,
-            )
-            OutlinedButton(onClick = onRepeat, modifier = Modifier.fillMaxWidth()) {
-                Text("SAY IT AGAIN")
-            }
-        }
-
-        Button(
-            onClick = onStop,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF3A1A1A),
-                contentColor = Color(0xFFFF6B6B),
-            ),
-        ) { Text("STOP") }
+        if (step != null) Body(step.instruction(run.side, run.practice), secondary = true)
     }
 }
 
 @Composable
-private fun CorrectionRow(text: String, degrees: Int) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(text, color = Color.White, fontSize = 20.sp)
-        Text(
-            "$degrees°",
-            color = Color(0xFFFFD93D),
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = FontFamily.Monospace,
-        )
-    }
-}
-
-@Composable
-private fun FinishedPanel(onStop: () -> Unit) {
+private fun StatusCard(background: Color, border: Color, content: @Composable () -> Unit) {
+    val shape = RoundedCornerShape(18.dp)
     Column(
-        modifier = Modifier.fillMaxWidth().padding(top = 80.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(background)
+            .border(2.dp, border, shape)
+            .padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) { content() }
+}
+
+/** The one animation the design allows: essential feedback on how long is left. */
+@Composable
+private fun ProgressBar(fraction: Float) {
+    Box(
+        Modifier.fillMaxWidth().padding(top = 6.dp).height(8.dp)
+            .clip(RoundedCornerShape(4.dp)).background(Palette.ActionTrack),
     ) {
-        Text(
-            "Manoeuvre complete",
-            color = Color(0xFF6BCB77),
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(12.dp))
-        Text(
-            "Stay sitting upright for a minute before standing.",
-            color = Color(0xFFCCCCCC),
-            fontSize = 17.sp,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(28.dp))
-        Button(onClick = onStop, modifier = Modifier.fillMaxWidth()) { Text("DONE") }
+        Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).height(8.dp).background(Palette.Action))
     }
 }

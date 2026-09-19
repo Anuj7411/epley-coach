@@ -2,19 +2,11 @@ package health.epley.app
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,9 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,102 +33,73 @@ fun SafetyScreen(
 ) {
     var emergency by remember { mutableStateOf<Boolean?>(null) }
     var notToTreat by remember { mutableStateOf<Boolean?>(null) }
-    val outcome = Safety.assess(emergency, notToTreat)
+    val context = LocalContext.current
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .safeDrawingPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Text(
-            "SAFETY CHECK · BEFORE EVERY RUN",
-            color = Color(0xFF888888),
-            fontSize = 11.sp,
-            fontFamily = FontFamily.Monospace,
-        )
-
-        when (outcome) {
-            is SafetyOutcome.Incomplete -> if (outcome.nextQuestion == 1) {
-                AnyOf(
-                    question = "Do you have ANY of these right now?",
-                    items = Safety.emergencySigns,
-                    onAnswer = { emergency = it },
-                )
-            } else {
-                AnyOf(
-                    question = "Do ANY of these apply to you?",
-                    items = Safety.reasonsNotToTreat,
-                    onAnswer = { notToTreat = it },
-                )
+    when (val outcome = Safety.assess(emergency, notToTreat)) {
+        is SafetyOutcome.Incomplete -> {
+            val first = outcome.nextQuestion == 1
+            FlowFrame(
+                stepLabel = "Step 1 of 6 · safety check",
+                progress = if (first) 0.08f else 0.14f,
+                onBack = onCancel,
+                bottom = {
+                    ChoiceButton("Yes, one or more", { if (first) emergency = true else notToTreat = true }, container = Palette.Raised)
+                    ChoiceButton("No, none of these", { if (first) emergency = false else notToTreat = false }, container = Palette.Raised)
+                },
+            ) {
+                Title(if (first) "Do you have any of these right now?" else "Do any of these apply to you?")
+                Card {
+                    for (item in if (first) Safety.emergencySigns else Safety.reasonsNotToTreat) {
+                        Body("•  $item")
+                    }
+                }
             }
-            SafetyOutcome.Emergency -> EmergencyResult(onDone = { onFinished(outcome) })
-            SafetyOutcome.SeeDoctor -> Result(
-                title = "Don't self-treat today",
-                body = "One of those means this may not be the BPPV you were diagnosed with, or " +
-                    "the manoeuvre may not be safe for you. See a doctor before doing it.",
-                colour = Color(0xFFFFD93D),
-                button = "DONE",
-                onDone = { onFinished(outcome) },
-            )
-            SafetyOutcome.Clear -> Result(
-                title = "Safety check passed",
-                body = "If any of those signs appear during the manoeuvre, stop and get help.",
-                colour = Color(0xFF6BCB77),
-                button = "CONTINUE",
-                onDone = { onFinished(outcome) },
+        }
+
+        SafetyOutcome.Emergency -> FlowFrame(
+            stepLabel = "Safety check",
+            progress = null,
+            onBack = null,
+            bottom = {
+                Button(
+                    // Opens the dialer with the number filled in; the person still presses call.
+                    // No permission is needed and nothing is dialled without them.
+                    onClick = { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:112"))) },
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Palette.Danger, contentColor = Palette.TextPrimary),
+                ) { Text("Call emergency · 112", fontSize = 19.sp, fontWeight = FontWeight.Medium) }
+                SecondaryButton("Done", { onFinished(outcome) })
+            },
+        ) {
+            Title("Get emergency help now", color = Palette.Danger)
+            Body(
+                "These can be signs of a stroke, which can look like vertigo. Don't do the " +
+                    "manoeuvre. Call your local emergency number — 112 in India and Europe, 911 in the US.",
             )
         }
 
-        Spacer(Modifier.height(8.dp))
-        OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("BACK") }
+        SafetyOutcome.SeeDoctor -> FlowFrame(
+            stepLabel = "Safety check",
+            progress = null,
+            onBack = null,
+            bottom = { PrimaryButton("Done", { onFinished(outcome) }) },
+        ) {
+            Title("Don't self-treat today", color = Palette.Move)
+            Body(
+                "One of those means this may not be the BPPV you were diagnosed with, or the " +
+                    "manoeuvre may not be safe for you. See a doctor before doing it.",
+            )
+        }
+
+        SafetyOutcome.Clear -> FlowFrame(
+            stepLabel = "Step 1 of 6 · safety check",
+            progress = 1 / 6f,
+            onBack = onCancel,
+            bottom = { PrimaryButton("Continue", { onFinished(outcome) }) },
+        ) {
+            Title("Safety check passed", color = Palette.Action)
+            Body("If any of those signs appear during the manoeuvre, stop and get help.", secondary = true)
+        }
     }
-}
-
-@Composable
-private fun AnyOf(question: String, items: List<String>, onAnswer: (Boolean) -> Unit) {
-    Text(question, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-    for (item in items) {
-        Text("•  $item", color = Color(0xFFDDDDDD), fontSize = 17.sp)
-    }
-    Spacer(Modifier.height(6.dp))
-    Button(
-        onClick = { onAnswer(true) },
-        modifier = Modifier.fillMaxWidth().height(60.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A1E1E), contentColor = Color.White),
-    ) { Text("Yes, one or more", fontSize = 18.sp) }
-    Button(
-        onClick = { onAnswer(false) },
-        modifier = Modifier.fillMaxWidth().height(60.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E2A3F), contentColor = Color.White),
-    ) { Text("No, none of these", fontSize = 18.sp) }
-}
-
-@Composable
-private fun EmergencyResult(onDone: () -> Unit) {
-    val context = LocalContext.current
-    Text("Get emergency help now", color = Color(0xFFFF6B6B), fontSize = 28.sp, fontWeight = FontWeight.Bold)
-    Text(
-        "These can be signs of a stroke, which can look like vertigo. Don't do the manoeuvre. " +
-            "Call your local emergency number — 112 in India and Europe, 911 in the US.",
-        color = Color(0xFFDDDDDD),
-        fontSize = 17.sp,
-    )
-    Button(
-        // Opens the dialer with the number filled in; the person still presses call. No
-        // permission is needed and nothing is dialled without them.
-        onClick = { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:112"))) },
-        modifier = Modifier.fillMaxWidth().height(60.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB3261E), contentColor = Color.White),
-    ) { Text("OPEN DIALER · 112", fontSize = 18.sp) }
-    OutlinedButton(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text("DONE") }
-}
-
-@Composable
-private fun Result(title: String, body: String, colour: Color, button: String, onDone: () -> Unit) {
-    Text(title, color = colour, fontSize = 26.sp, fontWeight = FontWeight.Bold)
-    Text(body, color = Color(0xFFCCCCCC), fontSize = 16.sp)
-    Button(onClick = onDone, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text(button) }
 }
