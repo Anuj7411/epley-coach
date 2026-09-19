@@ -22,6 +22,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -107,7 +108,19 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            MaterialTheme {
+            // A dark scheme to match the black screens. The default light scheme drew outlined
+            // buttons (BACK, DONE) in a grey that was nearly invisible on black — found on the
+            // phone, and exactly the contrast failure docs/DESIGN.md warns about.
+            MaterialTheme(
+                colorScheme = darkColorScheme(
+                    primary = Color(0xFF8FB8FF),
+                    onPrimary = Color(0xFF0A1B33),
+                    outline = Color(0xFFBBBBBB),
+                    onSurface = Color(0xFFEEEEEE),
+                    background = Color.Black,
+                    surface = Color.Black,
+                ),
+            ) {
                 Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
                     val run by runController.state.collectAsState()
                     val trackerState by tracker.state.collectAsState()
