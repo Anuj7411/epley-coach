@@ -109,6 +109,15 @@ class EpleyStepsTest {
     }
 
     @Test
+    fun `every instruction is filled in with real sides, in both modes`() {
+        for (step in Epley.steps()) for (side in Side.entries) for (practice in listOf(false, true)) {
+            val text = step.instruction(side, practice)
+            assertFalse("{" in text, "${step.id} left a placeholder: $text")
+            assertFalse("affected" in text, "${step.id} says 'affected': $text")
+        }
+    }
+
+    @Test
     fun `each turn is a ninety degree change from the one before`() {
         val byId = Epley.steps().associateBy { it.id }
         val prepare = byId.getValue("prepare").target.headRotationDegrees
@@ -176,6 +185,28 @@ class ManeuverEngineTest {
         assertEquals(35.0, correction.headRotationDegrees, 1e-9)
         assertEquals(0.0, correction.pitchDegrees, 1e-9)
         assertFalse(correction.worstAxisIsPitch)
+    }
+
+    @Test
+    fun `a reading a full turn away is the same position`() {
+        // The rotation reading is unwrapped for continuity, so after the phone is flipped past
+        // the reliable range it can come back offset by exactly 360. It draws identically on the
+        // dial — the user sees the heads line up — but a plain subtraction calls it 360 degrees
+        // out, and the position can never be credited. Reported from a practice run on hardware.
+        for (offset in listOf(360.0, -360.0, 720.0)) {
+            val e = engine()
+            val state = e.onSample(pose(-90.0, 45.0 + offset), 0.0, 0.02)
+            assertEquals(Guidance.HOLDING, state.guidance, "offset $offset")
+            assertEquals(0.0, state.correction!!.headRotationDegrees, 1e-9, "offset $offset")
+        }
+    }
+
+    @Test
+    fun `the correction always takes the short way round`() {
+        // Target 45, reading -170: the short way is -145 (turn further the same way), not +215.
+        val e = engine()
+        val state = e.onSample(pose(-90.0, -170.0), 0.0, 0.02)
+        assertEquals(-145.0, state.correction!!.headRotationDegrees, 1e-9)
     }
 
     @Test

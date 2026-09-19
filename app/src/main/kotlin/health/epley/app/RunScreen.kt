@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -44,6 +45,7 @@ import kotlin.math.roundToInt
 @Composable
 fun RunScreen(
     run: RunUiState,
+    onRepeat: () -> Unit,
     onStop: () -> Unit,
 ) {
     val engineState = run.engineState
@@ -118,6 +120,7 @@ fun RunScreen(
                     correction, polarity, run.side,
                     toleranceDegrees = step.toleranceDegrees,
                     seated = step.target.pitchDegrees < CuePlanner.SEATED_BELOW_PITCH,
+                    practice = run.practice,
                 )
                 if (phrases.isEmpty()) {
                     Text("In position — hold still", color = Color(0xFF7FB3FF), fontSize = 18.sp)
@@ -143,11 +146,16 @@ fun RunScreen(
             }
         }
 
-        Text(
-            text = step?.spoken ?: "",
-            color = Color(0xFF999999),
-            fontSize = 14.sp,
-        )
+        if (step != null) {
+            Text(
+                text = step.instruction(run.side, run.practice),
+                color = Color(0xFFCCCCCC),
+                fontSize = 16.sp,
+            )
+            OutlinedButton(onClick = onRepeat, modifier = Modifier.fillMaxWidth()) {
+                Text("SAY IT AGAIN")
+            }
+        }
 
         Button(
             onClick = onStop,

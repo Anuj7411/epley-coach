@@ -42,8 +42,9 @@ class GuidanceOutput(context: Context) {
             if (preferred == TextToSpeech.LANG_MISSING_DATA || preferred == TextToSpeech.LANG_NOT_SUPPORTED) {
                 tts.setLanguage(Locale.US)
             }
-            // Slightly slower than default: the listener is dizzy, lying down, possibly nauseous.
-            tts.setSpeechRate(0.9f)
+            // Well below default: the listener is dizzy, lying down, possibly nauseous, and a
+            // practice run on hardware found 0.9 too fast to follow.
+            tts.setSpeechRate(0.8f)
             ready = true
             pending.forEach(::speak)
             pending.clear()

@@ -174,8 +174,25 @@ class RunControllerTest {
         c.start(stillness)
         c.feed(HeadPose(0.0, 45.0, pitchDegrees = -90.0), seconds = 1.0, fromNanos = 0)
 
-        assertEquals(Epley.steps().first().spoken, (cues.first() as Cue.Speak).text)
+        assertEquals(Epley.steps().first().instruction(Side.LEFT, practice = false), (cues.first() as Cue.Speak).text)
         assertTrue(Cue.Buzz(Haptic.IN_POSITION) in cues)
+    }
+
+    @Test
+    fun `say it again repeats the current instruction, in the run's own mode`() {
+        val cues = mutableListOf<Cue>()
+        val c = RunController(onCue = { cues += it })
+        c.confirmTriage(TriageOutcome.PosteriorCanal(Side.LEFT))
+        c.learnPolarity(sample(HeadPose(0.0, 45.0, pitchDegrees = -90.0), nanos = 0))
+        c.start(stillness, practice = true)
+        c.feed(HeadPose(0.0, 0.0, pitchDegrees = -90.0), seconds = 0.2, fromNanos = 0)
+        cues.clear()
+
+        c.repeatInstruction()
+
+        val expected = Epley.steps().first().instruction(Side.LEFT, practice = true)
+        assertEquals(listOf<Cue>(Cue.Speak(expected, interrupt = true)), cues)
+        assertTrue(c.state.value.practice)
     }
 
     @Test

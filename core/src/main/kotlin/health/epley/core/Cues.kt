@@ -37,11 +37,15 @@ sealed interface Cue {
 class CuePlanner(
     private val polarity: RotationPolarity,
     private val side: Side,
+    /** Practice mode: the phone stands in for the head, so every word is about the phone. */
+    private val practice: Boolean = false,
 ) {
 
     private var lastStepIndex: Int? = null
     private var lastGuidance: Guidance? = null
-    private var stepStartedAt = 0.0
+    private var graceUntil = 0.0
+    private var lastInstructionAt = 0.0
+    private var holdAnnouncedThisStep = false
     private var lastCorrectionAt: Double? = null
     private var tenSecondsAnnounced = false
     private var finishedAnnounced = false
@@ -66,10 +70,10 @@ class CuePlanner(
         val newStep = state.stepIndex != lastStepIndex
         if (newStep) {
             lastStepIndex = state.stepIndex
-            stepStartedAt = nowSeconds
             lastCorrectionAt = null
             tenSecondsAnnounced = false
-            state.step?.let { cues += Cue.Speak(it.spoken, interrupt = true) }
+            holdAnnouncedThisStep = false
+            state.step?.let { announce(it, nowSeconds, cues) }
         }
         val previous = if (newStep) null else lastGuidance
         val remaining = ceil(state.holdSecondsRequired - state.heldSeconds).toInt().coerceAtLeast(0)
@@ -78,7 +82,13 @@ class CuePlanner(
             Guidance.HOLDING -> {
                 if (previous != Guidance.HOLDING) {
                     cues += Cue.Buzz(Haptic.IN_POSITION)
-                    cues += Cue.Speak("Good. Hold still for $remaining seconds.")
+                    // The full sentence once per position. Back in position after a wobble, one
+                    // word is enough: hearing "hold for 45 seconds" on every re-entry is what a
+                    // practice run on hardware found irritating.
+                    cues += Cue.Speak(
+                        if (holdAnnouncedThisStep) "Hold" else "Good. Hold still for $remaining seconds.",
+                    )
+                    holdAnnouncedThisStep = true
                     // Resuming a hold that is already nearly done: no separate countdown cue.
                     if (remaining <= 10) tenSecondsAnnounced = true
                 } else if (!tenSecondsAnnounced &&
@@ -101,11 +111,21 @@ class CuePlanner(
 
             Guidance.SEEKING -> {
                 val step = state.step
+                // Nobody has managed this position for a while: say the instruction again, rather
+                // than keep correcting someone who may not have understood it.
+                if (step != null && previous != Guidance.HOLDING &&
+                    nowSeconds - lastInstructionAt >= REANNOUNCE_SECONDS
+                ) {
+                    announce(step, nowSeconds, cues)
+                    lastGuidance = state.guidance
+                    return cues
+                }
                 val phrase = state.correction?.takeIf { step != null }?.let {
                     Phrasing.corrections(
                         it, polarity, side,
                         toleranceDegrees = step!!.toleranceDegrees,
                         seated = step.target.pitchDegrees < SEATED_BELOW_PITCH,
+                        practice = practice,
                     ).firstOrNull()
                 }
                 if (phrase != null) {
@@ -116,7 +136,7 @@ class CuePlanner(
                             cues += Cue.Speak("You moved. ${phrase.text}", interrupt = true)
                             lastCorrectionAt = nowSeconds
                         }
-                        nowSeconds - stepStartedAt >= INSTRUCTION_GRACE_SECONDS &&
+                        nowSeconds >= graceUntil &&
                             (lastSpoken == null || nowSeconds - lastSpoken >= CORRECTION_REPEAT_SECONDS) -> {
                             cues += Cue.Speak(phrase.text)
                             lastCorrectionAt = nowSeconds
@@ -132,11 +152,37 @@ class CuePlanner(
         return cues
     }
 
+    /** Speak a step's instruction and give it time to be heard before any correction. */
+    private fun announce(step: ManeuverStep, nowSeconds: Double, cues: MutableList<Cue>) {
+        val text = step.instruction(side, practice)
+        cues += Cue.Speak(text, interrupt = true)
+        lastInstructionAt = nowSeconds
+        graceUntil = nowSeconds + graceSeconds(text)
+        lastCorrectionAt = null
+    }
+
+    /** The current step's instruction as it would be spoken, for a "say it again" button. */
+    fun instructionFor(step: ManeuverStep): String = step.instruction(side, practice)
+
     companion object {
         /**
-         * Quiet time after a new position is announced. The instructions run to around five
-         * seconds when spoken; correcting before they finish drowns them out.
+         * How long to wait after an instruction before correcting, scaled to its length.
+         *
+         * At the slowed speech rate a word takes about half a second, plus a second to act. A flat
+         * wait either cuts long instructions off or leaves short ones hanging.
          */
+        fun graceSeconds(text: String): Double {
+            val words = text.split(' ').count { it.isNotBlank() }
+            return maxOf(INSTRUCTION_GRACE_SECONDS, words * SECONDS_PER_WORD + 1.0)
+        }
+
+        /** Spoken pace at the app's slowed speech rate. */
+        const val SECONDS_PER_WORD = 0.5
+
+        /** Seeking this long since the instruction was last said: say it again. */
+        const val REANNOUNCE_SECONDS = 20.0
+
+        /** The least quiet time after any instruction; correcting sooner drowns it out. */
         const val INSTRUCTION_GRACE_SECONDS = 6.0
 
         /** Minimum gap between repeated corrections. Long enough to act on one before the next. */

@@ -50,8 +50,18 @@ data class RotationPolarity(val towardAffectedSideIsPositive: Boolean) {
 data class ManeuverStep(
     val id: String,
     val title: String,
-    /** Read aloud when the step begins. The screen is secondary; this is the real interface. */
+    /**
+     * Read aloud when the step begins, for someone doing the manoeuvre. Short sentences, no
+     * numbers a dizzy person must convert: "halfway to your shoulder", not "45 degrees".
+     * `{affected}` and `{other}` become "right" and "left" -- see [instruction].
+     */
     val spoken: String,
+    /**
+     * The same step for practice mode, where the phone stands in for the head. A practice run
+     * that tells someone holding a phone to lie on a bed teaches nothing, and a practice run on
+     * hardware showed exactly that.
+     */
+    val practiceSpoken: String,
     /** Said when the user is out of position, after the direction of correction. */
     val target: TargetPose,
     val holdSeconds: Int,
@@ -64,7 +74,13 @@ data class ManeuverStep(
      * for a position that was already good enough.
      */
     val toleranceDegrees: Double,
-)
+) {
+    /** The words to say, with the sides filled in. "Your right" beats "your affected side". */
+    fun instruction(side: Side, practice: Boolean): String =
+        (if (practice) practiceSpoken else spoken)
+            .replace("{affected}", side.word)
+            .replace("{other}", side.other().word)
+}
 
 /**
  * The four-position Epley for the posterior canal, plus the sit-up.
@@ -94,8 +110,10 @@ object Epley {
         ManeuverStep(
             id = "prepare",
             title = "Sit up and turn",
-            spoken = "Sit upright on the edge of the bed. Turn your head forty five degrees " +
-                "toward your affected side.",
+            spoken = "Sit on the edge of the bed. Turn your head to the {affected}, halfway to " +
+                "your shoulder.",
+            practiceSpoken = "Hold the phone upright, screen facing you. It stands in for your " +
+                "head. Turn it like a key, halfway to the {affected}.",
             target = TargetPose(pitchDegrees = -90.0, headRotationDegrees = 45.0),
             // Short: this only confirms the starting position, it is not a therapeutic hold.
             holdSeconds = 3,
@@ -106,8 +124,10 @@ object Epley {
         ManeuverStep(
             id = "lie-back",
             title = "Lie back, head hanging",
-            spoken = "Keeping your head turned, lie back quickly so your head hangs off the edge " +
-                "of the bed. You may feel the spinning start. That is expected. Stay still.",
+            spoken = "Keep your head turned. Lie back quickly, with your head hanging over the " +
+                "edge of the bed. You may feel dizzy. That is expected. Stay still.",
+            practiceSpoken = "Keep it turned. Tip the top of the phone away from you, until it " +
+                "lies flat. Then tip it a little further.",
             target = TargetPose(pitchDegrees = 25.0, headRotationDegrees = 45.0),
             holdSeconds = 45,
             toleranceDegrees = 26.1,
@@ -115,8 +135,8 @@ object Epley {
         ManeuverStep(
             id = "turn-across",
             title = "Turn to the other side",
-            spoken = "Slowly turn your head ninety degrees, to face the other way. Keep your head " +
-                "hanging back.",
+            spoken = "Now slowly turn your head all the way to the {other}. Keep it hanging back.",
+            practiceSpoken = "Keep it tipped back. Turn it like a key the other way, to the {other}.",
             target = TargetPose(pitchDegrees = 25.0, headRotationDegrees = -45.0),
             holdSeconds = 45,
             toleranceDegrees = 31.0,
@@ -124,8 +144,10 @@ object Epley {
         ManeuverStep(
             id = "roll",
             title = "Roll onto your shoulder",
-            spoken = "Roll onto that shoulder and turn your head further, until you are looking " +
-                "down at the floor.",
+            spoken = "Roll onto your {other} side. Turn your head further, so you look down at " +
+                "the floor.",
+            practiceSpoken = "Keep turning it like a key to the {other}, until the screen faces " +
+                "down. Bring the top back up level.",
             // Head turned a further 90 from the previous step, so the face points toward the floor.
             // Rolled onto the side with the neck angle kept, the hang that pointed downward now
             // points sideways, so the long axis lies level: pitch 0.
@@ -136,7 +158,8 @@ object Epley {
         ManeuverStep(
             id = "sit-up",
             title = "Sit up slowly",
-            spoken = "Slowly sit up, and bring your head back to facing forward.",
+            spoken = "Slowly sit up. Face straight ahead.",
+            practiceSpoken = "Bring the phone back upright, screen facing you.",
             // Also the drift check: this is the pose the calibration was taken in, so the true
             // reading here is zero and anything else is measured mount error.
             target = TargetPose(pitchDegrees = -90.0, headRotationDegrees = 0.0),
@@ -236,7 +259,7 @@ class ManeuverEngine(
         val target = sensorTarget(step.target)
 
         val pitchError = target.pitchDegrees - pose.pitchDegrees
-        val rotationError = target.headRotationDegrees - pose.headRotationDegrees
+        val rotationError = HeadAngles.shortestDegrees(target.headRotationDegrees - pose.headRotationDegrees)
         val correction = Correction(pitchError, rotationError)
 
         val inPosition = maxOf(abs(pitchError), abs(rotationError)) <= step.toleranceDegrees

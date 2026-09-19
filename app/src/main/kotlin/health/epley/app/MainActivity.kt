@@ -117,6 +117,7 @@ class MainActivity : ComponentActivity() {
                     } else if (run.running) {
                         RunScreen(
                             run = run,
+                            onRepeat = runController::repeatInstruction,
                             onStop = {
                                 guidance.silence()
                                 runController.stop()
@@ -345,6 +346,7 @@ private fun ProbeScreen(
                 onStart = {
                     controller.start(
                         stillnessThresholdDegPerSec = HeadTracker.STILLNESS_THRESHOLD_DEG_PER_SEC,
+                        practice = !state.mode.tracksTheHead,
                     )
                 },
             )

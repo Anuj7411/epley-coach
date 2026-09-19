@@ -85,7 +85,7 @@ class RunController(
      * a learned direction. The check lives here and not only on the button, so no other caller can
      * start an Epley the questionnaire ruled out.
      */
-    fun start(stillnessThresholdDegPerSec: Double) {
+    fun start(stillnessThresholdDegPerSec: Double, practice: Boolean = false) {
         if (!_state.value.canStart) return
         val polarity = _state.value.polarity ?: return
         engine = ManeuverEngine(
@@ -96,8 +96,8 @@ class RunController(
         lastTimestampNanos = 0L
         secondsSinceStepCompleted = 0.0
         runSeconds = 0.0
-        planner = CuePlanner(polarity, _state.value.side)
-        _state.value = _state.value.copy(running = true, engineState = null)
+        planner = CuePlanner(polarity, _state.value.side, practice)
+        _state.value = _state.value.copy(running = true, engineState = null, practice = practice)
     }
 
     /**
@@ -107,6 +107,18 @@ class RunController(
      * a different canal, and reusing today's answers is exactly the habit the questionnaire exists
      * to replace.
      */
+    /**
+     * Say the current position's instruction again, on request.
+     *
+     * A practice run on hardware found the first hearing is easy to miss. A button that repeats it
+     * costs nothing and beats guessing.
+     */
+    fun repeatInstruction() {
+        val step = _state.value.engineState?.step ?: return
+        val text = planner?.instructionFor(step) ?: return
+        onCue(Cue.Speak(text, interrupt = true))
+    }
+
     fun stop() {
         engine = null
         planner = null
@@ -187,6 +199,8 @@ data class RunUiState(
     val triage: TriageOutcome? = null,
     /** The latest head pose during a run, for the live head dials. */
     val pose: HeadPose? = null,
+    /** Practice mode: the phone stands in for the head, and the words say so. */
+    val practice: Boolean = false,
 ) {
     /** The Epley treats the posterior canal only, so nothing else the triage says can start it. */
     val canStart: Boolean

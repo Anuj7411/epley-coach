@@ -80,6 +80,16 @@ object HeadAngles {
         )
     }
 
+    /**
+     * Wrap a difference of angles, in degrees, into (-180, 180] — the short way round.
+     *
+     * Every rotation comparison must go through this. The rotation reading is unwrapped for
+     * continuity, so it can sit a whole number of turns away from the target while pointing the
+     * same way; a plain subtraction then calls a perfect position 360 degrees out.
+     */
+    fun shortestDegrees(difference: Double): Double =
+        Math.toDegrees(normalizeSigned(Math.toRadians(difference)))
+
     /** Wrap an angle to (-pi, pi] so a 350° turn reads as -10°, not 350°. */
     internal fun normalizeSigned(radians: Double): Double {
         var a = radians
@@ -252,7 +262,7 @@ data class HeadPose(
     /** How far this pose is from a target, as the larger of the two angular errors. */
     fun errorAgainst(target: TargetPose): Double = maxOf(
         abs(pitchDegrees - target.pitchDegrees),
-        abs(headRotationDegrees - target.headRotationDegrees),
+        abs(HeadAngles.shortestDegrees(headRotationDegrees - target.headRotationDegrees)),
     )
 
     fun isWithin(target: TargetPose, toleranceDegrees: Double): Boolean =

@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import health.epley.core.HeadAngles
 import health.epley.core.HeadPose
 import health.epley.core.ManeuverStep
 import health.epley.core.RotationPolarity
@@ -186,7 +187,9 @@ fun HeadDials(
     val liveTurn = pose?.let { towardAffected(it, polarity) }
     val livePitch = pose?.pitchDegrees
     val band = step.toleranceDegrees
-    val turnOk = liveTurn != null && abs(liveTurn - targetTurn) <= band
+    // Short way round, exactly as the engine judges it — otherwise the dial can show the heads
+    // lined up while still yellow, which is the bug a practice run found.
+    val turnOk = liveTurn != null && abs(HeadAngles.shortestDegrees(liveTurn - targetTurn)) <= band
     val pitchOk = livePitch != null && abs(livePitch - targetPitch) <= band
 
     Row(

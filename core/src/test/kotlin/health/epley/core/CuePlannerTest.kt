@@ -9,10 +9,14 @@ class CuePlannerTest {
     private val steps = Epley.steps()
     private val lieBack = steps[1]
 
-    private fun planner() = CuePlanner(
+    private fun planner(practice: Boolean = false) = CuePlanner(
         polarity = RotationPolarity(towardAffectedSideIsPositive = true),
         side = Side.RIGHT,
+        practice = practice,
     )
+
+    /** When corrections may start after the lie-back instruction, however long it is. */
+    private val grace = CuePlanner.graceSeconds(lieBack.instruction(Side.RIGHT, practice = false))
 
     private fun state(
         guidance: Guidance,
@@ -37,7 +41,7 @@ class CuePlannerTest {
     fun `a new position is announced once, with its instruction`() {
         val p = planner()
         val first = p.onState(state(Guidance.SEEKING, correction = Correction(40.0, 0.0)), 0.0)
-        assertEquals(listOf(lieBack.spoken), first.spoken())
+        assertEquals(listOf(lieBack.instruction(Side.RIGHT, practice = false)), first.spoken())
         assertTrue(p.onState(state(Guidance.SEEKING, correction = Correction(40.0, 0.0)), 0.5).isEmpty())
     }
 
@@ -69,13 +73,13 @@ class CuePlannerTest {
         assertTrue(p.onState(state(Guidance.SEEKING, correction = off), 3.0).spoken().isEmpty())
         assertEquals(
             listOf("Let your head hang lower"),
-            p.onState(state(Guidance.SEEKING, correction = off), CuePlanner.INSTRUCTION_GRACE_SECONDS).spoken(),
+            p.onState(state(Guidance.SEEKING, correction = off), grace).spoken(),
         )
         // Not again straight away: a voice that never stops is a voice people stop hearing.
-        assertTrue(p.onState(state(Guidance.SEEKING, correction = off), 8.0).spoken().isEmpty())
+        assertTrue(p.onState(state(Guidance.SEEKING, correction = off), grace + 2.0).spoken().isEmpty())
         val again = p.onState(
             state(Guidance.SEEKING, correction = off),
-            CuePlanner.INSTRUCTION_GRACE_SECONDS + CuePlanner.CORRECTION_REPEAT_SECONDS,
+            grace + CuePlanner.CORRECTION_REPEAT_SECONDS,
         )
         assertEquals(listOf("Let your head hang lower"), again.spoken())
     }
@@ -86,7 +90,7 @@ class CuePlannerTest {
         p.onState(state(Guidance.SEEKING, correction = Correction(10.0, -35.0)), 0.0)
         val cues = p.onState(
             state(Guidance.SEEKING, correction = Correction(10.0, -35.0)),
-            CuePlanner.INSTRUCTION_GRACE_SECONDS,
+            grace,
         )
         assertEquals(listOf("Turn toward your left"), cues.spoken())
     }
@@ -104,8 +108,8 @@ class CuePlannerTest {
     fun `settling is prompted once, not on every sample`() {
         val p = planner()
         p.onState(state(Guidance.SEEKING), 0.0)
-        assertEquals(listOf("Hold still"), p.onState(state(Guidance.SETTLING), 7.0).spoken())
-        assertTrue(p.onState(state(Guidance.SETTLING), 7.5).spoken().isEmpty())
+        assertEquals(listOf("Hold still"), p.onState(state(Guidance.SETTLING), 1.0).spoken())
+        assertTrue(p.onState(state(Guidance.SETTLING), 1.5).spoken().isEmpty())
     }
 
     @Test
@@ -125,5 +129,61 @@ class CuePlannerTest {
         assertEquals(listOf(Haptic.FINISHED), end.buzzes())
         assertTrue(end.spoken().single().startsWith("Manoeuvre complete"))
         assertTrue(p.onState(state(Guidance.FINISHED, step = null, index = 5, correction = null), 2.0).isEmpty())
+    }
+
+    @Test
+    fun `a second hold in the same position is acknowledged briefly`() {
+        // Reported from hardware: "hold for 45 seconds" over and over is irritating. The full
+        // announcement is for the first time; after a wobble, a buzz and one word is enough.
+        val p = planner()
+        p.onState(state(Guidance.SEEKING), 0.0)
+        p.onState(state(Guidance.HOLDING, held = 0.02), 1.0)
+        p.onState(state(Guidance.SEEKING, correction = Correction(0.0, 35.0)), 5.0)
+        val again = p.onState(state(Guidance.HOLDING, held = 0.02), 8.0)
+        assertEquals(listOf(Haptic.IN_POSITION), again.buzzes())
+        assertEquals(listOf("Hold"), again.spoken())
+    }
+
+    @Test
+    fun `an instruction nobody has acted on is repeated`() {
+        val p = planner()
+        val off = Correction(40.0, 0.0)
+        p.onState(state(Guidance.SEEKING, correction = off), 0.0)
+        val later = p.onState(state(Guidance.SEEKING, correction = off), CuePlanner.REANNOUNCE_SECONDS)
+        assertEquals(lieBack.instruction(Side.RIGHT, practice = false), later.spoken().first())
+    }
+
+    @Test
+    fun `the instruction names the actual side, not a category`() {
+        // "Your affected side" makes a dizzy person work out which that is. "Your right" does not.
+        val spoken = planner().onState(state(Guidance.SEEKING, step = steps[0], index = 0), 0.0).spoken().single()
+        assertTrue("right" in spoken, spoken)
+        assertTrue("affected" !in spoken && "{" !in spoken, spoken)
+    }
+
+    @Test
+    fun `practice mode talks about the phone, not a bed`() {
+        // Reported from hardware: practice mode told the user to lie on a bed while they held a
+        // phone. In practice the phone is the head, so the instruction has to say what to do to it.
+        val spoken = planner(practice = true).onState(state(Guidance.SEEKING), 0.0).spoken().single()
+        assertEquals(lieBack.instruction(Side.RIGHT, practice = true), spoken)
+        assertTrue("phone" in spoken, spoken)
+        assertTrue("bed" !in spoken, spoken)
+    }
+
+    @Test
+    fun `practice corrections describe moving the phone`() {
+        val p = planner(practice = true)
+        val off = Correction(40.0, 0.0)
+        p.onState(state(Guidance.SEEKING, correction = off), 0.0)
+        val g = CuePlanner.graceSeconds(lieBack.instruction(Side.RIGHT, practice = true))
+        assertEquals(listOf("Tip the top further down"), p.onState(state(Guidance.SEEKING, correction = off), g).spoken())
+    }
+
+    @Test
+    fun `longer instructions get longer before corrections start`() {
+        assertTrue(CuePlanner.graceSeconds("Sit up.") >= CuePlanner.INSTRUCTION_GRACE_SECONDS)
+        val long = "word ".repeat(40)
+        assertTrue(CuePlanner.graceSeconds(long) > CuePlanner.INSTRUCTION_GRACE_SECONDS)
     }
 }

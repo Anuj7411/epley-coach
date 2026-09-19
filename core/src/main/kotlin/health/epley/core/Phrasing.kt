@@ -28,6 +28,7 @@ object Phrasing {
         side: Side,
         toleranceDegrees: Double,
         seated: Boolean = false,
+        practice: Boolean = false,
     ): List<CorrectionPhrase> {
         val phrases = mutableListOf<Pair<Double, CorrectionPhrase>>()
 
@@ -35,6 +36,9 @@ object Phrasing {
         if (abs(pitch) > toleranceDegrees) {
             // Sitting, any pitch error is a lean; "hang lower" would be nonsense upright.
             val text = when {
+                practice && seated -> "Hold it upright"
+                practice && pitch > 0 -> "Tip the top further down"
+                practice -> "Tip the top back up a little"
                 seated -> "Sit up straight"
                 pitch > 0 -> "Let your head hang lower"
                 else -> "Raise your head a little"
@@ -48,8 +52,8 @@ object Phrasing {
             // ear depends on the learned polarity, never on an assumption about anatomy.
             val towardAffected = (rotation > 0) == polarity.towardAffectedSideIsPositive
             val target = if (towardAffected) side else side.other()
-            phrases += abs(rotation) to
-                CorrectionPhrase("Turn toward your ${target.word}", abs(rotation).roundToInt())
+            val text = if (practice) "Turn it like a key to your ${target.word}" else "Turn toward your ${target.word}"
+            phrases += abs(rotation) to CorrectionPhrase(text, abs(rotation).roundToInt())
         }
 
         return phrases.sortedByDescending { it.first }.map { it.second }
