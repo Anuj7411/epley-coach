@@ -105,7 +105,24 @@ fun TriageScreen(
         }
 
         Spacer(Modifier.height(8.dp))
-        OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("BACK") }
+        // A mis-tap on "which way is worse" picks the wrong ear, and older users mis-tap more.
+        // Undo the most recent answer rather than making them start the questionnaire again.
+        if (q1 != null) {
+            OutlinedButton(
+                onClick = {
+                    when {
+                        q6 != null -> q6 = null
+                        q5 != null -> q5 = null
+                        q4 != null -> q4 = null
+                        q3 != null -> q3 = null
+                        q2 != null -> q2 = null
+                        else -> q1 = null
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+            ) { Text("CHANGE MY LAST ANSWER") }
+        }
+        OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text("BACK") }
     }
 }
 

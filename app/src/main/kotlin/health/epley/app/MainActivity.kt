@@ -40,6 +40,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import health.epley.core.Episode
+import health.epley.core.EpisodeLog
+import health.epley.core.Guidance
 import health.epley.core.MountMode
 import health.epley.core.SafetyOutcome
 import health.epley.core.Side
@@ -64,6 +67,8 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var guidance: GuidanceOutput
 
+    private lateinit var episodeStore: EpisodeStore
+
     private val runController = RunController(onCue = { cue ->
         if (::guidance.isInitialized) guidance.play(cue)
     })
@@ -87,6 +92,7 @@ class MainActivity : ComponentActivity() {
 
         tracker = HeadTracker(getSystemService(Context.SENSOR_SERVICE) as SensorManager)
         guidance = GuidanceOutput(this)
+        episodeStore = EpisodeStore(this)
 
         // Drain the sensor stream into the CSV whenever logging is active. Without this the file
         // gets its header and nothing else — which is exactly the bug this comment exists to stop
@@ -107,6 +113,23 @@ class MainActivity : ComponentActivity() {
                     val trackerState by tracker.state.collectAsState()
                     var showTriage by remember { mutableStateOf(false) }
                     var showSafety by remember { mutableStateOf(false) }
+                    var episodes by remember { mutableStateOf(episodeStore.load()) }
+
+                    // Every run ends in the history, finished or not, so the record is honest
+                    // about abandoned attempts too.
+                    fun endRun(completed: Boolean, feeling: health.epley.core.Feeling?) {
+                        episodes = episodeStore.append(
+                            Episode(
+                                epochMillis = System.currentTimeMillis(),
+                                side = run.side,
+                                completed = completed,
+                                feeling = feeling,
+                                practice = run.practice,
+                            ),
+                        )
+                        guidance.silence()
+                        runController.stop()
+                    }
 
                     if (showSafety) {
                         SafetyScreen(
@@ -124,14 +147,17 @@ class MainActivity : ComponentActivity() {
                             },
                             onCancel = { showTriage = false },
                         )
+                    } else if (run.running && run.engineState?.guidance == Guidance.FINISHED) {
+                        AfterCareScreen(
+                            practice = run.practice,
+                            runsBefore = EpisodeLog.runsThisEpisode(episodes, System.currentTimeMillis()),
+                            onDone = { feeling -> endRun(completed = true, feeling = feeling) },
+                        )
                     } else if (run.running) {
                         RunScreen(
                             run = run,
                             onRepeat = runController::repeatInstruction,
-                            onStop = {
-                                guidance.silence()
-                                runController.stop()
-                            },
+                            onStop = { endRun(completed = false, feeling = null) },
                         )
                     } else {
                         ProbeScreen(
@@ -140,6 +166,7 @@ class MainActivity : ComponentActivity() {
                             controller = runController,
                             onOpenTriage = { showTriage = true },
                             onOpenSafety = { showSafety = true },
+                            episodes = episodes,
                             onToggleLogging = ::toggleLogging,
                             isLogging = logger != null,
                             logDirectory = getExternalFilesDir(null)?.absolutePath ?: "",
@@ -188,6 +215,7 @@ private fun ProbeScreen(
     controller: RunController,
     onOpenTriage: () -> Unit,
     onOpenSafety: () -> Unit,
+    episodes: List<Episode>,
     onToggleLogging: () -> Boolean,
     isLogging: Boolean,
     logDirectory: String,
@@ -349,6 +377,8 @@ private fun ProbeScreen(
             )
         }
 
+        EpisodeHistory(episodes)
+
         run {
             GuidedRunSetup(
                 run = run,
@@ -377,6 +407,40 @@ private fun ProbeScreen(
                 fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace,
             )
+        }
+    }
+}
+
+/**
+ * The last few real treatment runs. Practice runs are left out: they measured a phone.
+ *
+ * A recurrence log is the feature the one new competitor ships and we lacked, and it is what makes
+ * "BPPV comes back" visible to the person it keeps coming back to.
+ */
+@Composable
+private fun EpisodeHistory(episodes: List<Episode>) {
+    val treatments = EpisodeLog.treatments(episodes)
+    if (treatments.isEmpty()) return
+    val format = java.text.SimpleDateFormat("d MMM, h:mm a", java.util.Locale.getDefault())
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("YOUR RUNS", color = Color(0xFF9E9E9E), fontSize = 14.sp, fontFamily = FontFamily.Monospace)
+        for (e in treatments.take(5)) {
+            val outcome = when {
+                !e.completed -> "stopped early"
+                e.feeling == health.epley.core.Feeling.BETTER -> "felt better"
+                e.feeling == health.epley.core.Feeling.SAME -> "no change"
+                e.feeling == health.epley.core.Feeling.WORSE -> "felt worse"
+                else -> "finished"
+            }
+            val ear = if (e.side == Side.LEFT) "left" else "right"
+            Text(
+                "${format.format(java.util.Date(e.epochMillis))} · $ear ear · $outcome",
+                color = Color(0xFFDDDDDD),
+                fontSize = 15.sp,
+            )
+        }
+        if (treatments.size > 1) {
+            Text("${treatments.size} runs recorded on this phone", color = Color(0xFF9E9E9E), fontSize = 14.sp)
         }
     }
 }
