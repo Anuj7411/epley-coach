@@ -61,3 +61,40 @@ published guidance and the apps themselves rather than mockup galleries.
 - **Still dizzy: repeat once, an hour later.** The JAMA Neurology 2023 trial protocol had patients
   repeat the manoeuvre one hour later. [PMC10011937](https://pmc.ncbi.nlm.nih.gov/articles/PMC10011937/)
 - **Worse, or still dizzy after the repeat: see a doctor.**
+
+---
+
+## Visual system — decided 2026-09-19 from research, not taste
+
+### Sources consulted
+- Merge, *8 best-designed health apps* (Ada, Calm, Headspace, Balance, Waterllama, Gentler Streak, Ahead, Noom) — [link](https://merge.rocks/blog/8-best-designed-health-apps-weve-seen-so-far)
+- Sword Health, motion-sensor digital physiotherapy — [link](https://swordhealth.com/articles/what-is-digital-physical-therapy)
+- Headspace design system — [link](https://www.figma.com/blog/building-a-design-system-that-breathes-with-headspace/)
+- WCAG 2.3.3, animation and vestibular disorders — [link](https://w3.org/WAI/WCAG21/Understanding/animation-from-interactions)
+- Material dark theme — [link](https://m2.material.io/design/color/dark-theme.html)
+- Okabe–Ito colour-blind-safe palette — [link](https://sci-draw.com/blog/colorblind-safe-palettes-okabe-ito-reference)
+- Photophobia in vestibular migraine (a different condition from BPPV; used only to support low glare) — [link](https://pubmed.ncbi.nlm.nih.gov/38819614/)
+- Pinterest and Dribbble could not be read (both require JavaScript or login); galleries were not used.
+
+### Tokens
+
+| Token | Value | Why |
+|---|---|---|
+| Background | `#121212` | Material dark theme: pure black under off-white text causes halation, worst with astigmatism |
+| Surface / raised | `#1E1E1E` / `#2A2A2A` | Depth by layered greys, not shadows |
+| Text primary | `#E6E6E6` | Off-white, not pure white |
+| Text secondary | `#B3B3B3` | About 9 : 1 on the background; nothing fainter for user-facing text |
+| Action + "in position" | `#56B4E9` sky blue, text `#0B1A24` on it | Okabe–Ito; one saturated colour for the main action (Headspace) |
+| "Move" | `#E69F00` orange | Okabe–Ito; told apart from blue by every common colour-vision deficiency |
+| Danger | `#D55E00` vermillion | Okabe–Ito; used only for emergency |
+| Outline | `#6F6F6F` | Visible on the background without competing |
+
+Colour is never the only signal: every state also has a word ("Move", "Holding").
+
+### Rules
+- **No animation** except the hold progress bar (essential feedback, exempt under WCAG 2.3.3). No transitions, no parallax, no pulsing.
+- **One main action per screen**, sky blue, anchored at the bottom within thumb reach; secondary actions outlined.
+- **Buttons at least 56 dp tall**; body text at least 16 sp, labels at least 14 sp; all in `sp` so system text scaling works.
+- **Sentence case**, not capitals, for buttons and labels.
+- **One question or one instruction at a time** (Ada Health); explanation before execution (Sword Health).
+- **Audio leads, the screen supports** (Calm).
