@@ -57,7 +57,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 /** Where the user is in the app when no run is in progress. */
-enum class Screen { HOME, SAFETY, TRIAGE, PRACTICE_SIDE, HOLD, CALIBRATE, DIRECTION, READY, PAYWALL, INSTRUMENT }
+enum class Screen { HOME, SAFETY, TRIAGE, PRACTICE_SIDE, HOLD, CALIBRATE, DIRECTION, READY, PAYWALL, INSTRUMENT, ACCURACY }
 
 /**
  * The app: a home screen, a six-step flow into a guided run, and the after-care that follows.
@@ -263,8 +263,15 @@ class MainActivity : ComponentActivity() {
                     onBack = { screen = Screen.DIRECTION },
                 )
 
+                Screen.ACCURACY -> AccuracyCheckScreen(
+                    devicePitchDegrees = trackerState.devicePitchDegrees,
+                    isStill = trackerState.isStill,
+                    onBack = { screen = Screen.INSTRUMENT },
+                )
+
                 Screen.INSTRUMENT -> ProbeScreen(
                     tracker = tracker,
+                    onAccuracyCheck = { screen = Screen.ACCURACY },
                     onBack = { screen = Screen.HOME },
                     onToggleLogging = ::toggleLogging,
                     isLogging = logger != null,
@@ -359,6 +366,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun ProbeScreen(
     tracker: HeadTracker,
+    onAccuracyCheck: () -> Unit,
     onBack: () -> Unit,
     onToggleLogging: () -> Boolean,
     isLogging: Boolean,
@@ -377,6 +385,8 @@ private fun ProbeScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         SecondaryButton("Back to home", onBack)
+
+        SecondaryButton("Accuracy self-check", onAccuracyCheck)
 
         Text(
             text = if (tracker.isSupported) tracker.sensorName else "NO ORIENTATION SENSOR",

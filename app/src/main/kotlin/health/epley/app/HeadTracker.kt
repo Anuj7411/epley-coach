@@ -12,6 +12,7 @@ import health.epley.core.MountMode
 import health.epley.core.MountMonitor
 import health.epley.core.MountResidual
 import health.epley.core.Quaternion
+import health.epley.core.Vector3
 import health.epley.core.UprightCheck
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -184,6 +185,13 @@ class HeadTracker(
         lastQuaternion = q
         lastTimestampNanos = event.timestamp
 
+        // The phone's own tilt, independent of any calibration: the angle of its top edge below
+        // horizontal. Used by the accuracy self-check, which needs the raw instrument rather than
+        // a head angle derived from it.
+        val deviceTilt = Math.toDegrees(
+            kotlin.math.asin((q.rotate(Vector3(0.0, 1.0, 0.0)).normalized() dot Vector3.DOWN).coerceIn(-1.0, 1.0)),
+        )
+
         // A phone cannot slip without moving fast. Watching the rate is the only handle a single
         // orientation sensor gives us on the mount coming loose.
         mountMonitor.onSample(degreesPerSecond)
@@ -201,6 +209,7 @@ class HeadTracker(
             sampleCount = _state.value.sampleCount + 1,
             samplesSinceCalibration = if (cal != null) _state.value.samplesSinceCalibration + 1 else 0,
             lastTimestampNanos = event.timestamp,
+            devicePitchDegrees = deviceTilt,
             isJolted = mountMonitor.isJolted,
             peakRateDegPerSec = mountMonitor.peakRateDegPerSec,
         )
@@ -254,6 +263,8 @@ data class TrackerState(
     val residualChecks: Int = 0,
     val sampleCount: Long = 0,
     val samplesSinceCalibration: Long = 0,
+    /** The phone's own top-edge tilt below horizontal, before any calibration. */
+    val devicePitchDegrees: Double = 0.0,
     val sensorAccuracy: Int = SensorManager.SENSOR_STATUS_UNRELIABLE,
     val lastTimestampNanos: Long = 0,
     /**

@@ -94,7 +94,7 @@ the **right angles** (unaided self-treatment is off by 40–51°).
 
 | ID | Requirement | Rationale |
 |---|---|---|
-| NFR-1 | Angle accuracy within 5° of a physical inclinometer, static | The error being corrected is 40–51°; 5° is an order of magnitude inside it |
+| NFR-1 | Angle accuracy within 5°, static, verified by **reversal** (two readings 180° apart separate the surface's tilt from the sensor's error — no reference instrument needed) and against paper-folded 45°/30°/60° angles | The error being corrected is 40–51°; 5° is an order of magnitude inside it |
 | NFR-2 | No sample-to-sample discontinuity above 30° | 30° at 50 Hz is 1,500°/s, far beyond human head motion. **Verified: worst observed 5.16°; 3.08° in the 8 Sept session** |
 | NFR-3 | Yaw drift under 10° over a 90-second session | The manoeuvre runs ~60 s from calibration. **Measured: −4.2° over 264 s moving; +0.006° over 107 s at rest** |
 | NFR-4 | Screen stays on for the whole session | Non-wakeup sensors stop delivering when the CPU suspends |
