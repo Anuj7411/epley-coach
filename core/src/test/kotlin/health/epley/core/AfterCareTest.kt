@@ -81,3 +81,38 @@ class EpisodeLogTest {
         assertEquals(listOf(3L, 2L, 1L), EpisodeLog.treatments(log).map { it.epochMillis })
     }
 }
+
+class EpisodeReportTest {
+
+    private fun at(millis: Long) = "T$millis"
+
+    private val log = listOf(
+        Episode(3_000L, Side.RIGHT, completed = true, feeling = Feeling.BETTER, practice = false),
+        Episode(2_000L, Side.LEFT, completed = false, feeling = null, practice = false),
+        Episode(1_000L, Side.RIGHT, completed = true, feeling = null, practice = true),
+    )
+
+    @Test
+    fun `the report lists real runs newest first, in plain words`() {
+        val lines = EpisodeLog.report(log, ::at).lines()
+        assertTrue(lines[0].startsWith("Epley Coach"), lines[0])
+        val runs = lines.filter { it.startsWith("T") }
+        assertEquals(2, runs.size, "practice runs must not appear: $runs")
+        assertTrue(runs[0].startsWith("T3000"), runs[0])
+        assertTrue("right ear" in runs[0] && "felt better" in runs[0], runs[0])
+        assertTrue("stopped early" in runs[1], runs[1])
+    }
+
+    @Test
+    fun `the report says what the app is, so a clinician reading it is not guessing`() {
+        val text = EpisodeLog.report(log, ::at)
+        assertTrue("not a medical device" in text.lowercase(), text)
+        assertTrue("Epley" in text)
+    }
+
+    @Test
+    fun `an empty history still produces a valid report`() {
+        val text = EpisodeLog.report(emptyList(), ::at)
+        assertTrue("No runs" in text, text)
+    }
+}

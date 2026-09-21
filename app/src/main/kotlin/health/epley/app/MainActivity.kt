@@ -57,7 +57,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 /** Where the user is in the app when no run is in progress. */
-enum class Screen { HOME, SAFETY, TRIAGE, PRACTICE_SIDE, HOLD, CALIBRATE, DIRECTION, READY, INSTRUMENT }
+enum class Screen { HOME, SAFETY, TRIAGE, PRACTICE_SIDE, HOLD, CALIBRATE, DIRECTION, READY, PAYWALL, INSTRUMENT }
 
 /**
  * The app: a home screen, a six-step flow into a guided run, and the after-care that follows.
@@ -76,6 +76,12 @@ class MainActivity : ComponentActivity() {
     private lateinit var guidance: GuidanceOutput
 
     private lateinit var episodeStore: EpisodeStore
+
+    /**
+     * Swapped for the RevenueCat-backed implementation once the key exists. Nothing clinical
+     * reads it — see [Entitlements].
+     */
+    private lateinit var entitlements: Entitlements
 
     private val runController = RunController(onCue = { cue ->
         if (::guidance.isInitialized) guidance.play(cue)
@@ -105,6 +111,7 @@ class MainActivity : ComponentActivity() {
         tracker = HeadTracker(getSystemService(Context.SENSOR_SERVICE) as SensorManager)
         guidance = GuidanceOutput(this)
         episodeStore = EpisodeStore(this)
+        entitlements = PlaceholderEntitlements(this)
         episodes = episodeStore.load()
 
         // Drain the sensor stream into the CSV whenever logging is active. Without this the file
@@ -163,7 +170,21 @@ class MainActivity : ComponentActivity() {
                     episodes = episodes,
                     onStart = { screen = Screen.SAFETY },
                     onPractice = { screen = Screen.PRACTICE_SIDE },
+                    onExport = if (EpisodeLog.treatments(episodes).isEmpty()) {
+                        null
+                    } else {
+                        { if (entitlements.hasExport) shareHistory() else screen = Screen.PAYWALL }
+                    },
                     onInstrument = { screen = Screen.INSTRUMENT },
+                )
+
+                Screen.PAYWALL -> PaywallScreen(
+                    entitlements = entitlements,
+                    onDone = {
+                        screen = Screen.HOME
+                        shareHistory()
+                    },
+                    onCancel = { screen = Screen.HOME },
                 )
 
                 Screen.SAFETY -> SafetyScreen(
@@ -251,6 +272,23 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    /**
+     * Hand the history to whatever the user picks — mail, messages, printing.
+     *
+     * A chooser, so sharing only ever happens to a destination they chose. The app itself sends
+     * nothing anywhere.
+     */
+    private fun shareHistory() {
+        val format = java.text.SimpleDateFormat("d MMM yyyy, h:mm a", java.util.Locale.getDefault())
+        val report = EpisodeLog.report(episodes) { format.format(java.util.Date(it)) }
+        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(android.content.Intent.EXTRA_SUBJECT, "Epley Coach — my history")
+            putExtra(android.content.Intent.EXTRA_TEXT, report)
+        }
+        startActivity(android.content.Intent.createChooser(intent, "Send history"))
     }
 
     /** Every run ends in the history, finished or not, so the record is honest about stops too. */

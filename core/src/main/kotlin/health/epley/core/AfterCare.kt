@@ -97,6 +97,43 @@ object EpisodeLog {
     fun treatments(log: List<Episode>): List<Episode> =
         log.filterNot { it.practice }.sortedByDescending { it.epochMillis }
 
+    /**
+     * The history as text to hand to a clinician.
+     *
+     * Plain sentences rather than a CSV: the reader is a doctor with four minutes, not a
+     * spreadsheet. Practice runs are left out — they measured a phone. [formatTime] is supplied by
+     * the caller so this stays free of Android and testable.
+     */
+    fun report(log: List<Episode>, formatTime: (Long) -> String): String {
+        val runs = treatments(log)
+        val body = if (runs.isEmpty()) {
+            "No runs recorded."
+        } else {
+            runs.joinToString(System.lineSeparator()) { e ->
+                val outcome = when {
+                    !e.completed -> "stopped early"
+                    e.feeling == Feeling.BETTER -> "felt better afterwards"
+                    e.feeling == Feeling.SAME -> "no change afterwards"
+                    e.feeling == Feeling.WORSE -> "felt worse afterwards"
+                    else -> "completed"
+                }
+                "${formatTime(e.epochMillis)} — ${e.side.word} ear — $outcome"
+            }
+        }
+        return buildString {
+            appendLine("Epley Coach — self-treatment history")
+            appendLine()
+            appendLine(body)
+            appendLine()
+            appendLine(
+                "Each run is a guided Epley manoeuvre for posterior canal BPPV. The ear was " +
+                    "identified by a six-question symptom triage (about 71% accurate against a " +
+                    "specialist), and head angles were measured with the phone's orientation " +
+                    "sensor. This app is not a medical device and does not diagnose.",
+            )
+        }
+    }
+
     /** Treatment runs in the current episode, i.e. within [EPISODE_WINDOW_MILLIS] of [nowMillis]. */
     fun runsThisEpisode(log: List<Episode>, nowMillis: Long): Int =
         treatments(log).count { nowMillis - it.epochMillis in 0..EPISODE_WINDOW_MILLIS }

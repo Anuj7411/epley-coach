@@ -114,6 +114,7 @@ fun HomeScreen(
     episodes: List<Episode>,
     onStart: () -> Unit,
     onPractice: () -> Unit,
+    onExport: (() -> Unit)?,
     onInstrument: () -> Unit,
 ) {
     FlowFrame(
@@ -123,6 +124,7 @@ fun HomeScreen(
         bottom = {
             PrimaryButton("I'm dizzy now — start", onStart)
             SecondaryButton("Practise with the phone", onPractice)
+            if (onExport != null) SecondaryButton("Export my history", onExport)
             TextButton(onClick = onInstrument, modifier = Modifier.fillMaxWidth()) {
                 Text("Instrument (raw sensor view)", color = Palette.TextSecondary, fontSize = 15.sp)
             }
