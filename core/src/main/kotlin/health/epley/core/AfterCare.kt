@@ -63,6 +63,11 @@ data class Episode(
     val feeling: Feeling?,
     /** Practice runs measure a phone, not a head. They are kept apart from treatment. */
     val practice: Boolean,
+    /**
+     * How many of the five positions were completed. A run abandoned at position three is
+     * different evidence from one that finished, and a clinician reading the history can see it.
+     */
+    val positionsCompleted: Int = 0,
 )
 
 /** Reading, writing and summarising the on-device episode history. */
@@ -75,13 +80,15 @@ object EpisodeLog {
     const val EPISODE_WINDOW_MILLIS = 6 * 60 * 60 * 1000L
 
     fun encode(episodes: List<Episode>): String = episodes.joinToString("\n") { e ->
-        listOf(e.epochMillis, e.side.name, e.completed, e.feeling?.name ?: "", e.practice).joinToString(",")
+        listOf(e.epochMillis, e.side.name, e.completed, e.feeling?.name ?: "", e.practice, e.positionsCompleted)
+            .joinToString(",")
     }
 
     /** Lines that do not parse are skipped: one damaged line must not cost the whole history. */
     fun decode(text: String): List<Episode> = text.lineSequence().mapNotNull { line ->
         val parts = line.split(",")
-        if (parts.size != 5) return@mapNotNull null
+        // Five fields is the format before positionsCompleted existed; those files still load.
+        if (parts.size !in 5..6) return@mapNotNull null
         runCatching {
             Episode(
                 epochMillis = parts[0].toLong(),
@@ -89,6 +96,7 @@ object EpisodeLog {
                 completed = parts[2].toBooleanStrict(),
                 feeling = parts[3].takeIf { it.isNotEmpty() }?.let { Feeling.valueOf(it) },
                 practice = parts[4].toBooleanStrict(),
+                positionsCompleted = parts.getOrNull(5)?.toInt() ?: 0,
             )
         }.getOrNull()
     }.toList()
@@ -111,7 +119,7 @@ object EpisodeLog {
         } else {
             runs.joinToString(System.lineSeparator()) { e ->
                 val outcome = when {
-                    !e.completed -> "stopped early"
+                    !e.completed -> "stopped early at position ${e.positionsCompleted + 1} of 5"
                     e.feeling == Feeling.BETTER -> "felt better afterwards"
                     e.feeling == Feeling.SAME -> "no change afterwards"
                     e.feeling == Feeling.WORSE -> "felt worse afterwards"

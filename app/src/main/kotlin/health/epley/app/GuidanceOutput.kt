@@ -36,18 +36,31 @@ class GuidanceOutput(context: Context) {
      */
     private val pending = mutableListOf<Cue.Speak>()
 
-    private val tts: TextToSpeech = TextToSpeech(context.applicationContext) { status ->
-        if (status == TextToSpeech.SUCCESS) {
-            val preferred = tts.setLanguage(Locale.getDefault())
-            if (preferred == TextToSpeech.LANG_MISSING_DATA || preferred == TextToSpeech.LANG_NOT_SUPPORTED) {
-                tts.setLanguage(Locale.US)
+    /**
+     * Nullable, and assigned before the callback can use it.
+     *
+     * The engine may call back on the calling thread while the constructor is still running, so a
+     * `val` initialised by its own constructor call is a null dereference waiting for the wrong
+     * device. Writing it this way, the worst case is a cue that arrives before the engine is ready
+     * — which [pending] already covers.
+     */
+    private var tts: TextToSpeech? = null
+
+    init {
+        tts = TextToSpeech(context.applicationContext) { status ->
+            val engine = tts
+            if (status == TextToSpeech.SUCCESS && engine != null) {
+                val preferred = engine.setLanguage(Locale.getDefault())
+                if (preferred == TextToSpeech.LANG_MISSING_DATA || preferred == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    engine.setLanguage(Locale.US)
+                }
+                // Well below default: the listener is dizzy, lying down, possibly nauseous, and a
+                // practice run on hardware found 0.9 too fast to follow.
+                engine.setSpeechRate(0.8f)
+                ready = true
+                pending.forEach(::speak)
+                pending.clear()
             }
-            // Well below default: the listener is dizzy, lying down, possibly nauseous, and a
-            // practice run on hardware found 0.9 too fast to follow.
-            tts.setSpeechRate(0.8f)
-            ready = true
-            pending.forEach(::speak)
-            pending.clear()
         }
     }
 
@@ -60,7 +73,7 @@ class GuidanceOutput(context: Context) {
 
     private fun speak(cue: Cue.Speak) {
         val mode = if (cue.interrupt) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD
-        tts.speak(cue.text, mode, null, cue.text.hashCode().toString())
+        tts?.speak(cue.text, mode, null, cue.text.hashCode().toString())
     }
 
     private fun buzz(pattern: Haptic) {
@@ -83,11 +96,12 @@ class GuidanceOutput(context: Context) {
     /** Stop talking now — used when a run is stopped mid-sentence. */
     fun silence() {
         pending.clear()
-        if (ready) tts.stop()
+        if (ready) tts?.stop()
     }
 
     fun release() {
-        tts.stop()
-        tts.shutdown()
+        tts?.stop()
+        tts?.shutdown()
+        tts = null
     }
 }

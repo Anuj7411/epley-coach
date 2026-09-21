@@ -152,10 +152,30 @@ class MainActivity : ComponentActivity() {
         fun progress(treatment: Int, practiceStep: Int) =
             if (practice) practiceStep / 4f else treatment / 6f
 
+        if (!tracker.isSupported) {
+            // FR-1. Some budget phones ship without a gyroscope, and every angle in this app comes
+            // from one. Saying so here is the only honest option; the flow behind it would measure
+            // nothing and claim a completed manoeuvre.
+            FlowFrame(stepLabel = null, progress = null, onBack = null, bottom = {}) {
+                Title("This phone can't measure head angles", color = Palette.Move)
+                Body(
+                    "It has no orientation sensor, which is what the whole app depends on. " +
+                        "Nothing here would be measured, so it won't pretend to guide you.",
+                )
+                Body("Most phones from the last decade do have one.", secondary = true)
+            }
+            return
+        }
+
         when {
             run.running && run.engineState?.guidance == Guidance.FINISHED -> AfterCareScreen(
                 practice = practice,
                 runsBefore = EpisodeLog.runsThisEpisode(episodes, System.currentTimeMillis()),
+                // The last position returns to the pose the calibration was taken in, where the
+                // true reading is zero. Whatever it actually reads is measured mount drift (FR-17).
+                driftDegrees = run.pose?.let {
+                    maxOf(kotlin.math.abs(it.pitchDegrees + 90.0), kotlin.math.abs(it.headRotationDegrees))
+                },
                 onDone = { feeling -> endRun(completed = true, feeling = feeling) },
             )
 
@@ -260,7 +280,12 @@ class MainActivity : ComponentActivity() {
                     mode = trackerState.mode,
                     practice = practice,
                     onStart = { runController.start(HeadTracker.STILLNESS_THRESHOLD_DEG_PER_SEC) },
-                    onBack = { screen = Screen.DIRECTION },
+                    onBack = {
+                        // Without clearing it, the direction is still learned and the screen would
+                        // bounce straight back to Ready, making Back look broken.
+                        runController.clearDirection()
+                        screen = Screen.DIRECTION
+                    },
                 )
 
                 Screen.ACCURACY -> AccuracyCheckScreen(
@@ -308,6 +333,7 @@ class MainActivity : ComponentActivity() {
                 completed = completed,
                 feeling = feeling,
                 practice = run.practice,
+                positionsCompleted = run.engineState?.completedSteps ?: 0,
             ),
         )
         guidance.silence()
@@ -324,7 +350,9 @@ class MainActivity : ComponentActivity() {
      */
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         val volumeKey = keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
-        if (volumeKey && runController.state.value.running) {
+        val run = runController.state.value
+        val midManoeuvre = run.running && run.engineState?.guidance != Guidance.FINISHED
+        if (volumeKey && midManoeuvre) {
             endRun(completed = false, feeling = null)
             guidance.play(Cue.Speak("Stopped.", interrupt = true))
             return true

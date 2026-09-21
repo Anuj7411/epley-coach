@@ -76,25 +76,25 @@ the **right angles** (unaided self-treatment is off by 40–51°).
 | FR-5 | For each of the four positions, hold a target pose and tolerance; indicate direction of correction | Must |
 | FR-6 | Start the hold timer only when the pose is within tolerance **and** angular rate is below the stillness threshold, sustained | Must |
 | FR-7 | Speak every instruction aloud and confirm with haptics; the flow must be completable with the screen off-axis and eyes shut | Must |
-| FR-8 | Abort the session on a shake gesture or any volume key | Must |
+| FR-8 | Abort the session on either volume key (a shake gesture was considered and dropped: the manoeuvre itself involves fast head movement) | Must |
 | FR-9 | Mark head rotation unreliable when the twist decomposition is ill-conditioned, rather than reporting a confident wrong number | Must |
-| FR-10 | Record each session locally: timestamps, angles achieved, holds completed, aborts | Should |
-| FR-11 | Export session history as CSV | Should — **this is the paid feature** |
+| FR-10 | Record each run locally: time, ear, whether it finished, how many of the five positions were completed, and how the user felt. Full angle traces are recorded separately by the instrument's CSV logger | Should |
+| FR-11 | Export the run history as a plain-text report for a clinician — sentences, not a spreadsheet, because the reader is a doctor with four minutes. Raw CSV remains available from the instrument | Should — **this is the paid feature** |
 | FR-12 | Determine canal and side with the six-question triage validated in JAMA Neurology 2023, not by asking which ear was affected last time — that approach was the trial's control arm and resolved 42.9%. Exit if questions 1-3 indicate non-BPPV; refuse the Epley if the answers indicate the horizontal canal | **Must** — see docs/RESEARCH.md §6 |
-| FR-13 | Replay a completed session's angle trace | Could |
+| FR-13 | Replay a completed session's angle trace | Could — **not built**, and not planned before the deadline |
 | FR-14 | Support three mounts — cheek hold, headband, and in-hand practice — each with its own stated tolerance. No mount requires equipment the user does not already own | Must |
 | FR-15 | Refuse a calibration taken with the phone too near flat, with a message saying what to do instead, rather than building the session on an undetermined forward axis | Must |
 | FR-16 | Latch a warning when the phone rotates faster than a neck can, and require recalibration before the reading is trusted again | Must |
 | FR-17 | Offer a return-to-upright drift check that reports the measured mount error, since upright is a pose whose true reading is known to be zero | Must |
 | FR-18 | In practice mode, state on screen that the reading describes the phone and not the user's head | Must |
 | FR-19 | Before each position, while the user is still able to see the screen, show an illustration of the target pose with its angles, and speak it | Must |
-| FR-20 | During a hold, show a live head figure that moves with the sensor over a dashed outline of the target, turning green when they overlap, with a countdown ring. Serves a helper holding the phone, practice mode, and the demo video | Must |
+| FR-20 | During a run, show a live head — from above for the turn, in profile for the tilt — inside a shaded target zone as wide as the step's tolerance. In position, the whole status card turns blue and says so; out of position it is outlined orange with the correction in words. Blue and orange rather than green and red, for colour-blind readability; a progress bar rather than a ring, since it is the one motion the design allows | Must |
 
 ## 4. Non-functional requirements
 
 | ID | Requirement | Rationale |
 |---|---|---|
-| NFR-1 | Angle accuracy within 5°, static, verified by **reversal** (two readings 180° apart separate the surface's tilt from the sensor's error — no reference instrument needed) and against paper-folded 45°/30°/60° angles | The error being corrected is 40–51°; 5° is an order of magnitude inside it |
+| NFR-1 | *(self-check built, measurement not yet run)* Angle accuracy within 5°, static, verified by **reversal** (two readings 180° apart separate the surface's tilt from the sensor's error — no reference instrument needed) and against paper-folded 45°/30°/60° angles | The error being corrected is 40–51°; 5° is an order of magnitude inside it |
 | NFR-2 | No sample-to-sample discontinuity above 30° | 30° at 50 Hz is 1,500°/s, far beyond human head motion. **Verified: worst observed 5.16°; 3.08° in the 8 Sept session** |
 | NFR-3 | Yaw drift under 10° over a 90-second session | The manoeuvre runs ~60 s from calibration. **Measured: −4.2° over 264 s moving; +0.006° over 107 s at rest** |
 | NFR-4 | Screen stays on for the whole session | Non-wakeup sensors stop delivering when the CPU suspends |
@@ -322,3 +322,50 @@ proving about efficacy is not, and is out of reach.** Saying so plainly is the h
 | Sept 24–27 | Demo video | Second person |
 | Sept 28–29 | README, submission text, repo cleanup | — |
 | Sept 30 | Submit, with buffer | — |
+
+---
+
+## 11. Traceability — audit of 2026-09-21
+
+Every requirement above, against the code that implements it. Checked by reading the code, not by
+memory; gaps found in this audit are listed as fixed or open.
+
+| Req | Where | Status |
+|---|---|---|
+| FR-1 | `MainActivity.App` refuses the whole app when `HeadTracker.isSupported` is false | **Fixed in this audit** — the message existed only on the instrument screen after the home-flow rebuild |
+| FR-2 | `Safety`, `SafetyScreen`, gate in `RunController.start` | Built |
+| FR-3 | `MountCalibration.fromUprightSample`, `CalibrateScreen` | Built |
+| FR-4 | `HeadTracker` at `SENSOR_DELAY_GAME` — measured 50.0 Hz | Built, measured |
+| FR-5 | `Epley.steps`, `ManeuverEngine`, `Phrasing` | Built |
+| FR-6 | `ManeuverEngine.onSample` — tolerance *and* stillness, with hysteresis | Built |
+| FR-7 | `CuePlanner`, `GuidanceOutput` | Built |
+| FR-8 | `MainActivity.onKeyDown` | Built (volume keys; shake dropped, see above) |
+| FR-9 | `HeadPose.isRotationReliable`, refused in `ManeuverEngine` | Built |
+| FR-10 | `Episode`, `EpisodeStore` | **Extended in this audit** — positions completed is now recorded |
+| FR-11 | `EpisodeLog.report`, `MainActivity.shareHistory`, `PaywallScreen` | Built (plain text, see above) |
+| FR-12 | `Triage`, `TriageScreen` | Built |
+| FR-13 | — | **Not built** |
+| FR-14 | `MountMode`, `HoldScreen`, practice flow | Built |
+| FR-15 | `MountCalibration.isUsable` | Built |
+| FR-16 | `MountMonitor`; surfaced in `RunScreen` | **Fixed in this audit** — the warning never reached the run screen |
+| FR-17 | `MountResidual` in the instrument; drift now also measured at the final position and shown in after-care | **Extended in this audit** |
+| FR-18 | `PracticeSideScreen`, run label, after-care wording | Built |
+| FR-19 | `PoseIllustration` | Built |
+| FR-20 | `HeadDials`, `RunScreen` | Built (see wording above) |
+| NFR-1 | `ReversalCheck`, `AccuracyCheckScreen` | Tooling built; **measurement outstanding** |
+| NFR-2 | Measured 3.08° worst step | Met |
+| NFR-3 | Measured +0.006° at rest, −4.2° moving | Met |
+| NFR-4 | `FLAG_KEEP_SCREEN_ON` | Built |
+| NFR-5 | No network permission in the manifest — verified by inspection | Met |
+| NFR-6 | `Entitlements` is read only by the export button | Met |
+| NFR-7 | `minSdk 24` | Met |
+| NFR-8 | No `android.*` import anywhere in `:core` — verified by inspection | Met |
+
+### Other defects found and fixed in this audit
+
+- **Text-to-speech could crash on start.** The engine was assigned from inside its own callback; if
+  a device calls back synchronously that is a null dereference. Now assigned before use.
+- **Back from "Ready" did nothing visible.** The learned direction was still set, so the screen
+  bounced straight forward again. Back now clears it and asks for the turn again.
+- **A volume press on the after-care screen filed a second, emptier run.** The stop gesture is now
+  limited to a manoeuvre actually in progress.

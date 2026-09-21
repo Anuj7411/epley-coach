@@ -147,6 +147,11 @@ class RunController(
         onCue(Cue.Speak(text, interrupt = true))
     }
 
+    /** Forget the learned direction, so it is asked for again rather than silently reused. */
+    fun clearDirection() {
+        _state.value = _state.value.copy(polarity = null, polarityMessage = null)
+    }
+
     fun stop() {
         engine = null
         planner = null
@@ -158,6 +163,7 @@ class RunController(
             polarity = null,
             polarityMessage = null,
             practice = false,
+            mountMoved = false,
         )
     }
 
@@ -203,7 +209,7 @@ class RunController(
             secondsSinceStepCompleted = 0.0
         }
 
-        _state.value = _state.value.copy(engineState = engineState, pose = pose)
+        _state.value = _state.value.copy(engineState = engineState, pose = pose, mountMoved = tracker.isJolted)
     }
 
     private companion object {
@@ -233,6 +239,8 @@ data class RunUiState(
     val pose: HeadPose? = null,
     /** Practice mode: the phone stands in for the head, and the words say so. */
     val practice: Boolean = false,
+    /** The phone turned faster than a neck can: the calibration is stale until it is redone. */
+    val mountMoved: Boolean = false,
 ) {
     /**
      * A treatment run needs all three: a cleared safety check, a posterior-canal triage (the only

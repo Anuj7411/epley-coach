@@ -262,6 +262,18 @@ class RunControllerTest {
     }
 
     @Test
+    fun `a mount that moved is visible during the run, not only in the instrument`() {
+        // FR-16: the phone turning faster than a neck can means the calibration is stale. The
+        // warning has to reach the person mid-manoeuvre, not just the engineering screen.
+        val c = controllerReadyToRun()
+        c.feed(HeadPose(0.0, 45.0, pitchDegrees = -90.0), seconds = 0.2, fromNanos = 0)
+        assertFalse(c.state.value.mountMoved)
+
+        c.onTrackerState(sample(HeadPose(0.0, 45.0, pitchDegrees = -90.0), nanos = 400_000_000).copy(isJolted = true))
+        assertTrue(c.state.value.mountMoved)
+    }
+
+    @Test
     fun `the live pose is exposed for the head dials`() {
         val c = controllerReadyToRun()
         c.feed(HeadPose(12.0, 30.0), seconds = 0.1, fromNanos = 0)

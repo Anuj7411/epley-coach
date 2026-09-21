@@ -56,6 +56,14 @@ fun RunScreen(
         },
     ) {
         Title(step?.title ?: "Getting ready")
+        if (run.mountMoved) {
+            Text(
+                "The phone moved on your head. These angles may be wrong — stop, and set it up again.",
+                color = Palette.Move,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Medium,
+            )
+        }
         if (step != null) PoseIllustration(step, run.side)
         if (step != null && polarity != null) {
             HeadDials(pose = run.pose, step = step, polarity = polarity, side = run.side)

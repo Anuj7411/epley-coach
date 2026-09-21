@@ -16,11 +16,13 @@ import health.epley.core.Feeling
  * there is nothing to feel better from, so the screen just closes the rehearsal.
  *
  * @param runsBefore treatment runs already recorded in this episode, not counting this one
+ * @param driftDegrees error measured at the final position, which is the calibration pose
  */
 @Composable
 fun AfterCareScreen(
     practice: Boolean,
     runsBefore: Int,
+    driftDegrees: Double? = null,
     onDone: (Feeling?) -> Unit,
 ) {
     var feeling by remember { mutableStateOf<Feeling?>(null) }
@@ -77,5 +79,14 @@ fun AfterCareScreen(
         Title(title, color = colour)
         Body(body)
         Body(AfterCare.noRestrictionsNote, secondary = true)
+        if (driftDegrees != null) {
+            // The app checking itself: the last position is the one it was calibrated in, so any
+            // reading other than zero there is drift it has just measured on this run.
+            Body(
+                "Measured drift on this run: %.1f°. The app checks itself at the last position, ".format(driftDegrees) +
+                    "where it knows the answer should be zero.",
+                secondary = true,
+            )
+        }
     }
 }

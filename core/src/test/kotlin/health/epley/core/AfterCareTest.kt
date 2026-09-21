@@ -45,6 +45,20 @@ class EpisodeLogTest {
         Episode(epochMillis = at, side = side, completed = true, feeling = feeling, practice = practice)
 
     @Test
+    fun `how far the run got is recorded, and old files without it still load`() {
+        // FR-10: a run that stopped at position three is different evidence from one that
+        // finished, and the difference has to survive being written to the file.
+        val partial = Episode(9L, Side.LEFT, completed = false, feeling = null, practice = false, positionsCompleted = 3)
+        assertEquals(listOf(partial), EpisodeLog.decode(EpisodeLog.encode(listOf(partial))))
+
+        // Files written before this field existed have five fields; they must still load.
+        assertEquals(
+            listOf(Episode(9L, Side.LEFT, completed = true, feeling = Feeling.BETTER, practice = false, positionsCompleted = 0)),
+            EpisodeLog.decode("9,LEFT,true,BETTER,false"),
+        )
+    }
+
+    @Test
     fun `an episode survives being written and read back`() {
         val original = listOf(
             episode(1_000L, Feeling.SAME, Side.LEFT),
