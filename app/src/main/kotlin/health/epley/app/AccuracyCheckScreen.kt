@@ -24,15 +24,22 @@ import kotlin.math.abs
 @Composable
 fun AccuracyCheckScreen(
     devicePitchDegrees: Double,
+    screenFacingUp: Boolean,
     isStill: Boolean,
     onBack: () -> Unit,
 ) {
     var first by remember { mutableStateOf<Double?>(null) }
     var second by remember { mutableStateOf<Double?>(null) }
+    var firstFacedUp by remember { mutableStateOf(true) }
+    var secondFacedUp by remember { mutableStateOf(true) }
 
     val a = first
     val b = second
-    val result = if (a != null && b != null) ReversalCheck.analyse(a, b) else null
+    // Two ways the measurement can be invalid rather than the sensor being bad. Both were found
+    // on hardware, where a flip produced an impossible 10 degree "sensor error".
+    val flipped = a != null && b != null && firstFacedUp != secondFacedUp
+    val unturned = a != null && b != null && ReversalCheck.looksUnturned(a, b)
+    val result = if (a != null && b != null && !flipped && !unturned) ReversalCheck.analyse(a, b) else null
 
     FlowFrame(
         stepLabel = "Accuracy self-check",
@@ -41,8 +48,17 @@ fun AccuracyCheckScreen(
         bottom = {
             when {
                 result != null -> SecondaryButton("Start again", { first = null; second = null })
-                a == null -> PrimaryButton("Take reading 1", { first = devicePitchDegrees }, enabled = isStill)
-                else -> PrimaryButton("Take reading 2", { second = devicePitchDegrees }, enabled = isStill)
+                a != null && b != null -> SecondaryButton("Start again", { first = null; second = null })
+                a == null -> PrimaryButton(
+                    "Take reading 1",
+                    { first = devicePitchDegrees; firstFacedUp = screenFacingUp },
+                    enabled = isStill,
+                )
+                else -> PrimaryButton(
+                    "Take reading 2",
+                    { second = devicePitchDegrees; secondFacedUp = screenFacingUp },
+                    enabled = isStill,
+                )
             }
         },
     ) {
@@ -69,7 +85,33 @@ fun AccuracyCheckScreen(
         }
 
         if (a != null && b == null) {
-            Body("Now turn the phone 180° — same spot, same face up — and take reading 2.")
+            Body(
+                "Now spin the phone 180° flat on the surface — like turning a plate, so the top " +
+                    "edge points the other way. Keep the screen facing up; don't turn it over.",
+            )
+        }
+
+        if (flipped || unturned) {
+            Card {
+                Text(
+                    if (flipped) "The phone was turned over" else "The phone doesn't look turned",
+                    color = Palette.Move, fontSize = 20.sp, fontWeight = FontWeight.Medium,
+                )
+                Body(
+                    if (flipped) {
+                        "Reading 2 was taken face-down. Flipping keeps the same tilt against " +
+                            "gravity, so the two readings can't be compared."
+                    } else {
+                        "Both readings came out nearly the same. In a real reversal they are near " +
+                            "mirror images, so it looks like the phone stayed put."
+                    },
+                )
+                Body(
+                    "Lay it flat, take reading 1, then spin it round on the spot — screen still up " +
+                        "— and take reading 2.",
+                    secondary = true,
+                )
+            }
         }
 
         if (result != null) {
@@ -93,6 +135,15 @@ fun AccuracyCheckScreen(
                         "half of what the app promises. The manoeuvre's own bands are 18.9° to 31°.",
                     secondary = true,
                 )
+                if (!result.isWithinTolerance) {
+                    Body(
+                        "A large error here is the phone's own tilt calibration, and it does not " +
+                            "affect the manoeuvre: every angle the app guides by is measured " +
+                            "against the calibration taken on your head, so a fixed offset is in " +
+                            "both readings and cancels. It only shows up in this absolute check.",
+                        secondary = true,
+                    )
+                }
             }
             if (abs(result.surfaceTiltDegrees) > 1.0) {
                 Body(

@@ -206,3 +206,34 @@ drift, verified accuracy, and honest limits written down.
 6. RevenueCat paywall — triage, safety and a first run always free
 7. Helper mode: instructions addressed to the person holding the phone
 8. Demo video, under 2 minutes, open-source repo public
+
+---
+
+## 11. Hardware finding — 2026-09-23: the test phone's tilt is 9° out, and it does not matter
+
+The accuracy self-check on a Motorola Edge 40 Neo, phone flat on a hard floor:
+
+| Measurement | Result |
+|---|---|
+| Fused orientation vs raw gravity sensor | agree to **0.01°** — so this is not a maths error |
+| Reversal (two readings, 180° apart in place) | floor **−0.93°**, device offset **−9.23°** |
+| Face-down cross-check | **−169.0°** rather than 180°, the same ~11° offset |
+| Rotating the phone in place | tilt barely changed — the offset follows the phone, not the floor |
+
+The phone's accelerometer reports gravity about 9–10° off true. That is a fault in the device's
+factory calibration, not in this app.
+
+**It does not affect the guidance.** Every angle the app acts on is measured relative to a
+calibration captured on the user's own head, so a fixed device-frame offset appears in both the
+reference and the reading and cancels exactly. `SensorBiasTest` proves this for offsets up to 15°
+about any axis: the measured head angles change by less than 1e-6 degrees.
+
+**What it does affect** is any absolute tilt reading — which is precisely what the self-check
+measures, and why the check exists. The screen now says so when the offset is large.
+
+**Two defects were found while chasing this**, both fixed:
+- The display slept when the phone lay face-down, and non-wakeup sensors stop when the processor
+  suspends. A phone against a cheek looks identical to a pocket, so a manoeuvre would have stalled
+  silently. The app now holds a partial wake lock while it is in front.
+- The CSV log only wrote rows once a calibration existed, so nothing could be recorded when the
+  screen could not be read. It now logs raw device and gravity tilt from the first sample.

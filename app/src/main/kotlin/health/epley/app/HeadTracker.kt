@@ -45,6 +45,18 @@ class HeadTracker(
         sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
             ?: sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
 
+    /**
+     * Gravity, straight from the sensor.
+     *
+     * Tilt against gravity is the clinical measurement, and gravity is its own ground truth. The
+     * fused rotation vector is a convenience on top of it, and on this hardware it disagreed with
+     * gravity by 11 degrees with the phone flat on the floor — so the two are read separately and
+     * compared rather than trusted.
+     */
+    private val gravitySensor: Sensor? =
+        sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY)
+            ?: sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+
     /** True when this device can report orientation at all. Some budget phones have no gyroscope. */
     val isSupported: Boolean get() = sensor != null
 
@@ -97,6 +109,7 @@ class HeadTracker(
         // nothing but battery drain and noise. maxReportLatency 0 disables batching, which would
         // otherwise deliver samples in bursts and ruin the stillness detector.
         sensorManager.registerListener(this, s, SensorManager.SENSOR_DELAY_GAME, 0)
+        gravitySensor?.let { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME, 0) }
     }
 
     fun stop() {
@@ -166,6 +179,16 @@ class HeadTracker(
     }
 
     override fun onSensorChanged(event: SensorEvent) {
+        if (event.sensor?.type == Sensor.TYPE_GRAVITY || event.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
+            // Tilt of the top edge below horizontal, straight from gravity: 0 flat, negative when
+            // the top edge is raised. No fusion, no drift, no filtering.
+            val gy = event.values[1].toDouble()
+            val gz = event.values[2].toDouble()
+            _state.value = _state.value.copy(
+                gravityTiltDegrees = Math.toDegrees(kotlin.math.atan2(-gy, gz)),
+            )
+            return
+        }
         val q = Quaternion.fromRotationVector(event.values)
 
         // Angular rate from consecutive orientations. Used to tell "held still at the target" from
@@ -192,6 +215,10 @@ class HeadTracker(
             kotlin.math.asin((q.rotate(Vector3(0.0, 1.0, 0.0)).normalized() dot Vector3.DOWN).coerceIn(-1.0, 1.0)),
         )
 
+        // Which way the screen faces. The accuracy self-check needs it to tell "turned flat" from
+        // "flipped over", which look identical to a tilt reading but are not the same measurement.
+        val screenUp = q.rotate(Vector3(0.0, 0.0, 1.0)).z > 0.0
+
         // A phone cannot slip without moving fast. Watching the rate is the only handle a single
         // orientation sensor gives us on the mount coming loose.
         mountMonitor.onSample(degreesPerSecond)
@@ -210,6 +237,8 @@ class HeadTracker(
             samplesSinceCalibration = if (cal != null) _state.value.samplesSinceCalibration + 1 else 0,
             lastTimestampNanos = event.timestamp,
             devicePitchDegrees = deviceTilt,
+            screenFacingUp = screenUp,
+            quaternion = q,
             isJolted = mountMonitor.isJolted,
             peakRateDegPerSec = mountMonitor.peakRateDegPerSec,
         )
@@ -265,6 +294,12 @@ data class TrackerState(
     val samplesSinceCalibration: Long = 0,
     /** The phone's own top-edge tilt below horizontal, before any calibration. */
     val devicePitchDegrees: Double = 0.0,
+    /** True when the screen faces the sky. Used to catch a flip where a turn was asked for. */
+    val screenFacingUp: Boolean = true,
+    /** The raw orientation, for the instrument's diagnostic readout. */
+    val quaternion: Quaternion? = null,
+    /** Top-edge tilt below horizontal, straight from the gravity sensor. The ground truth. */
+    val gravityTiltDegrees: Double = 0.0,
     val sensorAccuracy: Int = SensorManager.SENSOR_STATUS_UNRELIABLE,
     val lastTimestampNanos: Long = 0,
     /**

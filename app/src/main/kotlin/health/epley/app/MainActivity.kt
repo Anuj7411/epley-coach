@@ -96,6 +96,15 @@ class MainActivity : ComponentActivity() {
     @Volatile
     private var logger: CsvLogger? = null
 
+    /**
+     * Held while the app is in front.
+     *
+     * Keeping the screen on is not enough: a phone against a cheek looks like a pocket, and the
+     * display sleeps anyway — seen on this hardware with the phone face-down. Non-wakeup sensors
+     * stop delivering when the processor suspends, so a manoeuvre would silently stall.
+     */
+    private var wakeLock: android.os.PowerManager.WakeLock? = null
+
     private var screen by mutableStateOf(Screen.HOME)
     private var episodes by mutableStateOf<List<Episode>>(emptyList())
     private var calibrationMessage by mutableStateOf<String?>(null)
@@ -107,6 +116,9 @@ class MainActivity : ComponentActivity() {
         // manoeuvre is performed with the phone against the face and the eyes shut. The screen has
         // to stay on for the samples to keep arriving at all.
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        wakeLock = (getSystemService(Context.POWER_SERVICE) as android.os.PowerManager)
+            .newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "EpleyCoach:run")
 
         tracker = HeadTracker(getSystemService(Context.SENSOR_SERVICE) as SensorManager)
         guidance = GuidanceOutput(this)
@@ -290,6 +302,7 @@ class MainActivity : ComponentActivity() {
 
                 Screen.ACCURACY -> AccuracyCheckScreen(
                     devicePitchDegrees = trackerState.devicePitchDegrees,
+                    screenFacingUp = trackerState.screenFacingUp,
                     isStill = trackerState.isStill,
                     onBack = { screen = Screen.INSTRUMENT },
                 )
@@ -363,6 +376,8 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         tracker.start()
+        @Suppress("WakelockTimeout")
+        if (wakeLock?.isHeld == false) wakeLock?.acquire(30 * 60 * 1000L)
     }
 
     override fun onDestroy() {
@@ -372,6 +387,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
+        if (wakeLock?.isHeld == true) wakeLock?.release()
         tracker.stop()
         logger?.close()
         logger = null
@@ -415,6 +431,22 @@ private fun ProbeScreen(
         SecondaryButton("Back to home", onBack)
 
         SecondaryButton("Accuracy self-check", onAccuracyCheck)
+
+        // Raw diagnostic: the orientation as the sensor gives it, and the phone's own axes in
+        // world coordinates. Where a wrong angle gets traced back to its cause.
+        state.quaternion?.let { q ->
+            val y = q.rotate(health.epley.core.Vector3(0.0, 1.0, 0.0)).normalized()
+            val z = q.rotate(health.epley.core.Vector3(0.0, 0.0, 1.0)).normalized()
+            Text(
+                "q  %+.3f %+.3f %+.3f %+.3f".format(q.x, q.y, q.z, q.w) +
+                    "  Yw %+.3f %+.3f %+.3f".format(y.x, y.y, y.z) +
+                    "  Zw %+.3f %+.3f %+.3f".format(z.x, z.y, z.z) +
+                    "  fused %+.2f  gravity %+.2f".format(state.devicePitchDegrees, state.gravityTiltDegrees),
+                color = Color(0xFF9E9E9E),
+                fontSize = 13.sp,
+                fontFamily = FontFamily.Monospace,
+            )
+        }
 
         Text(
             text = if (tracker.isSupported) tracker.sensorName else "NO ORIENTATION SENSOR",
@@ -669,21 +701,27 @@ internal class CsvLogger(directory: File) {
         // mount_mode and is_jolted turn an unexplained recording into an explained one: a run
         // full of nonsense is very different evidence if the mount was already flagged as moved.
         writer.write(
-            "timestamp_nanos,mount_mode,neck_extension_deg,pitch_deg,head_rotation_deg,swing_deg," +
-                "rotation_reliable,rate_deg_per_sec,is_still,is_jolted\n",
+            "timestamp_nanos,mount_mode,device_tilt_deg,gravity_tilt_deg,neck_extension_deg," +
+                "pitch_deg,head_rotation_deg,swing_deg,rotation_reliable,rate_deg_per_sec," +
+                "is_still,is_jolted\n",
         )
     }
 
     fun append(state: TrackerState) {
-        val pose = state.pose ?: return
+        val pose = state.pose
+        // Written whether or not a calibration exists: the device and gravity tilts are the
+        // instrument's own measurement, and they are exactly what is needed when the screen
+        // cannot be read — face-down, or pressed against a cheek.
         writer.write(
             "${state.lastTimestampNanos}," +
                 "${state.mode.name}," +
-                "%.3f,".format(pose.neckExtensionDegrees) +
-                "%.3f,".format(pose.pitchDegrees) +
-                "%.3f,".format(pose.headRotationDegrees) +
-                "%.3f,".format(pose.swingDegrees) +
-                "${pose.isRotationReliable}," +
+                "%.3f,".format(state.devicePitchDegrees) +
+                "%.3f,".format(state.gravityTiltDegrees) +
+                "%.3f,".format(pose?.neckExtensionDegrees ?: Double.NaN) +
+                "%.3f,".format(pose?.pitchDegrees ?: Double.NaN) +
+                "%.3f,".format(pose?.headRotationDegrees ?: Double.NaN) +
+                "%.3f,".format(pose?.swingDegrees ?: Double.NaN) +
+                "${pose?.isRotationReliable ?: false}," +
                 "%.3f,".format(state.angularRateDegPerSec) +
                 "${state.isStill}," +
                 "${state.isJolted}\n",

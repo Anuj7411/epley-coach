@@ -41,6 +41,27 @@ object ReversalCheck {
      */
     const val MAX_ERROR_DEGREES = 2.5
 
+    /**
+     * Whether the two readings say the phone was never actually turned.
+     *
+     * A gravity-referenced tilt sensor cannot be several degrees wrong, so a large apparent
+     * "sensor error" with almost no difference between the readings means the phone kept the same
+     * orientation: flipped face-down rather than spun flat, or not moved at all. Caught on
+     * hardware, where -10.83 and -9.61 were reported as a 10 degree sensor error.
+     */
+    fun looksUnturned(firstReadingDegrees: Double, reversedReadingDegrees: Double): Boolean =
+        abs(firstReadingDegrees - reversedReadingDegrees) < MIN_REVERSAL_DIFFERENCE &&
+            abs((firstReadingDegrees + reversedReadingDegrees) / 2.0) > MAX_ERROR_DEGREES
+
+    /**
+     * Below this difference between the two readings, nothing was meaningfully reversed.
+     *
+     * A true reversal produces readings that differ by twice the surface's tilt. Five degrees is
+     * generous: it only ever matters alongside an implausible bias, and the pair seen on hardware
+     * differed by 1.2 while claiming a 10 degree error.
+     */
+    const val MIN_REVERSAL_DIFFERENCE = 5.0
+
     fun analyse(firstReadingDegrees: Double, reversedReadingDegrees: Double) = ReversalResult(
         surfaceTiltDegrees = (firstReadingDegrees - reversedReadingDegrees) / 2.0,
         sensorErrorDegrees = (firstReadingDegrees + reversedReadingDegrees) / 2.0,

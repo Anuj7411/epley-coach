@@ -71,3 +71,29 @@ class ReversalCheckTest {
         assertEquals(1.0, tilted.errorAgainst(45.0), 1e-9)
     }
 }
+
+class ReversalSanityTest {
+
+    @Test
+    fun `two near-identical readings mean the phone was not turned`() {
+        // Seen on hardware: -10.83 then -9.61, which the maths reports as a 10 degree sensor
+        // error. A gravity-referenced tilt sensor cannot be 10 degrees wrong, so the readings are
+        // the thing at fault — the phone was flipped over, or never turned at all.
+        assertTrue(ReversalCheck.looksUnturned(-10.83, -9.61))
+        assertTrue(ReversalCheck.looksUnturned(20.0, 20.4))
+    }
+
+    @Test
+    fun `a real reversal is not flagged`() {
+        assertFalse(ReversalCheck.looksUnturned(0.6, -0.6))
+        assertFalse(ReversalCheck.looksUnturned(45.4, -44.6))
+        // A level surface with an honest sensor: both readings near zero, nothing to complain of.
+        assertFalse(ReversalCheck.looksUnturned(0.2, -0.1))
+    }
+
+    @Test
+    fun `a genuinely small bias on a flat surface still passes`() {
+        // Readings 1.0 and -0.4: surface 0.7, bias 0.3. Sensible, and must not be flagged.
+        assertFalse(ReversalCheck.looksUnturned(1.0, -0.4))
+    }
+}
