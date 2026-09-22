@@ -42,25 +42,24 @@ object ReversalCheck {
     const val MAX_ERROR_DEGREES = 2.5
 
     /**
-     * Whether the two readings say the phone was never actually turned.
+     * Whether the phone really was turned between the two readings.
      *
-     * A gravity-referenced tilt sensor cannot be several degrees wrong, so a large apparent
-     * "sensor error" with almost no difference between the readings means the phone kept the same
-     * orientation: flipped face-down rather than spun flat, or not moved at all. Caught on
-     * hardware, where -10.83 and -9.61 were reported as a 10 degree sensor error.
+     * Judged by how far the gyroscope saw it rotate, never by the readings themselves. On a phone
+     * with a genuine offset a correct reversal produces two nearly identical readings, which is
+     * exactly what "it was not turned" looks like — so using the readings to validate the readings
+     * blocks the measurement it exists to protect. Found on hardware: a real half turn produced
+     * -8.81 and -7.79 and was rejected.
      */
-    fun looksUnturned(firstReadingDegrees: Double, reversedReadingDegrees: Double): Boolean =
-        abs(firstReadingDegrees - reversedReadingDegrees) < MIN_REVERSAL_DIFFERENCE &&
-            abs((firstReadingDegrees + reversedReadingDegrees) / 2.0) > MAX_ERROR_DEGREES
+    fun turnedEnough(rotationSinceFirstReadingDegrees: Double): Boolean =
+        rotationSinceFirstReadingDegrees >= MIN_TURN_DEGREES
 
     /**
-     * Below this difference between the two readings, nothing was meaningfully reversed.
+     * How much rotation counts as a reversal.
      *
-     * A true reversal produces readings that differ by twice the surface's tilt. Five degrees is
-     * generous: it only ever matters alongside an implausible bias, and the pair seen on hardware
-     * differed by 1.2 while claiming a 10 degree error.
+     * A deliberate half turn overshoots rather than undershoots, and nothing far short of this is
+     * a reversal at all. Generous enough for a phone spun by hand on a floor.
      */
-    const val MIN_REVERSAL_DIFFERENCE = 5.0
+    const val MIN_TURN_DEGREES = 120.0
 
     fun analyse(firstReadingDegrees: Double, reversedReadingDegrees: Double) = ReversalResult(
         surfaceTiltDegrees = (firstReadingDegrees - reversedReadingDegrees) / 2.0,

@@ -95,6 +95,8 @@ class HeadTracker(
      */
     var tiltOffsetDegrees: Double = 0.0
 
+    private var rotationTravelled = 0.0
+
     private var calibration: MountCalibration? = null
     private var lastQuaternion: Quaternion? = null
     private var lastTimestampNanos: Long = 0L
@@ -229,15 +231,25 @@ class HeadTracker(
         // Angular rate from consecutive orientations. Used to tell "held still at the target" from
         // "passing through the target", which is the difference between a real hold and a lie.
         val previous = lastQuaternion
-        val degreesPerSecond = if (previous != null && lastTimestampNanos != 0L) {
-            val dtSeconds = (event.timestamp - lastTimestampNanos) / 1_000_000_000.0
-            if (dtSeconds > 1e-6) {
-                Math.toDegrees(previous.angularDistanceTo(q)) / dtSeconds
-            } else {
-                _state.value.angularRateDegPerSec
-            }
+        val elapsedSeconds = if (previous != null && lastTimestampNanos != 0L) {
+            (event.timestamp - lastTimestampNanos) / 1_000_000_000.0
         } else {
             0.0
+        }
+        val degreesPerSecond = if (elapsedSeconds > 1e-6 && previous != null) {
+            Math.toDegrees(previous.angularDistanceTo(q)) / elapsedSeconds
+        } else if (previous != null) {
+            _state.value.angularRateDegPerSec
+        } else {
+            0.0
+        }
+
+        // Total rotation seen, ever. The accuracy check compares this across two readings as
+        // independent evidence that the phone was actually turned between them. Accumulated here,
+        // before the timestamp moves on: doing it afterwards measures a zero interval every time,
+        // which is what made a real half turn report as 0 degrees on hardware.
+        if (elapsedSeconds > 0 && elapsedSeconds < 1.0) {
+            rotationTravelled += abs(degreesPerSecond) * elapsedSeconds
         }
 
         lastQuaternion = q
@@ -272,6 +284,7 @@ class HeadTracker(
             samplesSinceCalibration = if (cal != null) _state.value.samplesSinceCalibration + 1 else 0,
             lastTimestampNanos = event.timestamp,
             devicePitchDegrees = TiltOffset.apply(deviceTilt, tiltOffsetDegrees),
+            rotationTravelledDegrees = rotationTravelled,
             screenFacingUp = screenUp,
             quaternion = q,
             isJolted = mountMonitor.isJolted,
@@ -339,6 +352,8 @@ data class TrackerState(
     val accelTiltDegrees: Double = 0.0,
     /** Raw accelerometer magnitude. At rest this is gravity, 9.81 m/s². */
     val accelMagnitude: Double = 0.0,
+    /** Total rotation the phone has been through: evidence that it was actually turned. */
+    val rotationTravelledDegrees: Double = 0.0,
     val sensorAccuracy: Int = SensorManager.SENSOR_STATUS_UNRELIABLE,
     val lastTimestampNanos: Long = 0,
     /**

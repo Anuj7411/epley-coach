@@ -72,28 +72,24 @@ class ReversalCheckTest {
     }
 }
 
-class ReversalSanityTest {
+class ReversalTurnEvidenceTest {
 
     @Test
-    fun `two near-identical readings mean the phone was not turned`() {
-        // Seen on hardware: -10.83 then -9.61, which the maths reports as a 10 degree sensor
-        // error. A gravity-referenced tilt sensor cannot be 10 degrees wrong, so the readings are
-        // the thing at fault — the phone was flipped over, or never turned at all.
-        assertTrue(ReversalCheck.looksUnturned(-10.83, -9.61))
-        assertTrue(ReversalCheck.looksUnturned(20.0, 20.4))
+    fun `a half turn counts, a nudge does not`() {
+        assertTrue(ReversalCheck.turnedEnough(180.0))
+        assertTrue(ReversalCheck.turnedEnough(214.0))
+        assertFalse(ReversalCheck.turnedEnough(4.0))
+        assertFalse(ReversalCheck.turnedEnough(0.0))
     }
 
     @Test
-    fun `a real reversal is not flagged`() {
-        assertFalse(ReversalCheck.looksUnturned(0.6, -0.6))
-        assertFalse(ReversalCheck.looksUnturned(45.4, -44.6))
-        // A level surface with an honest sensor: both readings near zero, nothing to complain of.
-        assertFalse(ReversalCheck.looksUnturned(0.2, -0.1))
-    }
-
-    @Test
-    fun `a genuinely small bias on a flat surface still passes`() {
-        // Readings 1.0 and -0.4: surface 0.7, bias 0.3. Sensible, and must not be flagged.
-        assertFalse(ReversalCheck.looksUnturned(1.0, -0.4))
+    fun `a real reversal on a biased phone is accepted, not rejected`() {
+        // Measured on hardware: a genuine half turn gave -8.81 and -7.79. Judged by the readings
+        // alone that looks like nothing moved; judged by the rotation the gyroscope saw, it is a
+        // valid measurement of an 8.3 degree device offset on a nearly level floor.
+        assertTrue(ReversalCheck.turnedEnough(183.0))
+        val result = ReversalCheck.analyse(-8.81, -7.79)
+        assertEquals(-8.30, result.sensorErrorDegrees, 0.01)
+        assertEquals(-0.51, result.surfaceTiltDegrees, 0.01)
     }
 }

@@ -237,3 +237,30 @@ measures, and why the check exists. The screen now says so when the offset is la
   silently. The app now holds a partial wake lock while it is in front.
 - The CSV log only wrote rows once a calibration existed, so nothing could be recorded when the
   screen could not be read. It now logs raw device and gravity tilt from the first sample.
+
+### The fix, measured (2026-09-23)
+
+| Step | Result |
+|---|---|
+| Reversal on a level floor | sensor error **−8.32°**, floor **−0.35°** |
+| One tap: "Correct this phone by +8.32°" | offset stored on the device |
+| Same floor, re-read | **+0.34°** — matching the measured floor tilt in the spun orientation |
+
+Two bugs in the check itself were found by using it:
+
+1. **The guard rejected the measurement it exists to take.** "Were the readings too similar?" is
+   not evidence the phone was not turned: on a phone with a genuine offset, a correct reversal
+   produces two nearly identical readings. The check now judges the turn by the rotation the
+   gyroscope actually saw between readings (at least 120°), which is independent of the readings.
+2. **That rotation read zero**, because it was accumulated after the timestamp had already been
+   advanced — a zero interval every sample. Accumulated before the update now.
+
+How far this generalises: published validation puts good phones within about 1–2° of a clinical
+goniometer ([systematic review of 37 studies](https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0215806)),
+and clinical practice treats **≤10°** as acceptable measurement error. This device is an outlier at
+8.3°. The app's answer does not depend on which kind of device it is running on:
+
+- **Guidance** is relative to the user's own calibration, so a fixed offset cancels — proved for
+  offsets up to 15° about any axis (`SensorBiasTest`).
+- **Absolute readings** are corrected per device by the reversal check, in one tap, with no
+  instrument.

@@ -308,6 +308,7 @@ class MainActivity : ComponentActivity() {
                     devicePitchDegrees = trackerState.devicePitchDegrees,
                     screenFacingUp = trackerState.screenFacingUp,
                     isStill = trackerState.isStill,
+                    rotationTravelledDegrees = trackerState.rotationTravelledDegrees,
                     storedOffsetDegrees = tracker.tiltOffsetDegrees,
                     onSaveOffset = { measured ->
                         val updated = health.epley.core.TiltOffset.from(tracker.tiltOffsetDegrees, measured)

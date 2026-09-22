@@ -26,6 +26,7 @@ fun AccuracyCheckScreen(
     devicePitchDegrees: Double,
     screenFacingUp: Boolean,
     isStill: Boolean,
+    rotationTravelledDegrees: Double,
     storedOffsetDegrees: Double,
     onSaveOffset: (health.epley.core.ReversalResult) -> Unit,
     onBack: () -> Unit,
@@ -34,13 +35,15 @@ fun AccuracyCheckScreen(
     var second by remember { mutableStateOf<Double?>(null) }
     var firstFacedUp by remember { mutableStateOf(true) }
     var secondFacedUp by remember { mutableStateOf(true) }
+    var rotationAtFirst by remember { mutableStateOf(0.0) }
+    var turnedDegrees by remember { mutableStateOf(0.0) }
 
     val a = first
     val b = second
     // Two ways the measurement can be invalid rather than the sensor being bad. Both were found
     // on hardware, where a flip produced an impossible 10 degree "sensor error".
     val flipped = a != null && b != null && firstFacedUp != secondFacedUp
-    val unturned = a != null && b != null && ReversalCheck.looksUnturned(a, b)
+    val unturned = a != null && b != null && !ReversalCheck.turnedEnough(turnedDegrees)
     val result = if (a != null && b != null && !flipped && !unturned) ReversalCheck.analyse(a, b) else null
 
     FlowFrame(
@@ -60,12 +63,20 @@ fun AccuracyCheckScreen(
                 a != null && b != null -> SecondaryButton("Start again", { first = null; second = null })
                 a == null -> PrimaryButton(
                     "Take reading 1",
-                    { first = devicePitchDegrees; firstFacedUp = screenFacingUp },
+                    {
+                        first = devicePitchDegrees
+                        firstFacedUp = screenFacingUp
+                        rotationAtFirst = rotationTravelledDegrees
+                    },
                     enabled = isStill,
                 )
                 else -> PrimaryButton(
                     "Take reading 2",
-                    { second = devicePitchDegrees; secondFacedUp = screenFacingUp },
+                    {
+                        second = devicePitchDegrees
+                        secondFacedUp = screenFacingUp
+                        turnedDegrees = rotationTravelledDegrees - rotationAtFirst
+                    },
                     enabled = isStill,
                 )
             }
@@ -117,8 +128,7 @@ fun AccuracyCheckScreen(
                         "Reading 2 was taken face-down. Flipping keeps the same tilt against " +
                             "gravity, so the two readings can't be compared."
                     } else {
-                        "Both readings came out nearly the same. In a real reversal they are near " +
-                            "mirror images, so it looks like the phone stayed put."
+                        "The phone turned only %.0f° between the readings. A reversal needs a half turn.".format(turnedDegrees)
                     },
                 )
                 Body(
