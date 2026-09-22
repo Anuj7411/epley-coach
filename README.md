@@ -62,8 +62,36 @@ From a 166-second recording on a Motorola Edge 40 Neo (`docs/RESEARCH.md`, `docs
 Still outstanding: accuracy against a physical inclinometer, and a run on a real head. Neither is
 claimed until measured.
 
+## Does this depend on the phone being accurate?
+
+No, and that was tested on a phone that is not.
+
+The test device's absolute tilt reads about **8.3° off true** — measured by reversal, with a level
+floor confirmed at 0.35°. Published validation puts good phones within 1–2° of a clinical
+goniometer, so this one is an outlier, and it still works. Here is why.
+
+Every angle the app guides by is measured **relative to a calibration captured on the user's own
+head** at the start of a run. A fixed device error appears in the calibration and in every reading
+afterwards, so it subtracts out. `SensorBiasTest` runs offsets up to 15° about any axis through the
+real code: the resulting head angles move by less than 1e-6 degrees.
+
+That calibration is not an extra chore invented for this — it is needed anyway, because a phone
+held against a cheek sits at whatever angle the user managed. Correcting the device is a free side
+effect of a step the app already requires.
+
+What remains is whether a device's error stays constant as it moves. A constant error cancels
+exactly; one that varies with orientation cancels partly. Two independent measurements on the test
+phone gave −9.23° and −8.32°, about **1° apart**, against per-position tolerance bands of 18.9° to
+31°.
+
+Absolute readings — the instrument screen and the accuracy self-check — do carry the device error,
+which is exactly what the self-check measures. One tap stores a per-device correction. That is an
+engineering tool; no user needs it to be treated correctly.
+
 ## Honest limits
 
+- **Orientation-dependent sensor error is only bounded, not eliminated.** Measured at about 1° on
+  the test device; a phone with a badly non-linear accelerometer would do worse.
 - **A phone is not a strapped-on sensor.** The published outcome studies used a dedicated head-worn
   IMU. Using a phone has never been clinically tested, so this app claims angle accuracy only —
   never cure rates.
