@@ -12,6 +12,7 @@ import health.epley.core.MountMode
 import health.epley.core.MountMonitor
 import health.epley.core.MountResidual
 import health.epley.core.Quaternion
+import health.epley.core.TiltOffset
 import health.epley.core.Vector3
 import health.epley.core.UprightCheck
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,9 +54,16 @@ class HeadTracker(
      * gravity by 11 degrees with the phone flat on the floor — so the two are read separately and
      * compared rather than trusted.
      */
-    private val gravitySensor: Sensor? =
-        sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY)
-            ?: sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+    private val gravitySensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY)
+
+    /**
+     * The raw accelerometer, read alongside gravity on purpose.
+     *
+     * TYPE_GRAVITY is itself fusion output — accelerometer blended with gyroscope — so a fusion
+     * fault corrupts it and the rotation vector together while the raw signal stays honest. When
+     * they disagree at rest, the fusion is the thing at fault, and that is worth knowing.
+     */
+    private val accelerometer: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
     /** True when this device can report orientation at all. Some budget phones have no gyroscope. */
     val isSupported: Boolean get() = sensor != null
@@ -78,6 +86,14 @@ class HeadTracker(
 
     private val mountMonitor = MountMonitor()
     private val mountResidual = MountResidual()
+
+    /**
+     * This phone's own absolute-tilt error, measured by the reversal self-check.
+     *
+     * Only absolute readings need it. The guidance is relative to the user's calibration and is
+     * immune — proved in SensorBiasTest — so this never touches a head angle.
+     */
+    var tiltOffsetDegrees: Double = 0.0
 
     private var calibration: MountCalibration? = null
     private var lastQuaternion: Quaternion? = null
@@ -110,6 +126,7 @@ class HeadTracker(
         // otherwise deliver samples in bursts and ruin the stillness detector.
         sensorManager.registerListener(this, s, SensorManager.SENSOR_DELAY_GAME, 0)
         gravitySensor?.let { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME, 0) }
+        accelerometer?.let { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME, 0) }
     }
 
     fun stop() {
@@ -179,13 +196,31 @@ class HeadTracker(
     }
 
     override fun onSensorChanged(event: SensorEvent) {
-        if (event.sensor?.type == Sensor.TYPE_GRAVITY || event.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
-            // Tilt of the top edge below horizontal, straight from gravity: 0 flat, negative when
-            // the top edge is raised. No fusion, no drift, no filtering.
+        if (event.sensor?.type == Sensor.TYPE_GRAVITY) {
+            // Tilt of the top edge below horizontal: 0 flat, negative when the top edge is raised.
             val gy = event.values[1].toDouble()
             val gz = event.values[2].toDouble()
             _state.value = _state.value.copy(
-                gravityTiltDegrees = Math.toDegrees(kotlin.math.atan2(-gy, gz)),
+                gravityTiltDegrees = TiltOffset.apply(
+                    Math.toDegrees(kotlin.math.atan2(-gy, gz)),
+                    tiltOffsetDegrees,
+                ),
+            )
+            return
+        }
+        if (event.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
+            // The same angle from the unfused signal, plus the magnitude: at rest it must be 9.81,
+            // and a magnitude that is off says the accelerometer itself is miscalibrated rather
+            // than the fusion on top of it.
+            val ax = event.values[0].toDouble()
+            val ay = event.values[1].toDouble()
+            val az = event.values[2].toDouble()
+            _state.value = _state.value.copy(
+                accelTiltDegrees = TiltOffset.apply(
+                    Math.toDegrees(kotlin.math.atan2(-ay, az)),
+                    tiltOffsetDegrees,
+                ),
+                accelMagnitude = kotlin.math.sqrt(ax * ax + ay * ay + az * az),
             )
             return
         }
@@ -236,7 +271,7 @@ class HeadTracker(
             sampleCount = _state.value.sampleCount + 1,
             samplesSinceCalibration = if (cal != null) _state.value.samplesSinceCalibration + 1 else 0,
             lastTimestampNanos = event.timestamp,
-            devicePitchDegrees = deviceTilt,
+            devicePitchDegrees = TiltOffset.apply(deviceTilt, tiltOffsetDegrees),
             screenFacingUp = screenUp,
             quaternion = q,
             isJolted = mountMonitor.isJolted,
@@ -298,8 +333,12 @@ data class TrackerState(
     val screenFacingUp: Boolean = true,
     /** The raw orientation, for the instrument's diagnostic readout. */
     val quaternion: Quaternion? = null,
-    /** Top-edge tilt below horizontal, straight from the gravity sensor. The ground truth. */
+    /** Top-edge tilt below horizontal, from the fused gravity sensor. */
     val gravityTiltDegrees: Double = 0.0,
+    /** The same tilt from the raw accelerometer, which no fusion has touched. */
+    val accelTiltDegrees: Double = 0.0,
+    /** Raw accelerometer magnitude. At rest this is gravity, 9.81 m/s². */
+    val accelMagnitude: Double = 0.0,
     val sensorAccuracy: Int = SensorManager.SENSOR_STATUS_UNRELIABLE,
     val lastTimestampNanos: Long = 0,
     /**

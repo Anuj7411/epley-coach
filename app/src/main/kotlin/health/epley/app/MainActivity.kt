@@ -77,6 +77,8 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var episodeStore: EpisodeStore
 
+    private lateinit var deviceCalibration: DeviceCalibrationStore
+
     /**
      * Swapped for the RevenueCat-backed implementation once the key exists. Nothing clinical
      * reads it — see [Entitlements].
@@ -123,6 +125,8 @@ class MainActivity : ComponentActivity() {
         tracker = HeadTracker(getSystemService(Context.SENSOR_SERVICE) as SensorManager)
         guidance = GuidanceOutput(this)
         episodeStore = EpisodeStore(this)
+        deviceCalibration = DeviceCalibrationStore(this)
+        tracker.tiltOffsetDegrees = deviceCalibration.tiltOffsetDegrees
         entitlements = PlaceholderEntitlements(this)
         episodes = episodeStore.load()
 
@@ -304,6 +308,12 @@ class MainActivity : ComponentActivity() {
                     devicePitchDegrees = trackerState.devicePitchDegrees,
                     screenFacingUp = trackerState.screenFacingUp,
                     isStill = trackerState.isStill,
+                    storedOffsetDegrees = tracker.tiltOffsetDegrees,
+                    onSaveOffset = { measured ->
+                        val updated = health.epley.core.TiltOffset.from(tracker.tiltOffsetDegrees, measured)
+                        tracker.tiltOffsetDegrees = updated
+                        deviceCalibration.tiltOffsetDegrees = updated
+                    },
                     onBack = { screen = Screen.INSTRUMENT },
                 )
 
@@ -441,7 +451,10 @@ private fun ProbeScreen(
                 "q  %+.3f %+.3f %+.3f %+.3f".format(q.x, q.y, q.z, q.w) +
                     "  Yw %+.3f %+.3f %+.3f".format(y.x, y.y, y.z) +
                     "  Zw %+.3f %+.3f %+.3f".format(z.x, z.y, z.z) +
-                    "  fused %+.2f  gravity %+.2f".format(state.devicePitchDegrees, state.gravityTiltDegrees),
+                    "  fused %+.2f  gravity %+.2f  accel %+.2f  |a| %.3f".format(
+                        state.devicePitchDegrees, state.gravityTiltDegrees,
+                        state.accelTiltDegrees, state.accelMagnitude,
+                    ),
                 color = Color(0xFF9E9E9E),
                 fontSize = 13.sp,
                 fontFamily = FontFamily.Monospace,
@@ -701,7 +714,8 @@ internal class CsvLogger(directory: File) {
         // mount_mode and is_jolted turn an unexplained recording into an explained one: a run
         // full of nonsense is very different evidence if the mount was already flagged as moved.
         writer.write(
-            "timestamp_nanos,mount_mode,device_tilt_deg,gravity_tilt_deg,neck_extension_deg," +
+            "timestamp_nanos,mount_mode,device_tilt_deg,gravity_tilt_deg,accel_tilt_deg,accel_mag," +
+                "neck_extension_deg," +
                 "pitch_deg,head_rotation_deg,swing_deg,rotation_reliable,rate_deg_per_sec," +
                 "is_still,is_jolted\n",
         )
@@ -717,6 +731,8 @@ internal class CsvLogger(directory: File) {
                 "${state.mode.name}," +
                 "%.3f,".format(state.devicePitchDegrees) +
                 "%.3f,".format(state.gravityTiltDegrees) +
+                "%.3f,".format(state.accelTiltDegrees) +
+                "%.3f,".format(state.accelMagnitude) +
                 "%.3f,".format(pose?.neckExtensionDegrees ?: Double.NaN) +
                 "%.3f,".format(pose?.pitchDegrees ?: Double.NaN) +
                 "%.3f,".format(pose?.headRotationDegrees ?: Double.NaN) +

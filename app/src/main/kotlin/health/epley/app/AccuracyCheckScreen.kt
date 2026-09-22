@@ -26,6 +26,8 @@ fun AccuracyCheckScreen(
     devicePitchDegrees: Double,
     screenFacingUp: Boolean,
     isStill: Boolean,
+    storedOffsetDegrees: Double,
+    onSaveOffset: (health.epley.core.ReversalResult) -> Unit,
     onBack: () -> Unit,
 ) {
     var first by remember { mutableStateOf<Double?>(null) }
@@ -47,6 +49,13 @@ fun AccuracyCheckScreen(
         onBack = onBack,
         bottom = {
             when {
+                result != null && !result.isWithinTolerance -> {
+                    PrimaryButton(
+                        label = "Correct this phone by %+.2f°".format(-result.sensorErrorDegrees),
+                        onClick = { onSaveOffset(result); first = null; second = null },
+                    )
+                    SecondaryButton("Start again", { first = null; second = null })
+                }
                 result != null -> SecondaryButton("Start again", { first = null; second = null })
                 a != null && b != null -> SecondaryButton("Start again", { first = null; second = null })
                 a == null -> PrimaryButton(
@@ -63,6 +72,12 @@ fun AccuracyCheckScreen(
         },
     ) {
         Title("How accurate is this phone?")
+        if (storedOffsetDegrees != 0.0) {
+            Body(
+                "This phone is already corrected by %+.2f°. Readings below include that.".format(-storedOffsetDegrees),
+                secondary = true,
+            )
+        }
         Body(
             "Put the phone flat on any surface — it doesn't need to be level. Take a reading, " +
                 "turn the phone 180° on the same spot, and take another.",
