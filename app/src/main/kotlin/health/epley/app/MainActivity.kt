@@ -80,7 +80,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var deviceCalibration: DeviceCalibrationStore
 
     /**
-     * Swapped for the RevenueCat-backed implementation once the key exists. Nothing clinical
+     * RevenueCat when a key is configured, a local stand-in when it is not. Nothing clinical
      * reads it — see [Entitlements].
      */
     private lateinit var entitlements: Entitlements
@@ -127,7 +127,13 @@ class MainActivity : ComponentActivity() {
         episodeStore = EpisodeStore(this)
         deviceCalibration = DeviceCalibrationStore(this)
         tracker.tiltOffsetDegrees = deviceCalibration.tiltOffsetDegrees
-        entitlements = PlaceholderEntitlements(this)
+        // A clone with no RevenueCat key of its own still builds and runs; it just gets the
+        // stand-in, which says so on the paywall rather than pretending to take money.
+        entitlements = if (BuildConfig.REVENUECAT_API_KEY.isNotBlank()) {
+            RevenueCatEntitlements(this, BuildConfig.REVENUECAT_API_KEY)
+        } else {
+            PlaceholderEntitlements(this)
+        }
         episodes = episodeStore.load()
 
         // Drain the sensor stream into the CSV whenever logging is active. Without this the file

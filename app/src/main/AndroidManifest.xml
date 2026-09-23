@@ -24,6 +24,16 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!--
+      Pulled in by the RevenueCat SDK, and declared here rather than left to merge silently out of
+      a dependency: a health app that tells people nothing leaves their phone owes them a visible
+      answer about why it can reach the network. It is purchases only. No sensor sample, no
+      questionnaire answer and no episode ever crosses this boundary — the history export is a
+      share sheet the user drives, and every clinical feature works with the radio off.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!--
       Since Android 11, an app must declare it looks for a text-to-speech engine or it cannot bind
       to one, and speech silently does nothing. That failure would only show up on the manoeuvre's
       hardest position, so it is worth this comment.

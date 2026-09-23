@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     // AGP 9.0+ has Kotlin support built in. The separate 'org.jetbrains.kotlin.android' plugin is
     // not only unnecessary now, it is rejected — AGP fails the build if you apply it. Most
@@ -5,6 +7,21 @@ plugins {
     // omission. See https://kotl.in/gradle/agp-built-in-kotlin
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
+}
+
+/**
+ * The RevenueCat key, from local.properties (git-ignored) or the environment.
+ *
+ * Never a literal in a committed file: this repository is public for the hackathon's Next Gen
+ * track, and a key checked in is a key leaked. Blank is a supported state — the app falls back to
+ * the placeholder paywall rather than failing to build, so anyone can clone and run it without a
+ * RevenueCat account of their own.
+ */
+val revenueCatApiKey: String = run {
+    val properties = Properties()
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { properties.load(it) }
+    properties.getProperty("revenuecat.apiKey") ?: System.getenv("REVENUECAT_API_KEY") ?: ""
 }
 
 android {
@@ -21,6 +38,8 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "0.1-probe"
+
+        buildConfigField("String", "REVENUECAT_API_KEY", "\"$revenueCatApiKey\"")
     }
 
     buildTypes {
@@ -37,6 +56,8 @@ android {
 
     buildFeatures {
         compose = true
+        // Off by default since AGP 8. Needed for REVENUECAT_API_KEY above.
+        buildConfig = true
     }
 
     compileOptions {
@@ -62,6 +83,10 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+
+    // Purchases only. The paywall stands in front of one non-clinical feature, so this dependency
+    // must never be reachable from the manoeuvre, the safety check or the questionnaire.
+    implementation("com.revenuecat.purchases:purchases:10.22.1")
 
     // RunController is the bridge between the sensor stream and the engine, and it is the part
     // that cannot be reached on a device without someone physically holding the phone against
