@@ -157,8 +157,15 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 tracker.state.collect { state ->
-                    logger?.append(state)
+                    // The engine runs first so the row can be labelled with the step it belongs
+                    // to. Analysing the first run meant inferring the step boundaries from the
+                    // angles, which is guesswork dressed up as evidence.
                     runController.onTrackerState(state)
+                    val engine = runController.state.value.engineState
+                    // A jolt is only meaningful where the head is supposed to be still.
+                    tracker.stillnessExpected =
+                        engine?.guidance == Guidance.HOLDING || engine?.guidance == Guidance.SETTLING
+                    logger?.append(state, engine?.step?.id, engine?.guidance?.name)
                 }
             }
         }
@@ -843,11 +850,11 @@ internal class CsvLogger(directory: File) {
             "timestamp_nanos,mount_mode,device_tilt_deg,gravity_tilt_deg,accel_tilt_deg,accel_mag," +
                 "neck_extension_deg," +
                 "pitch_deg,head_rotation_deg,swing_deg,rotation_reliable,rate_deg_per_sec," +
-                "is_still,is_jolted\n",
+                "is_still,is_jolted,step_id,guidance\n",
         )
     }
 
-    fun append(state: TrackerState) {
+    fun append(state: TrackerState, stepId: String? = null, guidance: String? = null) {
         val pose = state.pose
         // Written whether or not a calibration exists: the device and gravity tilts are the
         // instrument's own measurement, and they are exactly what is needed when the screen
@@ -866,7 +873,9 @@ internal class CsvLogger(directory: File) {
                 "${pose?.isRotationReliable ?: false}," +
                 "%.3f,".format(state.angularRateDegPerSec) +
                 "${state.isStill}," +
-                "${state.isJolted}\n",
+                "${state.isJolted}," +
+                "${stepId ?: ""}," +
+                "${guidance ?: ""}\n",
         )
     }
 

@@ -43,33 +43,60 @@ class MountModeTest {
 
 class MountMonitorTest {
 
+    // A hold is the only time the head is meant to be still, so it is the only time a spike can
+    // mean the mount slipped rather than the manoeuvre proceeding.
+    private val holding = true
+    private val moving = false
+
     @Test
-    fun `manoeuvre speed motion is not a jolt`() {
+    fun `the manoeuvre's own transitions are not jolts, however fast`() {
+        // Measured, not guessed. The first complete on-head recording peaked at 598 deg/s, with
+        // 104 samples above 250 and 16 above 400 — all of it a correctly performed Epley. The
+        // previous version of this test assumed "around 60 deg/s" and was wrong by an order of
+        // magnitude, which is how a run accurate to 10 degrees came to be labelled untrustworthy.
         val monitor = MountMonitor()
-        // A deliberately performed repositioning tops out around 60 deg/s.
-        for (rate in listOf(0.0, 5.0, 22.5, 60.0, -75.0, 120.0)) {
-            assertFalse(monitor.onSample(rate), "$rate deg/s was wrongly called a jolt")
+        for (rate in listOf(0.0, 60.0, -260.0, 400.0, 598.3)) {
+            assertFalse(monitor.onSample(rate, moving), "$rate deg/s during a transition")
         }
         assertFalse(monitor.isJolted)
     }
 
     @Test
-    fun `a slip past the threshold latches`() {
+    fun `the same speed during a hold is a jolt`() {
+        // Nothing about the rate changed. What changed is that the head was supposed to be still.
         val monitor = MountMonitor()
-        monitor.onSample(40.0)
-        assertTrue(monitor.onSample(400.0))
+        assertTrue(monitor.onSample(400.0, holding))
         assertTrue(monitor.isJolted)
+    }
 
-        // Still latched after the motion settles: the calibration is stale from here on, and
-        // going quiet again would hide that.
-        monitor.onSample(2.0)
+    @Test
+    fun `ordinary movement during a hold is tolerated`() {
+        // Breathing, a tremor, settling into a pillow. The engine's own tolerance band handles
+        // these; the mount monitor is looking for something violent enough to move a phone.
+        val monitor = MountMonitor()
+        for (rate in listOf(0.0, 5.0, 22.5, 60.0, -75.0, 120.0)) {
+            assertFalse(monitor.onSample(rate, holding), "$rate deg/s was wrongly called a jolt")
+        }
+        assertFalse(monitor.isJolted)
+    }
+
+    @Test
+    fun `a jolt latches past the end of the hold`() {
+        val monitor = MountMonitor()
+        monitor.onSample(40.0, holding)
+        assertTrue(monitor.onSample(400.0, holding))
+
+        // Still latched once the motion settles, and once the hold ends. The calibration is stale
+        // from here on, and going quiet again would hide that.
+        monitor.onSample(2.0, holding)
+        monitor.onSample(300.0, moving)
         assertTrue(monitor.isJolted)
     }
 
     @Test
     fun `only a recalibration clears the latch`() {
         val monitor = MountMonitor()
-        monitor.onSample(999.0)
+        monitor.onSample(999.0, holding)
         assertTrue(monitor.isJolted)
         monitor.clear()
         assertFalse(monitor.isJolted)
@@ -80,14 +107,19 @@ class MountMonitorTest {
     @Test
     fun `sign of the rate does not matter`() {
         val monitor = MountMonitor()
-        assertTrue(monitor.onSample(-300.0))
+        assertTrue(monitor.onSample(-300.0, holding))
     }
 
     @Test
-    fun `peak rate is kept for the record`() {
+    fun `peak rate is kept whether or not a hold is in progress`() {
+        // This is the diagnostic that proved the threshold wrong. Recording it only during holds
+        // would have hidden the evidence that the transitions exceed it.
         val monitor = MountMonitor()
-        listOf(10.0, 88.0, -140.0, 33.0).forEach(monitor::onSample)
-        assertEquals(140.0, monitor.peakRateDegPerSec, 1e-9)
+        monitor.onSample(10.0, holding)
+        monitor.onSample(88.0, holding)
+        monitor.onSample(-598.3, moving)
+        monitor.onSample(33.0, holding)
+        assertEquals(598.3, monitor.peakRateDegPerSec, 1e-9)
         assertFalse(monitor.isJolted)
     }
 }

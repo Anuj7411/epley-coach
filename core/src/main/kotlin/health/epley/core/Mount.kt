@@ -114,6 +114,19 @@ enum class MountMode(
  * Once jolted the monitor latches. Staying quiet after a jolt would mean continuing to report
  * angles against a reference that has stopped being true, which is the one failure mode that
  * produces confidently wrong numbers instead of obviously wrong ones.
+ *
+ * ## Why only during a hold
+ *
+ * The first complete on-head recording settled this. A correctly performed Epley peaked at
+ * **598 deg/s**, with 104 samples above the old threshold and 16 above 400 — the manoeuvre's own
+ * transitions are violent. Latching on those meant the warning fired 69 seconds into a run that
+ * was accurate to within 10 degrees at two of its three therapeutic positions, and then sat there
+ * for four minutes telling the user their angles could not be trusted.
+ *
+ * Raising the number would have been the wrong fix, because there is no rate that separates a
+ * fast head turn from a slipping phone. The timing does. During a *transition* fast motion is the
+ * manoeuvre working. During a *hold* the head is meant to be still, so a spike is something
+ * moving that should not be — and that is the only moment the reference can be silently lost.
  */
 class MountMonitor {
 
@@ -130,11 +143,17 @@ class MountMonitor {
     /** Fastest rotation seen, for the record. */
     val peakRateDegPerSec: Double get() = worstRate
 
-    /** Feed every sample. Returns true if this sample was itself a jolt. */
-    fun onSample(rateDegPerSec: Double): Boolean {
+    /**
+     * Feed every sample. Returns true if this sample was itself a jolt.
+     *
+     * [stillnessExpected] is true only while the engine is holding a position. The peak rate is
+     * recorded either way: it is the diagnostic that told us this threshold was wrong, and it
+     * would be lost if we only looked during holds.
+     */
+    fun onSample(rateDegPerSec: Double, stillnessExpected: Boolean): Boolean {
         val rate = abs(rateDegPerSec)
         worstRate = max(worstRate, rate)
-        if (rate > JOLT_DEG_PER_SEC) {
+        if (stillnessExpected && rate > JOLT_DEG_PER_SEC) {
             jolted = true
             joltCount++
             return true

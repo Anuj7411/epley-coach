@@ -93,6 +93,15 @@ class HeadTracker(
      * Only absolute readings need it. The guidance is relative to the user's calibration and is
      * immune — proved in SensorBiasTest — so this never touches a head angle.
      */
+    /**
+     * True only while the engine is holding a position, so a jolt means the mount slipped.
+     *
+     * Written from the collector on the main thread, read on the sensor thread — volatile because
+     * a stale read here is the difference between flagging a run as untrustworthy and not.
+     */
+    @Volatile
+    var stillnessExpected: Boolean = false
+
     var tiltOffsetDegrees: Double = 0.0
 
     private var rotationTravelled = 0.0
@@ -268,7 +277,7 @@ class HeadTracker(
 
         // A phone cannot slip without moving fast. Watching the rate is the only handle a single
         // orientation sensor gives us on the mount coming loose.
-        mountMonitor.onSample(degreesPerSecond)
+        mountMonitor.onSample(degreesPerSecond, stillnessExpected)
 
         val cal = calibration
         val rawPose = if (cal != null) HeadAngles.compute(q, cal) else null
