@@ -53,7 +53,12 @@ import health.epley.core.MountMode
 import health.epley.core.SafetyOutcome
 import health.epley.core.Side
 import health.epley.core.TriageOutcome
+import health.epley.core.spokenSetupPrompt
+import health.epley.core.word
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 
 /** Where the user is in the app when no run is in progress. */
@@ -109,6 +114,16 @@ class MainActivity : ComponentActivity() {
 
     private var screen by mutableStateOf(Screen.HOME)
     private var episodes by mutableStateOf<List<Episode>>(emptyList())
+
+    /**
+     * Seconds left before the app captures a setup pose, or null when it is not counting.
+     *
+     * The setup steps ask for the phone against a cheekbone, screen facing out — and then asked
+     * the user to press a button on that screen. Found by holding the phone to a face: it cannot
+     * be done. The button is now pressed while the screen is still visible, and the pose is
+     * captured after a spoken countdown, once the sensor agrees the person has stopped moving.
+     */
+    private var setupCountdown by mutableStateOf<Int?>(null)
     private var calibrationMessage by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -269,17 +284,24 @@ class MainActivity : ComponentActivity() {
                     progress = progress(4, 2),
                     mode = trackerState.mode,
                     message = calibrationMessage,
+                    countdown = setupCountdown,
                     onCalibrate = {
-                        when (tracker.calibrate()) {
-                            CalibrationResult.OK -> {
-                                calibrationMessage = null
-                                screen = Screen.DIRECTION
+                        calibrationMessage = null
+                        captureWhenStill(trackerState.mode.spokenSetupPrompt) {
+                            when (tracker.calibrate()) {
+                                CalibrationResult.OK -> {
+                                    calibrationMessage = null
+                                    guidance.play(Cue.Speak("Set.", interrupt = true))
+                                    screen = Screen.DIRECTION
+                                }
+                                CalibrationResult.NO_SAMPLES -> fail(
+                                    "No sensor reading yet. Wait a second and try again.",
+                                ) { calibrationMessage = it }
+                                CalibrationResult.PHONE_TOO_FLAT -> fail(
+                                    "The phone is lying too flat to tell which way you're facing. " +
+                                        "Hold it on its edge, as described, and try again.",
+                                ) { calibrationMessage = it }
                             }
-                            CalibrationResult.NO_SAMPLES ->
-                                calibrationMessage = "No sensor reading yet. Wait a second and try again."
-                            CalibrationResult.PHONE_TOO_FLAT ->
-                                calibrationMessage = "The phone is lying too flat to tell which way " +
-                                    "you're facing. Hold it on its edge, as described, and try again."
                         }
                     },
                     onBack = { screen = if (practice) Screen.PRACTICE_SIDE else Screen.HOLD },
@@ -291,7 +313,24 @@ class MainActivity : ComponentActivity() {
                     side = run.side,
                     practice = practice,
                     message = run.polarityMessage,
-                    onLearn = { runController.learnPolarity(trackerState) },
+                    countdown = setupCountdown,
+                    onLearn = {
+                        val word = run.side.word
+                        val prompt = if (practice) {
+                            "Turn the phone toward your $word and hold it there."
+                        } else {
+                            "Turn your head toward your $word, about halfway to your shoulder, and hold it."
+                        }
+                        captureWhenStill(prompt) {
+                            runController.learnPolarity(trackerState)
+                            val failure = runController.state.value.polarityMessage
+                            if (failure != null) {
+                                guidance.play(Cue.Speak(failure, interrupt = true))
+                            } else {
+                                guidance.play(Cue.Speak("Got it.", interrupt = true))
+                            }
+                        }
+                    },
                     onBack = { screen = Screen.CALIBRATE },
                 )
 
@@ -337,6 +376,43 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
+     * Speak a countdown, wait for the person to be still, then capture.
+     *
+     * Stillness is a requirement rather than a courtesy: a pose captured mid-movement becomes the
+     * reference every later angle is measured against, so an error here is silently carried
+     * through the whole manoeuvre. If they are still moving when the count ends, nothing is
+     * captured and the app says so out loud — on this screen the user cannot see a message.
+     */
+    private fun fail(message: String, show: (String) -> Unit) {
+        show(message)
+        // Spoken as well as shown, for the same reason the countdown exists: at this point in the
+        // flow the screen is against a cheekbone and cannot be read.
+        guidance.play(Cue.Speak(message, interrupt = true))
+    }
+
+    private fun captureWhenStill(prompt: String, onCapture: () -> Unit) {
+        if (setupCountdown != null) return
+        lifecycleScope.launch {
+            guidance.play(Cue.Speak(prompt, interrupt = true))
+            for (remaining in SETUP_COUNTDOWN_SECONDS downTo 1) {
+                setupCountdown = remaining
+                if (remaining <= 3) guidance.play(Cue.Speak("$remaining"))
+                delay(1000)
+            }
+            setupCountdown = 0
+            val settled = withTimeoutOrNull(STILLNESS_TIMEOUT_MILLIS) {
+                tracker.state.first { it.isStill }
+            }
+            setupCountdown = null
+            if (settled == null) {
+                guidance.play(Cue.Speak("Still moving. Hold steady and try again.", interrupt = true))
+            } else {
+                onCapture()
+            }
+        }
+    }
+
+    /**
      * Hand the history to whatever the user picks — mail, messages, printing.
      *
      * A chooser, so sharing only ever happens to a destination they chose. The app itself sends
@@ -372,17 +448,24 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Either volume button stops a run.
+     * Holding either volume button stops a run.
      *
      * Someone face-down with their eyes shut cannot find a STOP button on a screen pressed to
      * their cheek. A physical button they can feel is the one control that works in every
      * position (spec FR-8). Outside a run the buttons change the volume as normal.
+     *
+     * It has to be a *hold*, not a press. A single press was the original design and it was wrong
+     * for an obvious reason nobody noticed until the app was used on a head: the moment a person
+     * most wants the volume button is mid-run, when the voice is too quiet to follow. Reaching for
+     * the volume then cancelled their treatment. A short press now does what it has always done.
      */
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         val volumeKey = keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
         val run = runController.state.value
         val midManoeuvre = run.running && run.engineState?.guidance != Guidance.FINISHED
-        if (volumeKey && midManoeuvre) {
+        // Android repeats a held key, so eventTime advances while downTime does not.
+        val heldLongEnough = event != null && event.eventTime - event.downTime >= STOP_HOLD_MILLIS
+        if (volumeKey && midManoeuvre && heldLongEnough) {
             endRun(completed = false, feeling = null)
             guidance.play(Cue.Speak("Stopped.", interrupt = true))
             return true
@@ -408,6 +491,22 @@ class MainActivity : ComponentActivity() {
         tracker.stop()
         logger?.close()
         logger = null
+    }
+
+    private companion object {
+        /**
+         * How long a volume button must be held to stop a run.
+         *
+         * Long enough that changing the volume never stops a treatment, short enough to find with
+         * the eyes shut and the head hanging off a bed.
+         */
+        const val STOP_HOLD_MILLIS = 1200L
+
+        /** Time to get the phone onto a cheekbone after tapping, while the screen is still visible. */
+        const val SETUP_COUNTDOWN_SECONDS = 5
+
+        /** How long to wait for the person to settle before giving up and saying so. */
+        const val STILLNESS_TIMEOUT_MILLIS = 6000L
     }
 
     private fun toggleLogging(): Boolean {

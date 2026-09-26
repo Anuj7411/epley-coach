@@ -58,6 +58,35 @@ object Phrasing {
 
         return phrases.sortedByDescending { it.first }.map { it.second }
     }
+
+    /**
+     * The correction as a sentence to speak, direction **and** distance.
+     *
+     * Found on a real head: "turn toward your left" sounds identical whether you are four degrees
+     * out or forty, so a person who is nearly right over-corrects and a person who is far out
+     * under-corrects, and both conclude the app is wrong. The distance was always computed and
+     * then dropped on the way to the speaker — the screen showed it, and the screen is against
+     * your cheek.
+     *
+     * Degrees are rounded to five. Nobody can execute "seventeen degrees", and false precision in
+     * a spoken instruction reads as a machine talking to itself rather than to a person.
+     */
+    fun spoken(phrase: CorrectionPhrase): String = "${phrase.text}, ${distance(phrase.degrees)}"
+
+    /**
+     * How far, in words.
+     *
+     * Under ten degrees is inside or near every published tolerance band, so naming a number
+     * there would send someone hunting for a precision the manoeuvre does not require.
+     */
+    fun distance(degrees: Int): String {
+        val rounded = ((degrees + 2) / 5) * 5
+        return when {
+            degrees < 10 -> "a little"
+            degrees <= 30 -> "about $rounded degrees"
+            else -> "a long way, about $rounded degrees"
+        }
+    }
 }
 
 /** The opposite side. */

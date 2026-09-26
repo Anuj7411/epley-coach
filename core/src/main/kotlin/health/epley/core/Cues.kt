@@ -141,12 +141,12 @@ class CuePlanner(
                     when {
                         // A broken hold is the one moment worth interrupting for.
                         previous == Guidance.HOLDING -> {
-                            cues += Cue.Speak("You moved. ${phrase.text}", interrupt = true)
+                            cues += Cue.Speak("You moved. ${Phrasing.spoken(phrase)}", interrupt = true)
                             lastCorrectionAt = nowSeconds
                         }
                         nowSeconds >= graceUntil &&
                             (lastSpoken == null || nowSeconds - lastSpoken >= CORRECTION_REPEAT_SECONDS) -> {
-                            if (sayShort(phrase.text, nowSeconds, cues)) lastCorrectionAt = nowSeconds
+                            if (sayShort(Phrasing.spoken(phrase), nowSeconds, cues)) lastCorrectionAt = nowSeconds
                         }
                     }
                 }

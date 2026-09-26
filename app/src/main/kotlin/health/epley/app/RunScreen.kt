@@ -52,7 +52,7 @@ fun RunScreen(
         onBack = null,
         bottom = {
             SecondaryButton("Say it again", onRepeat)
-            SecondaryButton("Stop  ·  or press a volume button", onStop)
+            SecondaryButton("Stop  ·  or hold a volume button", onStop)
         },
     ) {
         Title(step?.title ?: "Getting ready")

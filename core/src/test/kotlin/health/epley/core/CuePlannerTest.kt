@@ -72,7 +72,7 @@ class CuePlannerTest {
         // Talking over the instruction would drown it out.
         assertTrue(p.onState(state(Guidance.SEEKING, correction = off), 3.0).spoken().isEmpty())
         assertEquals(
-            listOf("Let your head hang lower"),
+            listOf("Let your head hang lower, a long way, about 40 degrees"),
             p.onState(state(Guidance.SEEKING, correction = off), grace).spoken(),
         )
         // Not again straight away: a voice that never stops is a voice people stop hearing.
@@ -81,7 +81,7 @@ class CuePlannerTest {
             state(Guidance.SEEKING, correction = off),
             grace + CuePlanner.CORRECTION_REPEAT_SECONDS,
         )
-        assertEquals(listOf("Let your head hang lower"), again.spoken())
+        assertEquals(listOf("Let your head hang lower, a long way, about 40 degrees"), again.spoken())
     }
 
     @Test
@@ -92,7 +92,7 @@ class CuePlannerTest {
             state(Guidance.SEEKING, correction = Correction(10.0, -35.0)),
             grace,
         )
-        assertEquals(listOf("Turn toward your left"), cues.spoken())
+        assertEquals(listOf("Turn toward your left, a long way, about 35 degrees"), cues.spoken())
     }
 
     @Test
@@ -101,7 +101,10 @@ class CuePlannerTest {
         p.onState(state(Guidance.SEEKING), 0.0)
         p.onState(state(Guidance.HOLDING, held = 5.0), 10.0)
         val cues = p.onState(state(Guidance.SEEKING, held = 5.0, correction = Correction(0.0, 35.0)), 11.0)
-        assertEquals(listOf("You moved. Turn toward your right"), cues.spoken())
+        assertEquals(
+            listOf("You moved. Turn toward your right, a long way, about 35 degrees"),
+            cues.spoken(),
+        )
     }
 
     @Test
@@ -204,7 +207,10 @@ class CuePlannerTest {
         val off = Correction(40.0, 0.0)
         p.onState(state(Guidance.SEEKING, correction = off), 0.0)
         val g = CuePlanner.graceSeconds(lieBack.instruction(Side.RIGHT, practice = true))
-        assertEquals(listOf("Tip the top further down"), p.onState(state(Guidance.SEEKING, correction = off), g).spoken())
+        assertEquals(
+            listOf("Tip the top further down, a long way, about 40 degrees"),
+            p.onState(state(Guidance.SEEKING, correction = off), g).spoken(),
+        )
     }
 
     @Test

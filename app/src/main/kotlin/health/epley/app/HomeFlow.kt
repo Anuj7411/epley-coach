@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
@@ -209,21 +210,53 @@ fun CalibrateScreen(
     progress: Float,
     mode: MountMode,
     message: String?,
+    countdown: Int?,
     onCalibrate: () -> Unit,
     onBack: () -> Unit,
 ) {
-    FlowFrame(stepLabel, progress, onBack, bottom = { PrimaryButton("I'm in position — set", onCalibrate) }) {
+    FlowFrame(
+        stepLabel,
+        progress,
+        onBack,
+        bottom = {
+            if (countdown == null) {
+                PrimaryButton("Start — then get into position", onCalibrate)
+            } else {
+                CountdownCard(countdown)
+            }
+        },
+    ) {
         Title(if (mode.tracksTheHead) "Sit up straight and look ahead" else "Hold the phone upright")
         Body(mode.instruction)
         Body(
             if (mode.tracksTheHead) {
-                "Keep still for a moment, then tap. This tells the app what \"straight ahead\" looks like for you."
+                "Tap now, while you can still see the screen. The app counts you down out loud, " +
+                    "then captures the position once you are still — so you never have to press " +
+                    "anything with the phone against your face."
             } else {
-                "Screen toward your face, like reading it. Keep it still, then tap."
+                "Screen toward your face, like reading it. Tap, then hold it still."
             },
             secondary = true,
         )
         if (message != null) Text(message, color = Palette.Move, fontSize = 17.sp, lineHeight = 24.sp)
+    }
+}
+
+/** The countdown, for anyone who can still see the screen. The spoken count is the real one. */
+@Composable
+private fun CountdownCard(countdown: Int) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+        Text(
+            if (countdown > 0) "$countdown" else "Hold still",
+            color = Palette.Action,
+            fontSize = if (countdown > 0) 64.sp else 30.sp,
+            fontWeight = FontWeight.Medium,
+        )
+        Text(
+            if (countdown > 0) "Get into position" else "Capturing when you stop moving",
+            color = Palette.TextSecondary,
+            fontSize = 17.sp,
+        )
     }
 }
 
@@ -235,17 +268,30 @@ fun DirectionScreen(
     side: Side,
     practice: Boolean,
     message: String?,
+    countdown: Int?,
     onLearn: () -> Unit,
     onBack: () -> Unit,
 ) {
     val word = side.word
-    FlowFrame(stepLabel, progress, onBack, bottom = { PrimaryButton("I'm turned to my $word", onLearn) }) {
+    FlowFrame(
+        stepLabel,
+        progress,
+        onBack,
+        bottom = {
+            if (countdown == null) {
+                PrimaryButton("Start — then turn to my $word", onLearn)
+            } else {
+                CountdownCard(countdown)
+            }
+        },
+    ) {
         Title(if (practice) "Turn the phone to your $word" else "Turn your head to your $word")
         Body(
             if (practice) {
-                "Turn it like a key, about halfway, and hold it there. Then tap."
+                "Tap now, then turn it like a key, about halfway, and hold it there."
             } else {
-                "About halfway to your shoulder, and hold it there. Then tap."
+                "Tap now, then turn about halfway to your shoulder and hold it there. The app " +
+                    "counts you down out loud and captures it once you are still."
             },
         )
         Body("This teaches the app which direction is which. It can't work that out on its own.", secondary = true)
@@ -276,7 +322,7 @@ fun ReadyScreen(
         }
         Body("The voice will guide you through five positions. You can keep your eyes shut.")
         Text(
-            "Press either volume button to stop at any time.",
+            "Hold either volume button for a moment to stop. A quick press still changes the volume.",
             color = Palette.Action,
             fontSize = 17.sp,
             fontWeight = FontWeight.Medium,

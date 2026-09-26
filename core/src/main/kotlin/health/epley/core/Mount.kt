@@ -34,6 +34,23 @@ import kotlin.math.sqrt
  * @property tracksTheHead false for [IN_HAND], where the reading describes the phone and says
  *   nothing about the user's head — the one distinction that must never be blurred in the UI
  */
+/**
+ * What to say out loud when asking someone to get into the mount position.
+ *
+ * Separate from [MountMode.instruction], which is written to be read. This is written to be heard
+ * with the eyes shut and the phone already moving toward a cheek, so it is shorter and it names
+ * the action first.
+ */
+val MountMode.spokenSetupPrompt: String
+    get() = when (this) {
+        MountMode.CHEEK -> "Put the phone flat against your cheekbone now, screen facing out, " +
+            "top of the phone toward the top of your head. Then sit up straight and hold still."
+        MountMode.HEADBAND -> "Put the phone in the headband now, screen facing out. Then sit up " +
+            "straight and hold still."
+        MountMode.IN_HAND -> "Hold the phone upright in front of you, screen toward your face, " +
+            "and keep it still."
+    }
+
 enum class MountMode(
     val displayName: String,
     val instruction: String,
