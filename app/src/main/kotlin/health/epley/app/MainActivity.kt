@@ -340,7 +340,10 @@ class MainActivity : ComponentActivity() {
                     side = run.side,
                     mode = trackerState.mode,
                     practice = practice,
-                    onStart = { runController.start(HeadTracker.STILLNESS_THRESHOLD_DEG_PER_SEC) },
+                    onStart = {
+                        startLoggingForRun()
+                        runController.start(HeadTracker.STILLNESS_THRESHOLD_DEG_PER_SEC)
+                    },
                     onBack = {
                         // Without clearing it, the direction is still learned and the screen would
                         // bounce straight back to Ready, making Back look broken.
@@ -430,8 +433,25 @@ class MainActivity : ComponentActivity() {
     }
 
     /** Every run ends in the history, finished or not, so the record is honest about stops too. */
+    /**
+     * Every run records itself. Not a developer toggle — the evidence is the point.
+     *
+     * The first on-head run produced twenty-six minutes of a phone lying still and not one
+     * measured head angle, because logging was a switch on a screen nobody thinks to visit before
+     * lying down, and because it closes when the app goes to the background. A run that leaves no
+     * trace cannot be checked afterwards, and an app whose whole claim is measurement should
+     * never perform one.
+     */
+    private fun startLoggingForRun() {
+        if (logger != null) return
+        val dir = getExternalFilesDir(null) ?: return
+        logger = CsvLogger(dir)
+    }
+
     private fun endRun(completed: Boolean, feeling: Feeling?) {
         val run = runController.state.value
+        logger?.close()
+        logger = null
         episodes = episodeStore.append(
             Episode(
                 epochMillis = System.currentTimeMillis(),
