@@ -1,5 +1,18 @@
 package health.epley.app
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,11 +54,22 @@ fun AfterCareScreen(
     val chosen = feeling
     if (chosen == null) {
         FlowFrame("Manoeuvre complete", null, null, bottom = {
-            ChoiceButton("Better", { feeling = Feeling.BETTER })
-            ChoiceButton("About the same", { feeling = Feeling.SAME })
-            ChoiceButton("Worse", { feeling = Feeling.WORSE })
+            ChoiceButton("Better, no spinning", { feeling = Feeling.BETTER })
+            ChoiceButton("Still dizzy when I move", { feeling = Feeling.SAME })
+            ChoiceButton("Worse than before", { feeling = Feeling.WORSE })
         }) {
-            Title("Stay sitting for a minute. How do you feel now?")
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Filled.Check, contentDescription = null, tint = Palette.Holding, modifier = Modifier.size(22.dp))
+                Text(
+                    "All 5 positions done, saved",
+                    color = Palette.Holding,
+                    fontSize = AppType.LabelSize,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = AppType.Sans,
+                )
+            }
+            Title("How do you feel now?")
+            Body("Stay sitting for a minute before you stand up.", secondary = true)
         }
         return
     }
@@ -78,7 +102,21 @@ fun AfterCareScreen(
     FlowFrame("Manoeuvre complete", null, null, bottom = { PrimaryButton("Done", { onDone(chosen) }) }) {
         Title(title, color = colour)
         Body(body)
-        Body(AfterCare.noRestrictionsNote, secondary = true)
+        // Two lines that are true whatever the answer was, each with its own icon, because they
+        // are the part people most often get wrong from memory: there are no posture rules, and
+        // there is a threshold at which this stops being self-treatable.
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(Icons.Filled.Info, contentDescription = null, tint = Palette.InkMuted, modifier = Modifier.size(22.dp))
+            Body(AfterCare.noRestrictionsNote, secondary = true)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(Icons.Filled.Warning, contentDescription = null, tint = Palette.Urgent, modifier = Modifier.size(22.dp))
+            Body(
+                "See a doctor if it isn't better after a few days, keeps coming back, or you " +
+                    "notice anything new.",
+                secondary = true,
+            )
+        }
         if (driftDegrees != null) {
             // The app checking itself: the last position is the one it was calibrated in, so any
             // reading other than zero there is drift it has just measured on this run.

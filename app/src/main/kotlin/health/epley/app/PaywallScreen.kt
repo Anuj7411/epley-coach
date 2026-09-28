@@ -1,5 +1,14 @@
 package health.epley.app
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -54,12 +63,35 @@ fun PaywallScreen(
                 "can send or print. Useful at an appointment booked weeks after the attack, when " +
                 "nobody remembers the detail.",
         )
+        // The list of what stays free is longer than the thing being sold, and deliberately so.
+        // Every clinical feature is on it. A paywall in a health app has to be able to survive
+        // being read closely by someone who suspects the worst of it.
         Card {
-            Text("Always free, forever", color = Palette.Action, fontSize = 17.sp, fontWeight = FontWeight.Medium)
-            Body("The safety check")
-            Body("The six questions that identify the ear")
-            Body("The guided manoeuvre, voice and vibration")
-            Body("After-care advice and your history on this phone")
+            Text(
+                "Free forever, with or without this",
+                color = Palette.Holding,
+                fontSize = AppType.BodyLargeSize,
+                fontWeight = FontWeight.Bold,
+                fontFamily = AppType.Sans,
+            )
+            for (item in listOf(
+                "The safety check",
+                "The six questions that identify the ear",
+                "Unlimited guided treatment runs",
+                "Practice mode and after-care advice",
+                "Your run history on this phone",
+                "The sensor readout",
+            )) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Check, contentDescription = null, tint = Palette.Holding, modifier = Modifier.size(20.dp))
+                    Text(
+                        item,
+                        color = Palette.InkBody,
+                        fontSize = AppType.ReadingFloor,
+                        fontFamily = AppType.Sans,
+                    )
+                }
+            }
         }
         Body("One payment. No subscription, no account, and nothing leaves your phone unless you send it.", secondary = true)
         if (entitlements.isPlaceholder) {

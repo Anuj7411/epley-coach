@@ -1,5 +1,8 @@
 package health.epley.app
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -100,47 +103,81 @@ fun TriageScreen(
             if (questionNumber == 1) {
                 Body("For people a doctor has already diagnosed with BPPV. BPPV often comes back in a different ear, so this is asked every time.", secondary = true)
             }
+            Spacer(Modifier.weight(1f))
+            // On every question, not just the first. A person answering six questions builds
+            // confidence with each one, and the accuracy of the set is the thing that should be
+            // in front of them at the moment they answer the last.
+            InfoNote(
+                "These questions agree with a specialist about 71% of the time. They are a guide, " +
+                    "not a diagnosis.",
+            )
         }
         return
     }
 
     val result = outcome ?: return
-    val (title, body, colour) = when (result) {
-        is TriageOutcome.PosteriorCanal -> Triple(
-            "Posterior canal, ${result.side.word} ear",
-            "This is the type the Epley manoeuvre treats.\n\n" +
-                "Be aware: in published testing these questions matched a specialist's diagnosis " +
-                "about 3 times in 4. If this attack feels different from the ones you've been " +
-                "diagnosed with before, stop and see a doctor.",
-            Palette.Action,
+    // The headline is the answer itself, set large. A person who has just answered six questions
+    // wants the conclusion, not a restatement of the question, and "Left ear" is the whole of it.
+    val (headline, body) = when (result) {
+        is TriageOutcome.PosteriorCanal -> Pair(
+            "${result.side.word.replaceFirstChar { it.uppercase() }} ear",
+            "Posterior canal, the type the Epley manoeuvre treats. We will set up for your " +
+                "${result.side.word} side.",
         )
-        is TriageOutcome.HorizontalCanal -> Triple(
-            "A different type, horizontal canal, ${result.side.word} side",
-            "The Epley manoeuvre does not treat this type, so this app won't guide it.\n\n" +
-                "In the trial these questions come from, it was treated with a " +
+        is TriageOutcome.HorizontalCanal -> Pair(
+            "This app can't treat this type",
+            "Your answers point to the horizontal canal, ${result.side.word} side. The Epley " +
+                "manoeuvre does not treat it, so this app will not guide one. In the trial these " +
+                "questions come from it was treated with a " +
                 (if (result.type == HorizontalType.CANALITHIASIS) "barbecue roll" else "Gufoni manoeuvre") +
                 ". Ask your doctor to show you.",
-            Palette.Move,
         )
-        is TriageOutcome.NotConsistentWithBppv -> Triple(
-            "This doesn't match the usual BPPV pattern",
-            "Don't do the manoeuvre now . See a doctor.\n\n" +
-                "Get emergency help straight away if you also have weakness or numbness, trouble " +
-                "speaking or seeing, a sudden severe headache, or you can't walk steadily.",
-            Palette.Danger,
+        is TriageOutcome.NotConsistentWithBppv -> Pair(
+            "This doesn't sound like BPPV",
+            "Don't do the manoeuvre now. See a doctor. Get emergency help straight away if you " +
+                "also have weakness or numbness, trouble speaking or seeing, a sudden severe " +
+                "headache, or you can't walk steadily.",
         )
         is TriageOutcome.Incomplete -> return
     }
+    val posterior = result is TriageOutcome.PosteriorCanal
     FlowFrame(
-        stepLabel = "Step 2 of 6 · result",
+        stepLabel = "Result",
         progress = 2 / 6f,
         onBack = onCancel,
         bottom = {
-            PrimaryButton(if (result is TriageOutcome.PosteriorCanal) "Continue" else "Done", { onFinished(result) })
+            PrimaryButton(if (posterior) "Continue" else "Back to home", { onFinished(result) })
             if (undo != null) SecondaryButton("Change my last answer", undo)
         },
     ) {
-        Title(title, color = colour)
-        Text(body, color = Palette.TextPrimary, fontSize = 17.sp, lineHeight = 25.sp)
+        Text(
+            if (posterior) "Your answers suggest" else "Your answers say",
+            color = Palette.InkMuted,
+            fontSize = AppType.LabelSize,
+            fontWeight = FontWeight.Bold,
+            fontFamily = AppType.Sans,
+        )
+        Text(
+            headline,
+            color = if (posterior) Palette.Ink else Palette.Urgent,
+            fontSize = if (posterior) AppType.HeroSize else AppType.DisplaySize,
+            lineHeight = if (posterior) 52.sp else AppType.DisplayLine,
+            fontWeight = FontWeight.ExtraBold,
+            fontFamily = AppType.Sans,
+        )
+        Text(
+            body,
+            color = Palette.InkBody,
+            fontSize = AppType.BodyLargeSize,
+            lineHeight = AppType.BodyLargeLine,
+            fontFamily = AppType.Sans,
+        )
+        if (posterior) {
+            Spacer(Modifier.weight(1f))
+            InfoNote(
+                "About 71% accurate compared with a specialist. If your doctor told you a " +
+                    "different ear, use theirs.",
+            )
+        }
     }
 }
