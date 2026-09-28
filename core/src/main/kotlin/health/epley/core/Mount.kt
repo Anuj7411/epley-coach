@@ -87,7 +87,7 @@ enum class MountMode(
     IN_HAND(
         displayName = "In your hand (practice)",
         instruction = "Hold the phone upright in front of you, screen toward your face. The phone " +
-            "stands in for your head — tip it back and turn it to follow each step.",
+            "stands in for your head. Tip it back and turn it to follow each step.",
         // Generous: nobody is being treated here, and a practice run that is hard to complete
         // teaches nothing.
         toleranceDegrees = 10.0,

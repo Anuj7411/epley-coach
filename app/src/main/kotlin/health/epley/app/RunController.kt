@@ -98,8 +98,8 @@ class RunController(
         _state.value = if (learned == null) {
             _state.value.copy(
                 polarity = null,
-                polarityMessage = "Turn further — at least " +
-                    "${RotationPolarity.MIN_LEARNING_TURN_DEGREES.toInt()}° — then tap again.",
+                polarityMessage = "Turn further, at least " +
+                    "${RotationPolarity.MIN_LEARNING_TURN_DEGREES.toInt()}°, then start again.",
             )
         } else {
             polarityGeneration = state.calibrationGeneration
