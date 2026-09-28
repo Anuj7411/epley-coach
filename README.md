@@ -98,14 +98,16 @@ engineering tool; no user needs it to be treated correctly.
 - **The questionnaire is about 71% accurate** against a specialist. The app says so on screen.
 - **For people already diagnosed.** Positional vertigo can be a stroke, and an app cannot see the
   eye movements that tell them apart. Hence the safety check and the first-use wording.
-- **This is not a medical device** and does not claim to be one.
+- **NOT A MEDICAL DEVICE — an unregulated prototype, and it must never be used on a patient.**
+  Not merely "this is not a medical device": regulators have rejected that phrasing as a defence,
+  so this README and the app itself both say the stronger thing.
 
 ## How it works
 
 ```
 :core   pure Kotlin, no Android — quaternions, head angles, triage, manoeuvre engine,
-        cue planner, after-care rules.  130 tests, runs on the JVM in seconds.
-:app    Android + Compose — sensor stream, voice and haptics, screens.  28 tests.
+        cue planner, after-care rules.  158 tests, runs on the JVM in seconds.
+:app    Android + Compose — sensor stream, voice and haptics, screens.  29 tests.
 ```
 
 The measurement is deliberately boring: `TYPE_GAME_ROTATION_VECTOR` (no magnetometer, so a steel

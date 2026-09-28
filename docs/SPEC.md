@@ -152,7 +152,7 @@ the **right angles** (unaided self-treatment is off by 40–51°).
                           │  ManeuverDefinition (targets)    │
                           │  DwellDetector                   │
                           │                                  │
-                          │  ← 27 JVM unit tests, no device  │
+                          │  ← 187 JVM unit tests, no device │
                           └──────────────────────────────────┘
 ```
 
@@ -163,7 +163,7 @@ the quaternion algebra, the singularity handling, the unwrapping, the dwell logi
 the JVM in milliseconds, with no emulator and no phone. `:app` is the thin shell that talks to the
 sensor HAL and the screen.
 
-This is the reason 27 tests run in 8 seconds instead of needing a device farm, and it is what let
+This is the reason 187 tests run in seconds instead of needing a device farm, and it is what let
 the angle maths be proven correct before the phone was ever plugged in.
 
 ### Data flow, one frame
@@ -194,8 +194,14 @@ jitters, and we are timing a 30-second hold.
 | Accounts? | None |
 | Health data near the purchase path? | Never. RevenueCat sees an entitlement check, nothing else |
 
-The manifest requests **no INTERNET permission for the measurement flow**. That is not a policy
-promise, it is an architectural guarantee: the code cannot exfiltrate what it cannot reach.
+The manifest **does** request `INTERNET`, because the RevenueCat SDK needs it, and it is declared
+in our own manifest rather than left to merge silently out of a dependency — a health app that
+tells people nothing leaves their phone owes them a visible answer about why it can reach the
+network at all. So the guarantee is no longer "cannot reach"; it is separation, and separation is
+weaker. What holds it up is that no network call exists anywhere on the measurement path: the
+sensor stream, the triage, the engine and the episode store have no networking code and no
+dependency that has any. The history export is a share sheet the user drives. Every clinical
+feature works with the radio off, which is the claim a reader can actually test.
 
 India's DPDP Act 2023 imposes verifiable parental consent for children's data. We hold no personal
 data and are not aimed at children, so the obligation does not arise — by design, not by luck.
@@ -255,7 +261,7 @@ Two layers, deliberately separated.
 ### Layer 1 — engineering, provable alone
 | Test | Method | Status |
 |---|---|---|
-| Quaternion algebra | 27 JVM unit tests | **Passing** |
+| Quaternion algebra | 187 JVM unit tests across 25 suites | **Passing** |
 | Singularity continuity | Sweep through and past vertical; assert no step >45° | **Passing — 0 of 35,751 samples** |
 | Unwrapping | Replay the real +166.4° → −169.7° step from hardware | **Passing** |
 | Sample rate stability | Frame-timestamp histogram | **Passing — 50.0 Hz** |
@@ -356,7 +362,7 @@ memory; gaps found in this audit are listed as fixed or open.
 | NFR-2 | Measured 3.08° worst step | Met |
 | NFR-3 | Measured +0.006° at rest, −4.2° moving | Met |
 | NFR-4 | `FLAG_KEEP_SCREEN_ON` | Built |
-| NFR-5 | No network permission in the manifest — verified by inspection | Met |
+| NFR-5 | `INTERNET` **is** in the manifest, for RevenueCat. No network call on the measurement path — verified by inspection | Met, by separation rather than by absence — see §6 |
 | NFR-6 | `Entitlements` is read only by the export button | Met |
 | NFR-7 | `minSdk 24` | Met |
 | NFR-8 | No `android.*` import anywhere in `:core` — verified by inspection | Met |

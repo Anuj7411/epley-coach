@@ -199,6 +199,28 @@ fun HomeScreen(
             lineHeight = AppType.BodyLargeLine,
             fontFamily = AppType.Sans,
         )
+        // The strong wording is deliberate. "This is not a medical device" is the formulation
+        // regulators have rejected as a defence, so it is not the one used here or in the README.
+        // On the first screen, before anything can be started, because a disclaimer someone has
+        // to go looking for is not one.
+        Card {
+            Text(
+                "NOT A MEDICAL DEVICE",
+                color = Palette.Urgent,
+                fontSize = AppType.LabelSize,
+                fontWeight = FontWeight.ExtraBold,
+                fontFamily = AppType.Sans,
+            )
+            Text(
+                "An unregulated prototype. It must never be used on a patient. It guides a " +
+                    "manoeuvre a doctor has already told you to do; it does not diagnose, and it " +
+                    "does not replace being seen.",
+                color = Palette.InkMuted,
+                fontSize = AppType.ReadingFloor,
+                lineHeight = AppType.LabelLine,
+                fontFamily = AppType.Sans,
+            )
+        }
         EpisodeHistory(episodes, onExport)
     }
 }
