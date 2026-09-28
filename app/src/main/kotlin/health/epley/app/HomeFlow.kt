@@ -322,7 +322,7 @@ fun PracticeSideScreen(onSide: (Side) -> Unit, onBack: () -> Unit) {
 @Composable
 fun HoldScreen(onMode: (MountMode) -> Unit, onBack: () -> Unit) {
     FlowFrame("Step 3 of 6", 3 / 6f, onBack, bottom = {
-        ChoiceButton("Against my cheek — I'll hold it", { onMode(MountMode.CHEEK) })
+        ChoiceButton("Against my cheek, I'll hold it", { onMode(MountMode.CHEEK) })
         ChoiceButton("In a headband or cap", { onMode(MountMode.HEADBAND) })
     }) {
         Title("How will you hold the phone?")
@@ -358,7 +358,7 @@ fun CalibrateScreen(
         onBack,
         bottom = {
             if (countdown == null) {
-                PrimaryButton("Start — then get into position", onCalibrate)
+                PrimaryButton("Start, then get into position", onCalibrate)
             } else {
                 CountdownCard(countdown)
             }
@@ -369,7 +369,7 @@ fun CalibrateScreen(
         Body(
             if (mode.tracksTheHead) {
                 "Tap now, while you can still see the screen. The app counts you down out loud, " +
-                    "then captures the position once you are still — so you never have to press " +
+                    "then captures the position once you are still, so you never have to press " +
                     "anything with the phone against your face."
             } else {
                 "Screen toward your face, like reading it. Tap, then hold it still."
@@ -417,7 +417,7 @@ fun DirectionScreen(
         onBack,
         bottom = {
             if (countdown == null) {
-                PrimaryButton("Start — then turn to my $word", onLearn)
+                PrimaryButton("Start, then turn to my $word", onLearn)
             } else {
                 CountdownCard(countdown)
             }

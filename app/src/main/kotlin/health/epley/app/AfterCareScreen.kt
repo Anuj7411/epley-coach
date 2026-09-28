@@ -53,7 +53,7 @@ fun AfterCareScreen(
     val (title, body, colour) = when (AfterCare.advise(chosen, runsThisEpisode = runsBefore + 1)) {
         AfterCareAdvice.Done -> Triple(
             "Good. You're done.",
-            "If the spinning comes back another day, answer the six questions again — it may be " +
+            "If the spinning comes back another day, answer the six questions again. It may be " +
                 "a different ear or canal next time.",
             Palette.Action,
         )

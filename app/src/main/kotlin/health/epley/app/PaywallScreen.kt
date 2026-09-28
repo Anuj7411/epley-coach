@@ -50,7 +50,7 @@ fun PaywallScreen(
     ) {
         Title("Take your history to your doctor")
         Body(
-            "Exports every run — when, which ear, and how you felt afterwards — as plain text you " +
+            "Exports every run: when, which ear, and how you felt afterwards, as plain text you " +
                 "can send or print. Useful at an appointment booked weeks after the attack, when " +
                 "nobody remembers the detail.",
         )

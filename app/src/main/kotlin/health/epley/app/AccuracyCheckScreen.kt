@@ -90,7 +90,7 @@ fun AccuracyCheckScreen(
             )
         }
         Body(
-            "Put the phone flat on any surface — it doesn't need to be level. Take a reading, " +
+            "Put the phone flat on any surface. It doesn't need to be level. Take a reading, " +
                 "turn the phone 180° on the same spot, and take another.",
         )
         Body(
@@ -112,7 +112,7 @@ fun AccuracyCheckScreen(
 
         if (a != null && b == null) {
             Body(
-                "Now spin the phone 180° flat on the surface — like turning a plate, so the top " +
+                "Now spin the phone 180° flat on the surface, like turning a plate, so the top " +
                     "edge points the other way. Keep the screen facing up; don't turn it over.",
             )
         }

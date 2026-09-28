@@ -433,7 +433,7 @@ class MainActivity : ComponentActivity() {
         val report = EpisodeLog.report(episodes) { format.format(java.util.Date(it)) }
         val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
             type = "text/plain"
-            putExtra(android.content.Intent.EXTRA_SUBJECT, "Epley Coach — my history")
+            putExtra(android.content.Intent.EXTRA_SUBJECT, "Epley Coach: my history")
             putExtra(android.content.Intent.EXTRA_TEXT, report)
         }
         startActivity(android.content.Intent.createChooser(intent, "Send history"))

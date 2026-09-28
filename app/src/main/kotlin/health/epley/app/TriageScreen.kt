@@ -69,7 +69,7 @@ fun TriageScreen(
 
     if (questionNumber != null) {
         val (question, first, second) = when (questionNumber) {
-            1 -> Triple("Does it feel like the room — or you — is spinning or whirling?", "Yes", "No")
+            1 -> Triple("Does it feel like the room, or you, is spinning or whirling?", "Yes", "No")
             2 -> Triple("Do you get dizzy mainly when you move your head?", "Yes", "No")
             3 -> Triple("Does each spell of dizziness last less than 3 minutes?", "Yes", "No")
             4 -> Triple("Which brings the dizziness on more?", "Lying down, or getting out of bed", "Turning my head while lying down")
@@ -115,7 +115,7 @@ fun TriageScreen(
             Palette.Action,
         )
         is TriageOutcome.HorizontalCanal -> Triple(
-            "A different type — horizontal canal, ${result.side.word} side",
+            "A different type, horizontal canal, ${result.side.word} side",
             "The Epley manoeuvre does not treat this type, so this app won't guide it.\n\n" +
                 "In the trial these questions come from, it was treated with a " +
                 (if (result.type == HorizontalType.CANALITHIASIS) "barbecue roll" else "Gufoni manoeuvre") +
@@ -124,7 +124,7 @@ fun TriageScreen(
         )
         is TriageOutcome.NotConsistentWithBppv -> Triple(
             "This doesn't match the usual BPPV pattern",
-            "Don't do the manoeuvre now — see a doctor.\n\n" +
+            "Don't do the manoeuvre now . See a doctor.\n\n" +
                 "Get emergency help straight away if you also have weakness or numbness, trouble " +
                 "speaking or seeing, a sudden severe headache, or you can't walk steadily.",
             Palette.Danger,
