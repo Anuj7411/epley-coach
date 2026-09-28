@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -259,16 +260,22 @@ fun EpisodeHistory(episodes: List<Episode>, onExport: (() -> Unit)?) {
             // so a run of rows reads as one object rather than a stack of separate cards.
             val top = if (index == 0) 20.dp else 6.dp
             val bottom = if (index == rows.lastIndex) 20.dp else 6.dp
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom))
-                    .background(Palette.Surface)
-                    .heightIn(min = 64.dp)
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
+            // The outcome carries no weight, so the Row measures it first and hands it the width
+            // the date needed — at 160% text "Completed, felt better" left the date broken one
+            // word per line. Past the cutoff the outcome drops to its own line, where both read
+            // whole. Side by side the pair needs approximately 256dp x scale + 28dp; a 360dp
+            // phone has 328dp to give, so it runs out just past 115%. Wider phones could hold on
+            // until about 145%, but one cutoff for every screen is worth more than the few extra
+            // scales a second rule would buy.
+            val stacked = LocalDensity.current.fontScale >= 1.15f
+            val rowSurface = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom))
+                .background(Palette.Surface)
+                .heightIn(min = 64.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp)
+            val dateAndEar = @Composable {
+                Column {
                     Text(
                         format.format(Date(e.epochMillis)),
                         color = Palette.Ink,
@@ -283,20 +290,36 @@ fun EpisodeHistory(episodes: List<Episode>, onExport: (() -> Unit)?) {
                         fontFamily = AppType.Sans,
                     )
                 }
-                Icon(
-                    if (completed) Icons.Filled.Check else Icons.Filled.Close,
-                    contentDescription = null,
-                    tint = if (completed) Palette.Holding else Palette.Urgent,
-                    modifier = Modifier.size(22.dp),
-                )
-                Text(
-                    outcome,
-                    color = if (completed) Palette.Holding else Palette.Urgent,
-                    fontSize = AppType.ReadingFloor,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = AppType.Sans,
-                    modifier = Modifier.padding(start = 6.dp),
-                )
+            }
+            val verdict = @Composable {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        if (completed) Icons.Filled.Check else Icons.Filled.Close,
+                        contentDescription = null,
+                        tint = if (completed) Palette.Holding else Palette.Urgent,
+                        modifier = Modifier.size(22.dp),
+                    )
+                    Text(
+                        outcome,
+                        color = if (completed) Palette.Holding else Palette.Urgent,
+                        fontSize = AppType.ReadingFloor,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = AppType.Sans,
+                        modifier = Modifier.padding(start = 6.dp),
+                    )
+                }
+            }
+            if (stacked) {
+                Column(rowSurface) {
+                    dateAndEar()
+                    Spacer(Modifier.height(6.dp))
+                    verdict()
+                }
+            } else {
+                Row(rowSurface, verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.weight(1f)) { dateAndEar() }
+                    verdict()
+                }
             }
         }
     }
