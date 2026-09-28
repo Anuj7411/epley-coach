@@ -1,6 +1,11 @@
 # Machine-specific
 local.properties
 
+# Signing. The keystore and its password never go in the repo: anyone holding both can sign a
+# build that claims to be this app. The password lives in local.properties, above.
+*.jks
+*.keystore
+
 # Gradle / build output
 .gradle/
 .kotlin/

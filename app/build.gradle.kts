@@ -10,19 +10,35 @@ plugins {
 }
 
 /**
- * The RevenueCat key, from local.properties (git-ignored) or the environment.
- *
- * Never a literal in a committed file: this repository is public for the hackathon's Next Gen
- * track, and a key checked in is a key leaked. Blank is a supported state — the app falls back to
- * the placeholder paywall rather than failing to build, so anyone can clone and run it without a
- * RevenueCat account of their own.
+ * Everything secret this build needs, read from local.properties (git-ignored) or the
+ * environment. Never a literal in a committed file: this repository is public for the
+ * hackathon's Next Gen track, and anything checked in here is leaked.
  */
-val revenueCatApiKey: String = run {
-    val properties = Properties()
+val localProperties: Properties = Properties().apply {
     val file = rootProject.file("local.properties")
-    if (file.exists()) file.inputStream().use { properties.load(it) }
-    properties.getProperty("revenuecat.apiKey") ?: System.getenv("REVENUECAT_API_KEY") ?: ""
+    if (file.exists()) file.inputStream().use { load(it) }
 }
+
+fun secret(property: String, environment: String): String? =
+    localProperties.getProperty(property) ?: System.getenv(environment)
+
+/**
+ * The RevenueCat key. Blank is a supported state — the app falls back to the placeholder paywall
+ * rather than failing to build, so anyone can clone and run it without a RevenueCat account.
+ */
+val revenueCatApiKey: String = secret("revenuecat.apiKey", "REVENUECAT_API_KEY") ?: ""
+
+/**
+ * The release keystore, from local.properties (git-ignored) or the environment.
+ *
+ * Absent is a supported state, for the same reason the key above may be blank: a clone without
+ * the keystore still builds, and produces an unsigned release APK rather than failing. What it
+ * must never be is committed — anyone holding the keystore and its password can sign a build
+ * that claims to be this app, so both stay outside the repository and .gitignore enforces it.
+ */
+val releaseKeystore: File? = secret("signing.storeFile", "EPLEY_STORE_FILE")
+    ?.let { project.file(it) }
+    ?.takeIf { it.exists() }
 
 android {
     namespace = "health.epley.app"
@@ -42,11 +58,26 @@ android {
         buildConfigField("String", "REVENUECAT_API_KEY", "\"$revenueCatApiKey\"")
     }
 
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = secret("signing.storePassword", "EPLEY_STORE_PASSWORD")
+                keyAlias = secret("signing.keyAlias", "EPLEY_KEY_ALIAS")
+                keyPassword = secret("signing.keyPassword", "EPLEY_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             isMinifyEnabled = false
         }
         release {
+            // Null when no keystore is configured, which leaves the APK unsigned rather than
+            // failing the build. An unsigned APK will not install, and that is the honest
+            // outcome for a checkout that has no key.
+            signingConfig = signingConfigs.findByName("release")
             // R8 is off for now. It will be turned on once there is a release build to ship, with
             // keep rules verified against a real device — silently stripped classes are a classic
             // way for a release build to break in ways debug never shows.
