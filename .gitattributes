@@ -1,0 +1,7 @@
+# The wrapper scripts are executed, not just read, so their line endings are load-bearing.
+# gradlew is run by sh: a CRLF checkout breaks the shebang and it will not start, on Linux
+# or under Git Bash here. gradlew.bat is run by cmd, which wants CRLF. The jar is marked
+# binary so no normalisation can touch it.
+gradlew text eol=lf
+gradlew.bat text eol=crlf
+gradle/wrapper/gradle-wrapper.jar binary
