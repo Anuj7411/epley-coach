@@ -141,8 +141,12 @@ fun RunScreen(
                     valueDegrees = livePitch,
                     targetDegrees = targetPitch,
                     bandDegrees = step.toleranceDegrees,
-                    minDegrees = -90.0,
-                    maxDegrees = 45.0,
+                    // Wider than the head can physically go, so the band around a target at the
+                    // very end of the range is still drawn whole. Sitting upright is -90, which
+                    // is exactly where the first and last positions aim, and a band half off the
+                    // end of its own scale looks like a rendering fault.
+                    minDegrees = -110.0,
+                    maxDegrees = 50.0,
                     guidance = phrases.firstOrNull { !it.text.startsWith("Turn") }?.let { Phrasing.onScreen(it) },
                 )
             }
