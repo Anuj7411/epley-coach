@@ -9,6 +9,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -57,12 +63,27 @@ fun FlowFrame(
         if (stepLabel != null || onBack != null) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 if (stepLabel != null) {
-                    Text(stepLabel, color = Palette.TextSecondary, fontSize = 15.sp, modifier = Modifier.weight(1f).padding(top = 12.dp))
+                    Text(
+                        stepLabel,
+                        color = Palette.InkMuted,
+                        fontSize = AppType.LabelSize,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = AppType.Sans,
+                        modifier = Modifier.weight(1f).padding(top = 12.dp),
+                    )
                 } else {
                     Spacer(Modifier.weight(1f))
                 }
                 if (onBack != null) {
-                    TextButton(onClick = onBack) { Text("Back", color = Palette.TextPrimary, fontSize = 16.sp) }
+                    TextButton(onClick = onBack) {
+                        Text(
+                            "Back",
+                            color = Palette.Ink,
+                            fontSize = AppType.ReadingFloor,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = AppType.Sans,
+                        )
+                    }
                 }
             }
         }
@@ -87,20 +108,43 @@ fun FlowFrame(
     }
 }
 
+/**
+ * The one thing a screen asks. Set heavy and tight: weight carries the hierarchy so that size does
+ * not have to, which keeps the whole screen inside a 160% system font scale.
+ */
 @Composable
-fun Title(text: String, color: androidx.compose.ui.graphics.Color = Palette.TextPrimary) =
-    Text(text, color = color, fontSize = 28.sp, fontWeight = FontWeight.Medium, lineHeight = 34.sp)
+fun Title(text: String, color: androidx.compose.ui.graphics.Color = Palette.Ink) =
+    Text(
+        text,
+        color = color,
+        fontSize = AppType.TitleSize,
+        lineHeight = AppType.TitleLine,
+        fontWeight = FontWeight.ExtraBold,
+        fontFamily = AppType.Sans,
+    )
 
+/**
+ * Body copy, at 17sp with 24sp leading.
+ *
+ * Secondary text is InkMuted rather than a lower alpha: a faded white on a warm dark ground loses
+ * contrast faster than a chosen grey, and everything here has to clear 7:1.
+ */
 @Composable
 fun Body(text: String, secondary: Boolean = false) =
-    Text(text, color = if (secondary) Palette.TextSecondary else Palette.TextPrimary, fontSize = 17.sp, lineHeight = 25.sp)
+    Text(
+        text,
+        color = if (secondary) Palette.InkMuted else Palette.InkBody,
+        fontSize = AppType.BodySize,
+        lineHeight = AppType.BodyLine,
+        fontFamily = AppType.Sans,
+    )
 
-/** A raised card for grouped information. Depth by a lighter grey, not a shadow. */
+/** A card for grouped information. Depth by a lighter surface, never a shadow. */
 @Composable
 fun Card(content: @Composable ColumnScope.() -> Unit) {
     Column(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Palette.Surface).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Palette.Surface).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         content = content,
     )
 }
@@ -123,43 +167,137 @@ fun HomeScreen(
         progress = null,
         onBack = null,
         bottom = {
-            PrimaryButton("I'm dizzy now — start", onStart)
-            SecondaryButton("Practise with the phone", onPractice)
-            if (onExport != null) SecondaryButton("Export my history", onExport)
-            TextButton(onClick = onInstrument, modifier = Modifier.fillMaxWidth()) {
-                Text("Instrument (raw sensor view)", color = Palette.TextSecondary, fontSize = 15.sp)
+            // Ordered by how often it is wanted, with the most-wanted nearest the thumb.
+            TextButton(onClick = onInstrument, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Text(
+                    "Raw sensor readout",
+                    color = Palette.InkMuted,
+                    fontSize = AppType.ReadingFloor,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = AppType.Sans,
+                )
             }
+            SecondaryButton("Practise in your hand", onPractice)
+            PrimaryButton("Start treatment", onStart)
         },
     ) {
-        Spacer(Modifier.height(24.dp))
-        Title("Epley Coach")
-        Body("Guides the Epley manoeuvre when BPPV a doctor has already diagnosed comes back.", secondary = true)
-        Body(
-            "It checks it's safe, works out which ear from six questions, then uses the phone's " +
-                "own sensor to guide your head into each position — by voice, so you can keep " +
-                "your eyes shut.",
+        Spacer(Modifier.height(28.dp))
+        Text(
+            "Epley Coach",
+            color = Palette.Ink,
+            fontSize = AppType.DisplaySize,
+            lineHeight = AppType.DisplayLine,
+            fontWeight = FontWeight.ExtraBold,
+            fontFamily = AppType.Sans,
         )
-        EpisodeHistory(episodes)
+        Text(
+            "Talks you through the five head positions that treat BPPV vertigo, using your phone " +
+                "to check each one.",
+            color = Palette.InkMuted,
+            fontSize = AppType.BodyLargeSize,
+            lineHeight = AppType.BodyLargeLine,
+            fontFamily = AppType.Sans,
+        )
+        EpisodeHistory(episodes, onExport)
     }
 }
 
-/** The last few real treatment runs. Practice runs are left out: they measured a phone. */
+/**
+ * The last few real treatment runs. Practice runs are left out: they measured a phone.
+ *
+ * Each row states its outcome in a word *and* an icon *and* a colour, so a stopped run is
+ * distinguishable from a completed one without seeing hue at all. BPPV coming back is the whole
+ * premise of the app, so the person it keeps happening to should be able to see the pattern.
+ */
 @Composable
-fun EpisodeHistory(episodes: List<Episode>) {
+fun EpisodeHistory(episodes: List<Episode>, onExport: (() -> Unit)?) {
     val treatments = EpisodeLog.treatments(episodes)
-    if (treatments.isEmpty()) return
-    val format = SimpleDateFormat("d MMM, h:mm a", Locale.getDefault())
-    Card {
-        Text("Your runs", color = Palette.TextSecondary, fontSize = 15.sp)
-        for (e in treatments.take(5)) {
-            val outcome = when {
-                !e.completed -> "stopped early"
-                e.feeling == Feeling.BETTER -> "felt better"
-                e.feeling == Feeling.SAME -> "no change"
-                e.feeling == Feeling.WORSE -> "felt worse"
-                else -> "finished"
+    if (treatments.isEmpty()) {
+        Spacer(Modifier.height(8.dp))
+        Card {
+            Body("Your runs will appear here.", secondary = true)
+        }
+        return
+    }
+    val format = SimpleDateFormat("EEE d MMM", Locale.getDefault())
+
+    Spacer(Modifier.height(8.dp))
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            "Your runs",
+            color = Palette.InkMuted,
+            fontSize = AppType.LabelSize,
+            fontWeight = FontWeight.Bold,
+            fontFamily = AppType.Sans,
+            modifier = Modifier.weight(1f),
+        )
+        if (onExport != null) {
+            TextButton(onClick = onExport, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(
+                    "Export",
+                    color = Palette.Selected,
+                    fontSize = AppType.LabelSize,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = AppType.Sans,
+                )
             }
-            Text("${format.format(Date(e.epochMillis))} · ${e.side.word} ear · $outcome", color = Palette.TextPrimary, fontSize = 16.sp)
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        val rows = treatments.take(5)
+        rows.forEachIndexed { index, e ->
+            val completed = e.completed
+            val outcome = when {
+                !completed -> "Stopped at ${e.positionsCompleted}"
+                e.feeling == Feeling.BETTER -> "Completed, felt better"
+                e.feeling == Feeling.SAME -> "Completed, no change"
+                e.feeling == Feeling.WORSE -> "Completed, felt worse"
+                else -> "Completed"
+            }
+            // Grouped-list radii: the outer corners of the group are round, the inner ones tight,
+            // so a run of rows reads as one object rather than a stack of separate cards.
+            val top = if (index == 0) 20.dp else 6.dp
+            val bottom = if (index == rows.lastIndex) 20.dp else 6.dp
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom))
+                    .background(Palette.Surface)
+                    .heightIn(min = 64.dp)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        format.format(Date(e.epochMillis)),
+                        color = Palette.Ink,
+                        fontSize = AppType.BodyLargeSize,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = AppType.Sans,
+                    )
+                    Text(
+                        "${e.side.word.replaceFirstChar { it.uppercase() }} ear",
+                        color = Palette.InkMuted,
+                        fontSize = AppType.ReadingFloor,
+                        fontFamily = AppType.Sans,
+                    )
+                }
+                Icon(
+                    if (completed) Icons.Filled.Check else Icons.Filled.Close,
+                    contentDescription = null,
+                    tint = if (completed) Palette.Holding else Palette.Urgent,
+                    modifier = Modifier.size(22.dp),
+                )
+                Text(
+                    outcome,
+                    color = if (completed) Palette.Holding else Palette.Urgent,
+                    fontSize = AppType.ReadingFloor,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = AppType.Sans,
+                    modifier = Modifier.padding(start = 6.dp),
+                )
+            }
         }
     }
 }
