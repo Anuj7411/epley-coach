@@ -74,6 +74,15 @@ object Phrasing {
     fun spoken(phrase: CorrectionPhrase): String = "${phrase.text}, ${distance(phrase.degrees)}"
 
     /**
+     * The same correction for the screen, where the number can simply be shown.
+     *
+     * Speech has to spell a quantity out; a screen does not, and the spoken form set on screen ran
+     * to three lines and collided with the gauge's own labels. The eye gets the figure, the ear
+     * gets the sentence, and both come from this one place so they cannot disagree.
+     */
+    fun onScreen(phrase: CorrectionPhrase): String = "${phrase.text}, ${phrase.degrees}°"
+
+    /**
      * How far, in words.
      *
      * Under ten degrees is inside or near every published tolerance band, so naming a number

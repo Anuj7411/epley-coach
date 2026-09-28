@@ -134,7 +134,7 @@ fun RunScreen(
                     bandDegrees = step.toleranceDegrees,
                     minDegrees = targetTurn - 90,
                     maxDegrees = targetTurn + 90,
-                    guidance = phrases.firstOrNull { it.text.startsWith("Turn") }?.let { Phrasing.spoken(it) },
+                    guidance = phrases.firstOrNull { it.text.startsWith("Turn") }?.let { Phrasing.onScreen(it) },
                 )
                 AngleGauge(
                     label = "Tilt",
@@ -143,7 +143,7 @@ fun RunScreen(
                     bandDegrees = step.toleranceDegrees,
                     minDegrees = -90.0,
                     maxDegrees = 45.0,
-                    guidance = phrases.firstOrNull { !it.text.startsWith("Turn") }?.let { Phrasing.spoken(it) },
+                    guidance = phrases.firstOrNull { !it.text.startsWith("Turn") }?.let { Phrasing.onScreen(it) },
                 )
             }
         }

@@ -68,3 +68,29 @@ class SpokenDistanceTest {
         assertTrue(Phrasing.spoken(phrase).endsWith("about 20 degrees"))
     }
 }
+
+/**
+ * The screen and the voice say the same thing in different lengths.
+ *
+ * Found on the device: the spoken sentence set at 18sp ran to three lines and collided with the
+ * gauge's own aim label, printing "about 60aim 45 ±15". Speech has to spell a quantity out; a
+ * screen can show the figure.
+ */
+class OnScreenPhrasingTest {
+
+    @Test
+    fun `the screen gets the figure, the voice gets the sentence`() {
+        val phrase = CorrectionPhrase("Turn toward your left", 62)
+        assertEquals("Turn toward your left, 62°", Phrasing.onScreen(phrase))
+        assertEquals("Turn toward your left, a long way, about 60 degrees", Phrasing.spoken(phrase))
+    }
+
+    @Test
+    fun `both name the same direction`() {
+        // If these ever diverge the app is telling the eye and the ear different things while
+        // someone is dizzy, which is worse than saying nothing.
+        val phrase = CorrectionPhrase("Let your head hang lower", 18)
+        assertTrue(Phrasing.onScreen(phrase).startsWith(phrase.text))
+        assertTrue(Phrasing.spoken(phrase).startsWith(phrase.text))
+    }
+}

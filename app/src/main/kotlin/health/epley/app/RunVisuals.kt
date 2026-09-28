@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -93,13 +93,25 @@ fun AngleGauge(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                label,
-                color = Palette.InkMuted,
-                fontSize = AppType.LabelSize,
-                fontWeight = FontWeight.Bold,
-                fontFamily = AppType.Sans,
-            )
+            Column(Modifier.weight(1f)) {
+                Text(
+                    label,
+                    color = Palette.InkMuted,
+                    fontSize = AppType.LabelSize,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = AppType.Sans,
+                )
+                // The aim used to sit beside the guidance line and collided with it as soon as the
+                // guidance wrapped to three lines, printing "about 60aim 45 ±15". It belongs with
+                // the label: it describes the gauge, not the instruction.
+                Text(
+                    "aim ${targetDegrees.roundToInt()}° ±${bandDegrees.roundToInt()}",
+                    color = Palette.InkFaint,
+                    fontSize = AppType.TickSize,
+                    fontFamily = AppType.Mono,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
             Text(
                 if (valueDegrees == null) "--" else "${valueDegrees.roundToInt()}°",
                 color = if (inRange) Palette.Holding else Palette.Ink,
@@ -128,10 +140,12 @@ fun AngleGauge(
         Box(Modifier.fillMaxWidth().height(1.dp).background(Palette.Divider))
 
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            // The arrow points the way the marker has to travel along this ruler, which is the
+            // thing the eye is already following. An up arrow on a horizontal scale said nothing.
             val icon: ImageVector = when {
                 inRange -> Icons.Filled.Check
-                valueDegrees != null && valueDegrees < targetDegrees -> Icons.Filled.KeyboardArrowUp
-                else -> Icons.Filled.KeyboardArrowDown
+                valueDegrees != null && valueDegrees < targetDegrees -> Icons.AutoMirrored.Filled.KeyboardArrowRight
+                else -> Icons.AutoMirrored.Filled.KeyboardArrowLeft
             }
             Icon(
                 icon,
@@ -143,15 +157,10 @@ fun AngleGauge(
                 if (inRange) "In range" else (guidance ?: "Getting a reading"),
                 color = if (inRange) Palette.Holding else Palette.Seeking,
                 fontSize = AppType.BodyLargeSize,
+                lineHeight = 24.sp,
                 fontWeight = FontWeight.ExtraBold,
                 fontFamily = AppType.Sans,
                 modifier = Modifier.padding(start = 8.dp).weight(1f),
-            )
-            Text(
-                "aim ${targetDegrees.roundToInt()}° ±${bandDegrees.roundToInt()}",
-                color = Palette.InkMuted,
-                fontSize = AppType.LabelSize,
-                fontFamily = AppType.Sans,
             )
         }
     }
