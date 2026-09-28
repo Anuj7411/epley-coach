@@ -1,5 +1,6 @@
 package health.epley.app
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +28,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -38,6 +42,8 @@ import health.epley.core.MountMode
 import health.epley.core.Side
 import health.epley.core.word
 import java.text.SimpleDateFormat
+import kotlin.math.cos
+import kotlin.math.sin
 import java.util.Date
 import java.util.Locale
 
@@ -182,7 +188,8 @@ fun HomeScreen(
             PrimaryButton("Start treatment", onStart)
         },
     ) {
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(8.dp))
+        CanalMark()
         Text(
             "Epley Coach",
             color = Palette.Ink,
@@ -194,7 +201,9 @@ fun HomeScreen(
         Text(
             "Talks you through the five head positions that treat BPPV vertigo, using your phone " +
                 "to check each one.",
-            color = Palette.InkMuted,
+            // InkBody, not InkMuted: this is the one paragraph on the screen, and InkBody is the
+            // token meant for running text — brighter than secondary, softened against glare.
+            color = Palette.InkBody,
             fontSize = AppType.BodyLargeSize,
             lineHeight = AppType.BodyLargeLine,
             fontFamily = AppType.Sans,
@@ -212,9 +221,7 @@ fun HomeScreen(
                 fontFamily = AppType.Sans,
             )
             Text(
-                "An unregulated prototype. It must never be used on a patient. It guides a " +
-                    "manoeuvre a doctor has already told you to do; it does not diagnose, and it " +
-                    "does not replace being seen.",
+                "An unregulated prototype. It must never be used on a patient.",
                 color = Palette.InkMuted,
                 fontSize = AppType.ReadingFloor,
                 lineHeight = AppType.LabelLine,
@@ -222,6 +229,46 @@ fun HomeScreen(
             )
         }
         EpisodeHistory(episodes, onExport)
+    }
+}
+
+/**
+ * The mark: a semicircular canal drawn open, with the displaced crystal sitting in it. That is
+ * the whole condition in one figure, and the whole treatment is moving that dot around that arc.
+ *
+ * Static, like everything else here. The audience for this screen is mid-attack and the design
+ * rules forbid animation (WCAG 2.3.3) — a logo that drifts or pulses would be, for these users
+ * specifically, a symptom.
+ */
+@Composable
+private fun CanalMark() {
+    Box(
+        Modifier.size(56.dp).clip(RoundedCornerShape(19.dp)).background(Palette.Surface),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.size(30.dp)) {
+            val stroke = 3.5.dp.toPx()
+            val radius = (size.minDimension - stroke) / 2f
+            val middle = Offset(size.width / 2f, size.height / 2f)
+            // Open at the top left, where the crystal sits, so the ring reads as a canal with a
+            // way in rather than as a closed letter O.
+            drawArc(
+                color = Palette.Holding,
+                startAngle = 200f,
+                sweepAngle = 300f,
+                useCenter = false,
+                style = Stroke(width = stroke, cap = StrokeCap.Round),
+            )
+            val radians = Math.toRadians(200.0)
+            drawCircle(
+                color = Palette.Seeking,
+                radius = stroke * 1.15f,
+                center = Offset(
+                    middle.x + radius * cos(radians).toFloat(),
+                    middle.y + radius * sin(radians).toFloat(),
+                ),
+            )
+        }
     }
 }
 
