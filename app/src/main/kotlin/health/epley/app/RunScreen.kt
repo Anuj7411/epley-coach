@@ -1,39 +1,46 @@
 package health.epley.app
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import health.epley.core.CorrectionPhrase
 import health.epley.core.CuePlanner
 import health.epley.core.Guidance
+import health.epley.core.HeadAngles
 import health.epley.core.Phrasing
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
  * The guided run.
  *
- * Top to bottom: which position, a picture of it, the live head gauges against the target zone,
- * and one status card. The card follows the phone spirit level: when you are in position the whole
- * card turns blue and says so; when you are not, it is outlined orange and says which way and how
- * far, in words. Colour is never the only signal. Nothing animates except the heads and the hold
- * bar (docs/DESIGN.md).
+ * Two states, and they look nothing alike. **Searching** shows a ruler per axis, with the target
+ * band hatched and a marker for the head. **Holding** collapses both rulers to a line each and
+ * gives the whole screen to the countdown, because once you are in position the only thing that
+ * matters is how long you have left.
  *
- * Corrections come from [Phrasing], the same source the voice uses, so the screen and the speaker
- * can never give different instructions.
+ * Corrections come from [Phrasing], the same source the voice reads, so the screen and the speaker
+ * can never give different instructions. Nothing on this screen animates except the hold ring,
+ * which steps once a second with no easing: WCAG 2.3.3 exists because moving interfaces make
+ * vestibular patients dizzy, and they are the whole audience.
  */
 @Composable
 fun RunScreen(
@@ -45,105 +52,165 @@ fun RunScreen(
     val step = engineState?.step
     val guidance = engineState?.guidance ?: Guidance.SEEKING
     val polarity = run.polarity
+    val holding = guidance == Guidance.HOLDING || guidance == Guidance.STEP_COMPLETE
+
+    val phrases = if (engineState?.correction != null && step != null && polarity != null) {
+        Phrasing.corrections(
+            engineState.correction!!, polarity, run.side,
+            toleranceDegrees = step.toleranceDegrees,
+            seated = step.target.pitchDegrees < CuePlanner.SEATED_BELOW_PITCH,
+            practice = run.practice,
+        )
+    } else {
+        emptyList()
+    }
 
     FlowFrame(
-        stepLabel = "Position ${(engineState?.stepIndex ?: 0) + 1} of 5" + if (run.practice) " · practice" else "",
+        stepLabel = "Position ${(engineState?.stepIndex ?: 0) + 1} of 5" + if (run.practice) ", practice" else "",
         progress = null,
         onBack = null,
         bottom = {
             SecondaryButton("Say it again", onRepeat)
-            SecondaryButton("Stop  ·  or hold a volume button", onStop)
+            StopButton(onStop)
         },
     ) {
-        Title(step?.title ?: "Getting ready")
-        if (run.mountMoved) {
+        RunProgress(
+            completed = engineState?.completedSteps ?: 0,
+            current = engineState?.stepIndex ?: 0,
+            total = 5,
+        )
+
+        StateChip(
+            holding = holding,
+            text = if (holding) "In position, hold still" else "Finding the position",
+        )
+
+        Text(
+            step?.title ?: "Getting ready",
+            color = Palette.Ink,
+            fontSize = AppType.RunTitleSize,
+            lineHeight = AppType.RunTitleLine,
+            fontWeight = FontWeight.ExtraBold,
+            fontFamily = AppType.Sans,
+        )
+        step?.let {
             Text(
-                "The phone moved on your head. These angles may be wrong — stop, and set it up again.",
-                color = Palette.Move,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Medium,
+                if (holding) "Stay exactly like this. Dizziness now is normal." else it.instruction(run.side, run.practice),
+                color = Palette.InkMuted,
+                fontSize = AppType.BodySize,
+                lineHeight = AppType.BodyLine,
+                fontFamily = AppType.Sans,
             )
         }
-        if (step != null) PoseIllustration(step, run.side)
+
+        if (run.mountMoved) MountMovedNote()
+
         if (step != null && polarity != null) {
-            HeadDials(pose = run.pose, step = step, polarity = polarity, side = run.side)
-        }
-
-        val phrases = if (engineState?.correction != null && step != null && polarity != null) {
-            Phrasing.corrections(
-                engineState.correction!!, polarity, run.side,
-                toleranceDegrees = step.toleranceDegrees,
-                seated = step.target.pitchDegrees < CuePlanner.SEATED_BELOW_PITCH,
-                practice = run.practice,
-            )
-        } else {
-            emptyList()
-        }
-
-        when (guidance) {
-            Guidance.HOLDING, Guidance.STEP_COMPLETE -> {
-                val remaining = engineState?.let { (it.holdSecondsRequired - it.heldSeconds).coerceAtLeast(0.0) } ?: 0.0
-                StatusCard(background = Palette.ActionTint, border = Palette.Action) {
-                    Text(
-                        if (guidance == Guidance.STEP_COMPLETE) "✓ Position complete" else "✓ In position",
-                        color = Palette.Action, fontSize = 17.sp, fontWeight = FontWeight.Medium,
-                    )
-                    Text(
-                        if (guidance == Guidance.STEP_COMPLETE) "Next position coming" else "Hold still",
-                        color = Palette.TextPrimary, fontSize = 22.sp, fontWeight = FontWeight.Medium,
-                    )
-                    Text("${remaining.roundToInt()}s", color = Palette.TextPrimary, fontSize = 52.sp, fontWeight = FontWeight.Medium)
-                    ProgressBar(engineState?.holdProgress?.toFloat() ?: 0f)
-                }
+            val pose = run.pose
+            val liveTurn = pose?.let { p ->
+                if (polarity.towardAffectedSideIsPositive) p.headRotationDegrees else -p.headRotationDegrees
             }
+            val livePitch = pose?.pitchDegrees
+            val targetTurn = step.target.headRotationDegrees
+            val targetPitch = step.target.pitchDegrees
 
-            Guidance.SETTLING -> StatusCard(background = Palette.Surface, border = Palette.Action) {
-                Text("Almost there", color = Palette.Action, fontSize = 17.sp, fontWeight = FontWeight.Medium)
-                Text("Hold still", color = Palette.TextPrimary, fontSize = 26.sp, fontWeight = FontWeight.Medium)
+            if (holding) {
+                CheckRow("Turn", liveTurn)
+                CheckRow("Tilt", livePitch)
+                Spacer(Modifier.height(4.dp))
+                HoldRing(
+                    remaining = engineState?.let { (it.holdSecondsRequired - it.heldSeconds).coerceAtLeast(0.0) } ?: 0.0,
+                    required = engineState?.holdSecondsRequired ?: 0,
+                    progress = engineState?.holdProgress?.toFloat() ?: 0f,
+                )
+            } else {
+                // Wrap-safe, exactly as the engine judges it: a reading a whole turn out must not
+                // draw on target while the app says move.
+                val turnOffset = liveTurn?.let { HeadAngles.shortestDegrees(it - targetTurn) }
+                AngleGauge(
+                    label = "Turn",
+                    valueDegrees = turnOffset?.let { targetTurn + it },
+                    targetDegrees = targetTurn,
+                    bandDegrees = step.toleranceDegrees,
+                    minDegrees = targetTurn - 90,
+                    maxDegrees = targetTurn + 90,
+                    guidance = phrases.firstOrNull { it.text.startsWith("Turn") }?.let { Phrasing.spoken(it) },
+                )
+                AngleGauge(
+                    label = "Tilt",
+                    valueDegrees = livePitch,
+                    targetDegrees = targetPitch,
+                    bandDegrees = step.toleranceDegrees,
+                    minDegrees = -90.0,
+                    maxDegrees = 45.0,
+                    guidance = phrases.firstOrNull { !it.text.startsWith("Turn") }?.let { Phrasing.spoken(it) },
+                )
             }
-
-            Guidance.SEEKING -> StatusCard(background = Palette.Surface, border = Palette.Move) {
-                Text("Move", color = Palette.Move, fontSize = 17.sp, fontWeight = FontWeight.Medium)
-                val first: CorrectionPhrase? = phrases.firstOrNull()
-                if (first == null) {
-                    Text("Get into the position shown", color = Palette.TextPrimary, fontSize = 22.sp, fontWeight = FontWeight.Medium)
-                } else {
-                    Text(first.text, color = Palette.TextPrimary, fontSize = 22.sp, fontWeight = FontWeight.Medium)
-                    Text("${first.degrees}° more", color = Palette.Move, fontSize = 40.sp, fontWeight = FontWeight.Medium)
-                    for (other in phrases.drop(1)) {
-                        Text("Also: ${other.text.lowercase()}, ${other.degrees}°", color = Palette.TextSecondary, fontSize = 16.sp)
-                    }
-                }
-            }
-
-            Guidance.FINISHED -> Unit
         }
-
-        if (step != null) Body(step.instruction(run.side, run.practice), secondary = true)
     }
 }
 
+/**
+ * The countdown, and nothing else.
+ *
+ * Set at 72sp because it is read with one eye, at arm's length, by someone whose head is tipped
+ * back off the edge of a bed. The ring is the only thing in the app that changes over time, and it
+ * steps once a second rather than tweening.
+ */
 @Composable
-private fun StatusCard(background: Color, border: Color, content: @Composable () -> Unit) {
-    val shape = RoundedCornerShape(18.dp)
-    Column(
-        modifier = Modifier
+private fun HoldRing(remaining: Double, required: Int, progress: Float) {
+    Box(
+        Modifier
             .fillMaxWidth()
-            .clip(shape)
-            .background(background)
-            .border(2.dp, border, shape)
-            .padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) { content() }
+            .clip(RoundedCornerShape(24.dp))
+            .background(Palette.Surface)
+            .padding(vertical = 24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        CircularProgressIndicator(
+            progress = { progress.coerceIn(0f, 1f) },
+            modifier = Modifier.size(220.dp),
+            color = Palette.Holding,
+            trackColor = Palette.Divider,
+            strokeWidth = 16.dp,
+        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                "${remaining.roundToInt()}",
+                color = Palette.Ink,
+                fontSize = 72.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = AppType.Mono,
+            )
+            Text(
+                "seconds left of $required",
+                color = Palette.InkMuted,
+                fontSize = AppType.LabelSize,
+                fontWeight = FontWeight.Bold,
+                fontFamily = AppType.Sans,
+            )
+        }
+    }
 }
 
-/** The one animation the design allows: essential feedback on how long is left. */
+/** The mount has been jolted, so the angles are measured against a reference that may have moved. */
 @Composable
-private fun ProgressBar(fraction: Float) {
-    Box(
-        Modifier.fillMaxWidth().padding(top = 6.dp).height(8.dp)
-            .clip(RoundedCornerShape(4.dp)).background(Palette.ActionTrack),
+private fun MountMovedNote() {
+    androidx.compose.foundation.layout.Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(Palette.StopFill)
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).height(8.dp).background(Palette.Action))
+        Icon(Icons.Filled.Warning, contentDescription = null, tint = Palette.Urgent, modifier = Modifier.size(22.dp))
+        Text(
+            "The phone moved on your head. These angles may be wrong, so stop and set it up again.",
+            color = Palette.Urgent,
+            fontSize = AppType.ReadingFloor,
+            lineHeight = 22.sp,
+            fontFamily = AppType.Sans,
+        )
     }
 }
