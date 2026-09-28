@@ -505,6 +505,12 @@ class MainActivity : ComponentActivity() {
         tracker.start()
         @Suppress("WakelockTimeout")
         if (wakeLock?.isHeld == false) wakeLock?.acquire(30 * 60 * 1000L)
+
+        // A run that is still going gets its recording back. Found in the data: a four minute run
+        // left 2.7 seconds of log, because onPause closes the file and nothing ever reopened it,
+        // so a single glance at the notification shade destroyed the evidence for everything that
+        // followed. The run itself survives a pause; the record of it has to as well.
+        if (runController.state.value.running) startLoggingForRun()
     }
 
     override fun onDestroy() {
