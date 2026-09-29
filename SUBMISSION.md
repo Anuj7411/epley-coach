@@ -115,7 +115,8 @@ the export button. No health data goes near the purchase path.
 
 ## Repository
 
-<!-- TODO: paste the public URL -->
+https://github.com/Anuj7411/epley-coach
+
 MIT licensed. The commit history, the test suite and `docs/RESEARCH.md` are part of the
 submission: every clinical number in the app traces to a citation, including the ones that
 weakened the pitch.
