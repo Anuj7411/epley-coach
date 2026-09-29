@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Palette.Selected. The one lilac the app already uses, so the launcher matches the app. -->
+    <color name="ic_launcher_background">#C4B5FF</color>
+</resources>
