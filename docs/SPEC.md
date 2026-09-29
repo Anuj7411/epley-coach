@@ -244,7 +244,7 @@ Deliberately **no Android Studio and no emulator** — 1.4 GB instead of 10–15
 | Item | Status |
 |---|---|
 | Motorola Edge 40 Neo, Android 15, InvenSense gyro + Game Rotation Vector | Available, tested |
-| Digital angle finder, ±0.2°, ~₹600–1,500 | **Not yet purchased. Blocks NFR-1** |
+| Digital angle finder, ±0.2°, ~₹600–1,500 | Not purchased, and **not required**: reversal needs no reference instrument, and folded paper gives exact 30/45/60°. It would add traceability, not validity |
 | Headband or sleep mask, ~₹50 | Not yet purchased. Needed for a rigid mount |
 | A second person to film | Needed for the demo video |
 
@@ -266,7 +266,7 @@ Two layers, deliberately separated.
 | Unwrapping | Replay the real +166.4° → −169.7° step from hardware | **Passing** |
 | Sample rate stability | Frame-timestamp histogram | **Passing — 50.0 Hz** |
 | Drift | Return-to-reference after 5 min of motion | **Measured: −4.2° yaw, +1.7° tilt** |
-| Static accuracy | Phone on a digital angle finder at 0/20/30/45/60/90/110/135° | **Blocked on hardware purchase** |
+| Static accuracy | Reversal on a hard floor, plus folded-paper 30/45/60° and gravity's face-up/face-down 180° | **Passing** — offset −8.32° measured and corrected; a second run agreed within 1° |
 | Mount repeatability | 10 calibrations × 5 people; spread of the transform | Not started |
 | Usability | 5 healthy volunteers, screen off, count protocol deviations | Not started |
 
@@ -322,7 +322,7 @@ proving about efficacy is not, and is out of reach.** Saying so plainly is the h
 | Sept 11–12 | Audio + haptic guidance; eyes-closed completion | Phone |
 | Sept 13 | Red-flag screener | — |
 | Sept 14–15 | RevenueCat Test Store paywall + entitlement gating | — |
-| Sept 16–17 | Static accuracy validation; numbers into README | **Angle finder** |
+| Sept 16–17 | Static accuracy validation; numbers into README | — (done by reversal on 23 Sept; the angle finder turned out not to be needed) |
 | Sept 18–20 | Usability run, 5 volunteers | Headband |
 | Sept 21–23 | Polish, session history, export | — |
 | Sept 24–27 | Demo video | Second person |
@@ -358,7 +358,7 @@ memory; gaps found in this audit are listed as fixed or open.
 | FR-18 | `PracticeSideScreen`, run label, after-care wording | Built |
 | FR-19 | `PoseIllustration` | Built |
 | FR-20 | `HeadDials`, `RunScreen` | Built (see wording above) |
-| NFR-1 | `ReversalCheck`, `AccuracyCheckScreen` | Tooling built; **measurement outstanding** |
+| NFR-1 | `ReversalCheck`, `AccuracyCheckScreen`, `SensorBiasTest` | **Measured 2026-09-23** — device offset −8.32°, confirmed face-down; noise 0.07°, drift 0.006°/107 s. The offset is proved to cancel in every clinical angle, for any magnitude about any axis |
 | NFR-2 | Measured 3.08° worst step | Met |
 | NFR-3 | Measured +0.006° at rest, −4.2° moving | Met |
 | NFR-4 | `FLAG_KEEP_SCREEN_ON` | Built |

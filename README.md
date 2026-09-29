@@ -59,8 +59,13 @@ From a 166-second recording on a Motorola Edge 40 Neo (`docs/RESEARCH.md`, `docs
 | Drift while moving, 264 s | −4.2° | < 10° over 90 s |
 | Sensor glitches, unreliable readings | 0 | 0 |
 
-Still outstanding: accuracy against a physical inclinometer, and a run on a real head. Neither is
-claimed until measured.
+Still outstanding: a run on a real head, with volunteers. That one is not claimed until measured.
+
+Device accuracy is **not** on that list. A bought inclinometer would add traceability and more
+points, but it is not what the 5° claim rests on: reversal measures the sensor's own error with
+no reference instrument at all, folded paper supplies exact 30°, 45° and 60°, and gravity makes
+face-up and face-down exactly 180° apart. The next section is why the device's error does not
+reach the angles the app guides by in the first place.
 
 ## Does this depend on the phone being accurate?
 
