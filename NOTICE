@@ -1,0 +1,14 @@
+Epley Coach
+Copyright (c) 2026 Anuj Ojha
+
+NOT A MEDICAL DEVICE. This is an unregulated prototype and it must never be used
+on a patient. It does not diagnose, and it is not a substitute for assessment by
+a clinician.
+
+The wording above is deliberate. "This is not a medical device" is the
+formulation regulators have rejected as a defence, so it is not the one used
+here, in the README, or in the app.
+
+The MIT licence in LICENSE grants permission to use this software. It does not
+constitute a claim that the software is fit for any clinical purpose. What is
+and is not evidenced is set out under "Honest limits" in README.md.

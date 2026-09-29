@@ -1,6 +1,16 @@
 package health.epley.app
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,7 +38,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -152,9 +161,11 @@ fun Card(content: @Composable ColumnScope.() -> Unit) {
 }
 
 /**
- * The first screen. One sentence of what it is for, one big action for the real thing, one for
- * practice, and the record of past runs — because "BPPV comes back" is the whole premise, and
- * the person it keeps coming back to should see that.
+ * The first screen, as a set of cards rather than a stack of paragraphs.
+ *
+ * Each card carries one job — what this is, the thing you came to do, the two side doors, the
+ * warning, the record — so the screen can be read by its shapes before any of it is read as
+ * words. That matters more than usual here: the person looking at it is dizzy.
  */
 @Composable
 fun HomeScreen(
@@ -164,49 +175,47 @@ fun HomeScreen(
     onExport: (() -> Unit)?,
     onInstrument: () -> Unit,
 ) {
-    FlowFrame(
-        stepLabel = null,
-        progress = null,
-        onBack = null,
-        bottom = {
-            // Ordered by how often it is wanted, with the most-wanted nearest the thumb.
-            TextButton(onClick = onInstrument, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+    FlowFrame(stepLabel = null, progress = null, onBack = null, bottom = {}) {
+        Spacer(Modifier.height(4.dp))
+        Card {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                BrandMark()
+                Spacer(Modifier.width(14.dp))
                 Text(
-                    "Raw sensor readout",
-                    color = Palette.InkMuted,
-                    fontSize = AppType.ReadingFloor,
-                    fontWeight = FontWeight.Bold,
+                    "Epley Coach",
+                    color = Palette.Ink,
+                    fontSize = AppType.TitleSize,
+                    lineHeight = AppType.TitleLine,
+                    fontWeight = FontWeight.ExtraBold,
                     fontFamily = AppType.Sans,
                 )
             }
-            SecondaryButton("Practise in your hand", onPractice)
-            PrimaryButton("Start treatment", onStart)
-        },
-    ) {
-        Spacer(Modifier.height(8.dp))
-        BrandMark()
-        Text(
-            "Epley Coach",
-            color = Palette.Ink,
-            fontSize = AppType.DisplaySize,
-            lineHeight = AppType.DisplayLine,
-            fontWeight = FontWeight.ExtraBold,
-            fontFamily = AppType.Sans,
-        )
-        Text(
-            "Talks you through the five head positions that treat BPPV vertigo, using your phone " +
-                "to check each one.",
-            // InkBody, not InkMuted: this is the one paragraph on the screen, and InkBody is the
-            // token meant for running text — brighter than secondary, softened against glare.
-            color = Palette.InkBody,
-            fontSize = AppType.BodyLargeSize,
-            lineHeight = AppType.BodyLargeLine,
-            fontFamily = AppType.Sans,
-        )
-        // The strong wording is deliberate. "This is not a medical device" is the formulation
-        // regulators have rejected as a defence, so it is not the one used here or in the README.
-        // On the first screen, before anything can be started, because a disclaimer someone has
-        // to go looking for is not one.
+            Text(
+                "Five guided head positions for BPPV vertigo, checked by your phone.",
+                color = Palette.InkBody,
+                fontSize = AppType.ReadingFloor,
+                lineHeight = AppType.LabelLine,
+                fontFamily = AppType.Sans,
+            )
+        }
+
+        StartCard(onStart)
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            SideDoor(
+                modifier = Modifier.weight(1f),
+                label = "Practise in hand",
+                onClick = onPractice,
+            ) { PhoneGlyph(Palette.Seeking) }
+            SideDoor(
+                modifier = Modifier.weight(1f),
+                label = "Sensor readout",
+                onClick = onInstrument,
+            ) { SignalGlyph(Palette.Holding) }
+        }
+
+        // The warning keeps its own card and stays above the record, so it is read before any of
+        // this starts to look like a thing to simply get on with.
         Card {
             Text(
                 "NOT A MEDICAL DEVICE",
@@ -223,7 +232,145 @@ fun HomeScreen(
                 fontFamily = AppType.Sans,
             )
         }
+
         EpisodeHistory(episodes, onExport)
+        Spacer(Modifier.height(4.dp))
+    }
+}
+
+/**
+ * The one thing this screen is for, given the space that implies.
+ *
+ * Big enough to hit without aiming, which is the point: the hand reaching for it belongs to
+ * someone whose horizon is moving.
+ */
+@Composable
+private fun StartCard(onStart: () -> Unit) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(26.dp))
+            .background(Palette.Selected)
+            .clickable(onClick = onStart)
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        PlayGlyph(Palette.Ground)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Start treatment",
+                color = Palette.Ground,
+                fontSize = AppType.TitleSize,
+                lineHeight = AppType.TitleLine,
+                fontWeight = FontWeight.ExtraBold,
+                fontFamily = AppType.Sans,
+                modifier = Modifier.weight(1f),
+            )
+            Box(
+                Modifier.size(52.dp).clip(RoundedCornerShape(26.dp)).background(Palette.Ground),
+                contentAlignment = Alignment.Center,
+            ) { ArrowGlyph(Palette.Selected) }
+        }
+    }
+}
+
+/** One of the two smaller ways in. Same shape, different errand. */
+@Composable
+private fun SideDoor(
+    modifier: Modifier,
+    label: String,
+    onClick: () -> Unit,
+    glyph: @Composable () -> Unit,
+) {
+    Column(
+        modifier
+            .clip(RoundedCornerShape(22.dp))
+            .background(Palette.Surface)
+            .clickable(onClick = onClick)
+            .heightIn(min = 112.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        glyph()
+        Text(
+            label,
+            color = Palette.Ink,
+            fontSize = AppType.ReadingFloor,
+            lineHeight = AppType.LabelLine,
+            fontWeight = FontWeight.Bold,
+            fontFamily = AppType.Sans,
+        )
+    }
+}
+
+/** A filled triangle in a ring. Drawn, not imported: the extended icon set is not a dependency. */
+@Composable
+private fun PlayGlyph(colour: Color) {
+    Canvas(Modifier.size(30.dp)) {
+        val ring = 2.5.dp.toPx()
+        val radius = size.minDimension / 2f
+        val middle = Offset(size.width / 2f, size.height / 2f)
+        drawCircle(color = colour, radius = radius - ring / 2f, style = Stroke(width = ring))
+        val head = Path().apply {
+            moveTo(middle.x - radius * 0.24f, middle.y - radius * 0.38f)
+            lineTo(middle.x + radius * 0.44f, middle.y)
+            lineTo(middle.x - radius * 0.24f, middle.y + radius * 0.38f)
+            close()
+        }
+        drawPath(head, colour)
+    }
+}
+
+/** A right-pointing arrow: shaft and two barbs. */
+@Composable
+private fun ArrowGlyph(colour: Color) {
+    Canvas(Modifier.size(22.dp)) {
+        val weight = 2.6.dp.toPx()
+        val midY = size.height / 2f
+        val tip = Offset(size.width * 0.84f, midY)
+        drawLine(colour, Offset(size.width * 0.16f, midY), tip, weight, StrokeCap.Round)
+        drawLine(colour, Offset(size.width * 0.54f, midY - size.height * 0.26f), tip, weight, StrokeCap.Round)
+        drawLine(colour, Offset(size.width * 0.54f, midY + size.height * 0.26f), tip, weight, StrokeCap.Round)
+    }
+}
+
+/** A phone held upright: practice mode measures this, not a head. */
+@Composable
+private fun PhoneGlyph(colour: Color) {
+    Canvas(Modifier.size(26.dp)) {
+        val weight = 2.4.dp.toPx()
+        val inset = size.width * 0.24f
+        drawRoundRect(
+            color = colour,
+            topLeft = Offset(inset, size.height * 0.05f),
+            size = Size(size.width - inset * 2f, size.height * 0.90f),
+            cornerRadius = CornerRadius(weight * 1.8f, weight * 1.8f),
+            style = Stroke(width = weight),
+        )
+        drawLine(
+            colour,
+            Offset(size.width * 0.41f, size.height * 0.80f),
+            Offset(size.width * 0.59f, size.height * 0.80f),
+            weight,
+            StrokeCap.Round,
+        )
+    }
+}
+
+/** Concentric arcs around a dot: something being read off the air. */
+@Composable
+private fun SignalGlyph(colour: Color) {
+    Canvas(Modifier.size(26.dp)) {
+        val weight = 2.4.dp.toPx()
+        val middle = Offset(size.width / 2f, size.height / 2f)
+        drawCircle(colour, radius = size.minDimension * 0.11f, center = middle)
+        listOf(0.28f, 0.44f).forEach { fraction ->
+            val radius = size.minDimension * fraction
+            val box = Offset(middle.x - radius, middle.y - radius)
+            val extent = Size(radius * 2f, radius * 2f)
+            drawArc(colour, -58f, 116f, false, box, extent, style = Stroke(weight, cap = StrokeCap.Round))
+            drawArc(colour, 122f, 116f, false, box, extent, style = Stroke(weight, cap = StrokeCap.Round))
+        }
     }
 }
 
@@ -252,120 +399,80 @@ private fun BrandMark() {
 /**
  * The last few real treatment runs. Practice runs are left out: they measured a phone.
  *
- * Each row states its outcome in a word *and* an icon *and* a colour, so a stopped run is
- * distinguishable from a completed one without seeing hue at all. BPPV coming back is the whole
- * premise of the app, so the person it keeps happening to should be able to see the pattern.
+ * One card, hairlines between rows, a filled chip carrying the outcome as a colour *and* a shape.
+ * The date and the outcome sit on separate lines by construction, which is also why this no
+ * longer needs the font-scale rule the old side-by-side row did — there is nothing left to
+ * squeeze. BPPV coming back is the premise of the app, so the person it keeps happening to
+ * should be able to see the pattern.
  */
 @Composable
 fun EpisodeHistory(episodes: List<Episode>, onExport: (() -> Unit)?) {
-    val treatments = EpisodeLog.treatments(episodes)
-    if (treatments.isEmpty()) {
-        Spacer(Modifier.height(8.dp))
-        Card {
-            Body("Your runs will appear here.", secondary = true)
-        }
-        return
-    }
+    val rows = EpisodeLog.treatments(episodes).take(4)
+    if (rows.isEmpty()) return
     val format = SimpleDateFormat("EEE d MMM", Locale.getDefault())
-
-    Spacer(Modifier.height(8.dp))
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            "Your runs",
-            color = Palette.InkMuted,
-            fontSize = AppType.LabelSize,
-            fontWeight = FontWeight.Bold,
-            fontFamily = AppType.Sans,
-            modifier = Modifier.weight(1f),
-        )
-        if (onExport != null) {
-            TextButton(onClick = onExport, modifier = Modifier.heightIn(min = 48.dp)) {
-                Text(
-                    "Export",
-                    color = Palette.Selected,
-                    fontSize = AppType.LabelSize,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = AppType.Sans,
-                )
-            }
-        }
-    }
-
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        val rows = treatments.take(5)
-        rows.forEachIndexed { index, e ->
-            val completed = e.completed
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Palette.Surface),
+    ) {
+        rows.forEachIndexed { index, episode ->
+            val completed = episode.completed
             val outcome = when {
-                !completed -> "Stopped at ${e.positionsCompleted}"
-                e.feeling == Feeling.BETTER -> "Completed, felt better"
-                e.feeling == Feeling.SAME -> "Completed, no change"
-                e.feeling == Feeling.WORSE -> "Completed, felt worse"
+                !completed -> "Stopped at position ${episode.positionsCompleted}"
+                episode.feeling == Feeling.BETTER -> "Completed, felt better"
+                episode.feeling == Feeling.WORSE -> "Completed, felt worse"
                 else -> "Completed"
             }
-            // Grouped-list radii: the outer corners of the group are round, the inner ones tight,
-            // so a run of rows reads as one object rather than a stack of separate cards.
-            val top = if (index == 0) 20.dp else 6.dp
-            val bottom = if (index == rows.lastIndex) 20.dp else 6.dp
-            // The outcome carries no weight, so the Row measures it first and hands it the width
-            // the date needed — at 160% text "Completed, felt better" left the date broken one
-            // word per line. Past the cutoff the outcome drops to its own line, where both read
-            // whole. Side by side the pair needs approximately 256dp x scale + 28dp; a 360dp
-            // phone has 328dp to give, so it runs out just past 115%. Wider phones could hold on
-            // until about 145%, but one cutoff for every screen is worth more than the few extra
-            // scales a second rule would buy.
-            val stacked = LocalDensity.current.fontScale >= 1.15f
-            val rowSurface = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom))
-                .background(Palette.Surface)
-                .heightIn(min = 64.dp)
-                .padding(horizontal = 16.dp, vertical = 14.dp)
-            val dateAndEar = @Composable {
-                Column {
-                    Text(
-                        format.format(Date(e.epochMillis)),
-                        color = Palette.Ink,
-                        fontSize = AppType.BodyLargeSize,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = AppType.Sans,
-                    )
-                    Text(
-                        "${e.side.word.replaceFirstChar { it.uppercase() }} ear",
-                        color = Palette.InkMuted,
-                        fontSize = AppType.ReadingFloor,
-                        fontFamily = AppType.Sans,
-                    )
-                }
-            }
-            val verdict = @Composable {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(if (completed) Palette.Holding else Palette.Urgent),
+                    contentAlignment = Alignment.Center,
+                ) {
                     Icon(
                         if (completed) Icons.Filled.Check else Icons.Filled.Close,
                         contentDescription = null,
-                        tint = if (completed) Palette.Holding else Palette.Urgent,
+                        tint = Palette.Ground,
                         modifier = Modifier.size(22.dp),
+                    )
+                }
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "${format.format(Date(episode.epochMillis))} · " +
+                            episode.side.word.replaceFirstChar { it.uppercase() },
+                        color = Palette.Ink,
+                        fontSize = AppType.ReadingFloor,
+                        lineHeight = AppType.LabelLine,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = AppType.Sans,
                     )
                     Text(
                         outcome,
-                        color = if (completed) Palette.Holding else Palette.Urgent,
+                        color = Palette.InkMuted,
                         fontSize = AppType.ReadingFloor,
-                        fontWeight = FontWeight.Bold,
+                        lineHeight = AppType.LabelLine,
                         fontFamily = AppType.Sans,
-                        modifier = Modifier.padding(start = 6.dp),
                     )
                 }
             }
-            if (stacked) {
-                Column(rowSurface) {
-                    dateAndEar()
-                    Spacer(Modifier.height(6.dp))
-                    verdict()
-                }
-            } else {
-                Row(rowSurface, verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.weight(1f)) { dateAndEar() }
-                    verdict()
-                }
+            if (index != rows.lastIndex) {
+                Box(Modifier.fillMaxWidth().padding(start = 70.dp).height(1.dp).background(Palette.Divider))
+            }
+        }
+        if (onExport != null) {
+            Box(Modifier.fillMaxWidth().height(1.dp).background(Palette.Divider))
+            TextButton(onClick = onExport, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+                Text(
+                    "Export for a clinician",
+                    color = Palette.Selected,
+                    fontSize = AppType.ReadingFloor,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = AppType.Sans,
+                )
             }
         }
     }
