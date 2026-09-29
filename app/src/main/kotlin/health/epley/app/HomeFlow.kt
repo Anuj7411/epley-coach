@@ -1,6 +1,5 @@
 package health.epley.app
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,9 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -42,8 +39,6 @@ import health.epley.core.MountMode
 import health.epley.core.Side
 import health.epley.core.word
 import java.text.SimpleDateFormat
-import kotlin.math.cos
-import kotlin.math.sin
 import java.util.Date
 import java.util.Locale
 
@@ -189,7 +184,7 @@ fun HomeScreen(
         },
     ) {
         Spacer(Modifier.height(8.dp))
-        CanalMark()
+        BrandMark()
         Text(
             "Epley Coach",
             color = Palette.Ink,
@@ -233,42 +228,24 @@ fun HomeScreen(
 }
 
 /**
- * The mark: a semicircular canal drawn open, with the displaced crystal sitting in it. That is
- * the whole condition in one figure, and the whole treatment is moving that dot around that arc.
+ * The brand mark, the same "e" the launcher icon and the splash use, drawn from the one vector
+ * in res/drawable so the three cannot drift apart.
  *
- * Static, like everything else here. The audience for this screen is mid-attack and the design
- * rules forbid animation (WCAG 2.3.3) — a logo that drifts or pulses would be, for these users
- * specifically, a symptom.
+ * Lilac tile, ink mark — the launcher icon exactly. Opening the app should show you the thing
+ * you just tapped.
  */
 @Composable
-private fun CanalMark() {
+private fun BrandMark() {
     Box(
-        Modifier.size(56.dp).clip(RoundedCornerShape(19.dp)).background(Palette.Surface),
+        Modifier.size(56.dp).clip(RoundedCornerShape(19.dp)).background(Palette.Selected),
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.size(30.dp)) {
-            val stroke = 3.5.dp.toPx()
-            val radius = (size.minDimension - stroke) / 2f
-            val middle = Offset(size.width / 2f, size.height / 2f)
-            // Open at the top left, where the crystal sits, so the ring reads as a canal with a
-            // way in rather than as a closed letter O.
-            drawArc(
-                color = Palette.Holding,
-                startAngle = 200f,
-                sweepAngle = 300f,
-                useCenter = false,
-                style = Stroke(width = stroke, cap = StrokeCap.Round),
-            )
-            val radians = Math.toRadians(200.0)
-            drawCircle(
-                color = Palette.Seeking,
-                radius = stroke * 1.15f,
-                center = Offset(
-                    middle.x + radius * cos(radians).toFloat(),
-                    middle.y + radius * sin(radians).toFloat(),
-                ),
-            )
-        }
+        Icon(
+            painter = painterResource(R.drawable.ic_brand_mark),
+            contentDescription = null,
+            tint = Palette.Ground,
+            modifier = Modifier.size(38.dp),
+        )
     }
 }
 

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The "e" monogram: crossbar, bowl, then the rail running out to the right. One stroke.
+  Tinted by the caller, so the same drawing serves the home screen, the splash and the
+  themed-icon layer rather than three near-identical copies drifting apart.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="56dp"
+    android:height="56dp"
+    android:viewportWidth="256"
+    android:viewportHeight="256">
+    <group android:translateX="128" android:translateY="128">
+        <group android:scaleX="1.02" android:scaleY="1.02">
+            <group android:translateX="-135" android:translateY="-128">
+                <group android:translateX="-4" android:translateY="12">
+                    <path
+                        android:pathData="M60,116 H172 A56,56 0 1 0 116,172 H218"
+                        android:strokeWidth="26"
+                        android:strokeColor="#FFFFFFFF"
+                        android:fillColor="#00000000" />
+                </group>
+            </group>
+        </group>
+    </group>
+</vector>

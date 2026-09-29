@@ -7,4 +7,7 @@
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@color/ic_launcher_background" />
     <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+    <!-- Android 13+ themed icons: the system tints this to the wallpaper. Without it the
+         icon is the one on the home screen that ignores the user's theme. -->
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
 </adaptive-icon>
