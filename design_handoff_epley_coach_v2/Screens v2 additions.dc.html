@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&amp;display=swap" rel="stylesheet">
+<style>html,body{margin:0;background:#E3E1DB}body{font-family:'Bricolage Grotesque',sans-serif;color:#17161C;-webkit-font-smoothing:antialiased}a{color:#17161C}a:hover{color:#55535E}</style>
+</helmet>
+<main style="padding:48px;display:flex;flex-direction:column;gap:48px">
+  <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:44px;line-height:1;font-weight:800;letter-spacing:-.035em">Epley Coach · screens added in v2.1</span><span style="font-size:17px;font-weight:500;color:#55535E">Setup, practice, safety question 2, settings, sensors, accuracy, paywall and edge states. Day and night. Scrolling screens are drawn at full length.</span></div>
+  <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+    <section style="display:flex;flex-direction:column;gap:24px">
+      <span style="font-size:24px;font-weight:800;letter-spacing:-.02em">{{ g.title }}</span>
+      <div style="display:flex;flex-wrap:wrap;gap:40px 32px;align-items:flex-start">
+        <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+          <figure style="margin:0;display:flex;flex-direction:column;gap:12px">
+            <div id="{{ it.id }}" style="display:flex;width:max-content"><dc-import name="EpleyScreen" screen="{{ it.screen }}" v="{{ it.v }}" practice="{{ it.practice }}" mount="{{ it.mount }}" sel="{{ it.sel }}" ear="{{ it.ear }}" pos="{{ it.pos }}" live="{{ it.live }}" reduced-motion="{{ true }}" hint-size="414px,868px"></dc-import></div>
+            <figcaption style="font-size:15px;font-weight:700;color:#55535E;max-width:414px">{{ it.id }}</figcaption>
+          </figure>
+        </sc-for>
+      </div>
+    </section>
+  </sc-for>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const G = [
+  ['A · Treatment setup (steps 3–6)', [['setupmount'], ['calibrate'], ['calibrate', 'count', { live: { count: 2 } }], ['calibrate', 'capture'], ['calibrate', 'failnone'], ['calibrate', 'failflat'], ['calibrate', '', { mount: 'band', ear: 'L', tag: 'band-left' }], ['direction'], ['direction', 'count', { live: { count: 1 } }], ['ready'], ['ready', '', { mount: 'band', ear: 'L', tag: 'band-left' }]]],
+  ['B · Practice mode', [['side', '', { practice: true, sel: 'none', tag: 'none-selected' }], ['side', '', { practice: true, sel: 'R', tag: 'right-selected' }], ['calibrate', '', { practice: true }], ['direction', '', { practice: true }], ['ready', '', { practice: true }], ['find', '', { practice: true, pos: 2 }], ['hold', '', { practice: true, pos: 2 }], ['done', '', { practice: true }]]],
+  ['C · Safety check question 2', [['safety2'], ['seedoctor']]],
+  ['D · Settings and About', [['settings']]],
+  ['E · Check sensors', [['sensors', 'uncal'], ['sensors'], ['sensors', 'turnwarn'], ['sensors', 'moved']]],
+  ['F · Accuracy self-check', [['accuracy'], ['accuracy', 'after1'], ['accuracy', 'turnedover'], ['accuracy', 'notturned'], ['accuracy', 'pass'], ['accuracy', 'moving'], ['accuracy', 'fail']]],
+  ['G · Paywall', [['paywall'], ['paywall', 'test'], ['paywall', 'errcharge'], ['paywall', 'errrestore']]],
+  ['I · Edge and empty states', [['sensorfail'], ['history', 'empty'], ['history'], ['emergency', 'callfail'], ['hold', 'paused'], ['find', 'moved']]],
+];
+class Component extends DCLogic {
+  renderVals() {
+    let n = 0;
+    const groups = G.map(([title, list]) => ({ title, items: ['day', 'night'].flatMap(t => list.map(([sc, v = '', o = {}]) => ({
+      id: 'v21-' + String(++n).padStart(3, '0') + '-' + sc + (o.practice ? '-practice' : '') + (v ? '-' + v : '') + (o.tag ? '-' + o.tag : '') + '-' + t,
+      screen: t === 'night' ? sc + '-night' : sc, v, practice: !!o.practice, mount: o.mount || 'cheek', sel: o.sel || 'none', ear: o.ear || 'R', pos: o.pos || 4, live: o.live || {} }))) }));
+    return { groups };
+  }
+}
+</script>
+</body>
+</html>

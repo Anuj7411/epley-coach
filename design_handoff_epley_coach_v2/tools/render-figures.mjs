@@ -16,8 +16,9 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
 
 // Which sizes need which steps: Find and Hold show all five; Welcome and the ear result show 1;
 // Calibrate shows position 5's end pose (seated, facing forward, head level) at 208.
-const only = process.argv.includes('--calibrate');
-const jobs = only ? [[208, [5]]] : [[248, [1, 2, 3, 4, 5]], [144, [1, 2, 3, 4, 5]], [208, [1, 5]], [136, [1]]];
+// v2.1: Calibrate (step 5 end pose) and Direction (step 1) use 176.
+const only = process.argv.includes('--setup');
+const jobs = only ? [[176, [1, 5]]] : [[248, [1, 2, 3, 4, 5]], [144, [1, 2, 3, 4, 5]], [208, [1]], [176, [1, 5]], [136, [1]]];
 for (const [size, steps] of jobs) {
   const ctx = await browser.newContext({ viewport: { width: size, height: size }, deviceScaleFactor: 3 });
   const page = await ctx.newPage();

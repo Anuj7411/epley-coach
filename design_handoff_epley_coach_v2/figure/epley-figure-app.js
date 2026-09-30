@@ -318,7 +318,11 @@ export async function init(o) {
     const fr = frameFor(v.ear, v.step, view); PR = S / w;
     drawFrame(c.getContext('2d'), S, fr, lerpPose(fr.start, fr.end, st.u), st.ga, st.fade, THEMES[v.theme] || THEMES.light);
   }
-  let raf = 0; const loop = () => { raf = requestAnimationFrame(loop); for (const v of views) render(v); }; loop();
+  let raf = 0, lastTick = 0;
+  const drawAll = () => { lastTick = performance.now(); for (const v of views) { try { render(v); } catch (e) { console.error('figure view', e); } } };
+  const loop = () => { raf = requestAnimationFrame(loop); drawAll(); }; loop();
+  // Fallback when rAF is throttled (hidden tab, offscreen iframe, headless capture): keep held frames rendering.
+  setInterval(() => { if (performance.now() - lastTick > 250) drawAll(); }, 120);
   const invalidate = () => { for (const v of views) v.lastKey = null; };
   reduced.addEventListener?.('change', invalidate);
   document.fonts?.load('800 32px "Bricolage Grotesque"').then(invalidate, () => {});

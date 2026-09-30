@@ -54,7 +54,7 @@ for (const d of cfg.devices) {
     const url = `http://localhost:4173/Screenshot%20Rig.dc.html?${q}&w=${d.w}&h=${d.h}&bare=1&still=1`;
     await page.goto(url, { waitUntil: 'networkidle' });
     await page.evaluate(() => document.fonts.ready);
-    await page.waitForTimeout(s.q.match(/find|hold|result|welcome/) ? 3500 : 600); // figure build + held frame
+    await page.waitForTimeout(s.q.match(/find|hold|result|welcome|calibrate|direction/) ? 3500 : 600); // scrolling screens (s.scroll) are captured at full length // figure build + held frame
     const dir = path.join(root, 'reference', d.name, theme); await fs.mkdir(dir, { recursive: true });
     await page.locator('#shot').screenshot({ path: path.join(dir, s.id + '.png') });
     await fs.writeFile(path.join(dir, s.id + '.json'), JSON.stringify(await page.evaluate(SPEC), null, 1));

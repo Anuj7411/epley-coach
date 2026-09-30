@@ -198,27 +198,50 @@ private val Codepoints = mapOf(
     "bed" to "\uEFDF",
     "block" to "\uF08C",
     "call" to "\uF0D4",
+    "capture" to "\uF727",
     "check" to "\uE668",
     "check_circle" to "\uF0BE",
     "chevron_right" to "\uE5CC",
     "close" to "\uE5CD",
+    "data_object" to "\uEAD3",
+    "done" to "\uE876",
+    "emergency" to "\uE1EB",
+    "error" to "\uF8B6",
+    "expand_more" to "\uE5CF",
     "explore" to "\uE87A",
-    "first_page" to "\uE5DC",
+    "face" to "\uF008",
+    "fiber_manual_record" to "\uE061",
+    "front_hand" to "\uE769",
+    "head_mounted_device" to "\uF4C5",
     "health_and_safety" to "\uE1D5",
     "hearing" to "\uE023",
     "help" to "\uE8FD",
+    "history" to "\uE8B3",
+    "home" to "\uE9B2",
     "hourglass_top" to "\uEA5B",
     "info" to "\uE88E",
     "ios_share" to "\uE6B8",
+    "light" to "\uF02A",
+    "lock_open" to "\uE898",
+    "moving" to "\uE501",
     "pause" to "\uE034",
+    "pause_circle" to "\uE1A2",
+    "picture_as_pdf" to "\uE415",
     "play_arrow" to "\uE037",
     "radio_button_checked" to "\uE837",
     "radio_button_unchecked" to "\uE836",
+    "restore" to "\uE8B3",
     "screen_rotation_alt" to "\uEBEE",
     "sensors" to "\uE51E",
+    "sensors_off" to "\uE51F",
     "settings" to "\uE8B8",
     "signal_cellular_alt" to "\uE202",
+    "stay_current_portrait" to "\uE7BA",
     "stethoscope" to "\uF805",
+    "stop" to "\uE047",
+    "undo" to "\uE166",
+    "verified" to "\uEF76",
+    "vibration" to "\uF2CB",
     "warning" to "\uF083",
 )
 
@@ -662,3 +685,12 @@ fun PillButton(
 
 /** An icon-only control needs a spoken label: TalkBack reads [label] for it. */
 fun Modifier.label(label: String): Modifier = this.semantics(mergeDescendants = true) { contentDescription = label }
+
+/**
+ * An icon the design names that Material Symbols may not have (the handoff's "headband" is not in
+ * the font). Chrome draws nothing for a missing ligature in an icon font, so neither does this.
+ */
+@Composable
+fun SymOrBlank(name: String, size: Float, color: Color) {
+    if (Codepoints.containsKey(name)) Sym(name, size, color) else Box(Modifier.size(size.dp))
+}

@@ -76,11 +76,78 @@ class ParityTest(private val device: String, private val theme: String, private 
         )
 
         val SCREENS = listOf(
-            "splash", "welcome", "home", "safety", "emergency", "q1", "q2", "q3", "q4", "q5", "q6",
-            "result-right", "result-left", "horizontal", "notbppv",
-            "find-p1", "find-p2", "find-p3", "find-p4", "find-p5", "find-p4-left",
-            "hold-p1", "hold-p2", "hold-p3", "hold-p4", "hold-p5",
-            "done-right", "done-left", "history", "practice",
+            "splash",
+            "welcome",
+            "home",
+            "safety",
+            "emergency",
+            "q1",
+            "q2",
+            "q3",
+            "q4",
+            "q5",
+            "q6",
+            "result-right",
+            "result-left",
+            "horizontal",
+            "notbppv",
+            "find-p1",
+            "find-p2",
+            "find-p3",
+            "find-p4",
+            "find-p5",
+            "find-p4-left",
+            "hold-p1",
+            "hold-p2",
+            "hold-p3",
+            "hold-p4",
+            "hold-p5",
+            "done-right",
+            "done-left",
+            "history",
+            "practice",
+            "setup-mount",
+            "calibrate",
+            "calibrate-count",
+            "calibrate-capture",
+            "calibrate-failnone",
+            "calibrate-failflat",
+            "calibrate-band-left",
+            "direction",
+            "direction-count",
+            "ready",
+            "ready-band-left",
+            "practice-picker-none",
+            "practice-picker-right",
+            "practice-calibrate",
+            "practice-direction",
+            "practice-ready",
+            "practice-find-p2",
+            "practice-hold-p2",
+            "practice-done",
+            "safety2",
+            "seedoctor",
+            "settings",
+            "sensors-uncal",
+            "sensors",
+            "sensors-turnwarn",
+            "sensors-moved",
+            "accuracy",
+            "accuracy-after1",
+            "accuracy-turnedover",
+            "accuracy-notturned",
+            "accuracy-pass",
+            "accuracy-moving",
+            "accuracy-fail",
+            "paywall",
+            "paywall-test",
+            "paywall-errcharge",
+            "paywall-errrestore",
+            "sensorfail",
+            "history-empty",
+            "emergency-callfail",
+            "hold-paused",
+            "find-moved",
         )
 
         @JvmStatic
@@ -146,6 +213,29 @@ fun ParityScreen(id: String, night: Boolean) {
             onShare = {}, onBack = {},
         )
         "practice" -> PracticeSideView(health.epley.core.Side.RIGHT, onChoose = {}, onTakeQuestions = {}, onStart = {}, onBack = {})
+        "setup-mount" -> HoldScreen(step = 3, total = 6, onMode = {}, onBack = {})
+        "calibrate" -> CalibrateView("Step 4 of 6", 4, 6, practice = false, band = false, ear = 'R', stage = CaptureStage.Idle, onStart = {}, onBack = {})
+        "calibrate-count" -> CalibrateView("Step 4 of 6", 4, 6, practice = false, band = false, ear = 'R', stage = CaptureStage.Count(2), onStart = {}, onBack = {})
+        "calibrate-capture" -> CalibrateView("Step 4 of 6", 4, 6, practice = false, band = false, ear = 'R', stage = CaptureStage.Capture, onStart = {}, onBack = {})
+        "calibrate-failnone" -> CalibrateView("Step 4 of 6", 4, 6, practice = false, band = false, ear = 'R',
+            stage = CaptureStage.Fail("No sensor reading yet. Wait a second and try again."), onStart = {}, onBack = {})
+        "calibrate-failflat" -> CalibrateView("Step 4 of 6", 4, 6, practice = false, band = false, ear = 'R',
+            stage = CaptureStage.Fail("The phone is lying too flat to tell which way you’re facing. Hold it on its edge, as described, and try again."), onStart = {}, onBack = {})
+        "calibrate-band-left" -> CalibrateView("Step 4 of 6", 4, 6, practice = false, band = true, ear = 'L', stage = CaptureStage.Idle, onStart = {}, onBack = {})
+        "direction" -> DirectionView("Step 5 of 6", 5, 6, practice = false, ear = 'R', stage = CaptureStage.Idle, onStart = {}, onBack = {})
+        "direction-count" -> DirectionView("Step 5 of 6", 5, 6, practice = false, ear = 'R', stage = CaptureStage.Count(1), onStart = {}, onBack = {})
+        "ready" -> ReadyView("Step 6 of 6", 6, 6, practice = false, band = false, ear = 'R', onStart = {}, onBack = {})
+        "ready-band-left" -> ReadyView("Step 6 of 6", 6, 6, practice = false, band = true, ear = 'L', onStart = {}, onBack = {})
+        "practice-calibrate" -> CalibrateView("Practice · step 2 of 4", 2, 4, practice = true, band = false, ear = 'R', stage = CaptureStage.Idle, onStart = {}, onBack = {})
+        "practice-direction" -> DirectionView("Practice · step 3 of 4", 3, 4, practice = true, ear = 'R', stage = CaptureStage.Idle, onStart = {}, onBack = {})
+        "practice-ready" -> ReadyView("Practice · step 4 of 4", 4, 4, practice = true, band = false, ear = 'R', onStart = {}, onBack = {})
+        "practice-picker-none" -> PracticeSideView(null, onChoose = {}, onTakeQuestions = {}, onStart = {}, onBack = {})
+        "practice-picker-right" -> PracticeSideView(health.epley.core.Side.RIGHT, onChoose = {}, onTakeQuestions = {}, onStart = {}, onBack = {})
+        "practice-find-p2" -> FindView(sampleFind(2, 'R').copy(practice = true), figurePlaying = true, onToggleFigure = {}, onStop = {})
+        "practice-hold-p2" -> HoldView(sampleHold(2, 'R').copy(practice = true), onStop = {})
+        "practice-done" -> DoneView(ear = 'R', showAfterCare = false, onFinish = {})
+        "find-moved" -> FindView(sampleFind(4, 'R').copy(moved = true), figurePlaying = true, onToggleFigure = {}, onStop = {})
+        "hold-paused" -> HoldView(sampleHold(4, 'R').copy(paused = true), onStop = {})
         else -> Unit
     }
 }

@@ -92,6 +92,17 @@ fun DoneView(ear: Char, showAfterCare: Boolean, onFinish: () -> Unit) {
                 AfterCareLine("hourglass_top", "Still dizzy? Repeat once, an hour later.")
                 AfterCareLine("stethoscope", "Worse, or still dizzy after the repeat? See a doctor.")
             }
+        } else {
+            Row(
+                Modifier.enter(2).box(Color.Transparent, 24.dp, ring = c.line, ringWidth = 1.5.dp).padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Sym("info", 24f, c.muted)
+                Txt(
+                    "That was practice, so there\u2019s nothing to look after. Start treatment from Home when you\u2019re ready.",
+                    type(16f, 600, lineHeight = 1.4f, wrap = Wrap.Pretty), c.ink, modifier = Modifier.weight(1f),
+                )
+            }
         }
         Spacer(Modifier.flex())
         PillButton("Finish", onFinish, fill = if (n) c.lilac else Ink, content = if (n) Ink else Color.White)

@@ -1,6 +1,12 @@
 {
   "devices": [
     {
+      "name": "phone-432x960",
+      "w": 432,
+      "h": 960,
+      "density": 2.5
+    },
+    {
       "name": "small-360x800",
       "w": 360,
       "h": 800,
@@ -23,12 +29,6 @@
       "w": 480,
       "h": 1040,
       "density": 3
-    },
-    {
-      "name": "phone-432x960",
-      "w": 432,
-      "h": 960,
-      "density": 2.5
     }
   ],
   "screens": [
@@ -151,6 +151,190 @@
     {
       "id": "practice",
       "q": "screen=side"
+    },
+    {
+      "id": "setup-mount",
+      "q": "screen=setupmount"
+    },
+    {
+      "id": "calibrate",
+      "q": "screen=calibrate"
+    },
+    {
+      "id": "calibrate-count",
+      "q": "screen=calibrate&v=count&count=2"
+    },
+    {
+      "id": "calibrate-capture",
+      "q": "screen=calibrate&v=capture"
+    },
+    {
+      "id": "calibrate-failnone",
+      "q": "screen=calibrate&v=failnone"
+    },
+    {
+      "id": "calibrate-failflat",
+      "q": "screen=calibrate&v=failflat"
+    },
+    {
+      "id": "calibrate-band-left",
+      "q": "screen=calibrate&mount=band&ear=L"
+    },
+    {
+      "id": "direction",
+      "q": "screen=direction"
+    },
+    {
+      "id": "direction-count",
+      "q": "screen=direction&v=count&count=1"
+    },
+    {
+      "id": "ready",
+      "q": "screen=ready"
+    },
+    {
+      "id": "ready-band-left",
+      "q": "screen=ready&mount=band&ear=L"
+    },
+    {
+      "id": "practice-picker-none",
+      "q": "screen=side&practice=1&sel=none"
+    },
+    {
+      "id": "practice-picker-right",
+      "q": "screen=side&practice=1&sel=R"
+    },
+    {
+      "id": "practice-calibrate",
+      "q": "screen=calibrate&practice=1"
+    },
+    {
+      "id": "practice-direction",
+      "q": "screen=direction&practice=1"
+    },
+    {
+      "id": "practice-ready",
+      "q": "screen=ready&practice=1"
+    },
+    {
+      "id": "practice-find-p2",
+      "q": "screen=find&practice=1&pos=2"
+    },
+    {
+      "id": "practice-hold-p2",
+      "q": "screen=hold&practice=1&pos=2"
+    },
+    {
+      "id": "practice-done",
+      "q": "screen=done&practice=1"
+    },
+    {
+      "id": "safety2",
+      "q": "screen=safety2"
+    },
+    {
+      "id": "seedoctor",
+      "q": "screen=seedoctor"
+    },
+    {
+      "id": "settings",
+      "q": "screen=settings",
+      "scroll": true
+    },
+    {
+      "id": "sensors-uncal",
+      "q": "screen=sensors&v=uncal",
+      "scroll": true
+    },
+    {
+      "id": "sensors",
+      "q": "screen=sensors",
+      "scroll": true
+    },
+    {
+      "id": "sensors-turnwarn",
+      "q": "screen=sensors&v=turnwarn",
+      "scroll": true
+    },
+    {
+      "id": "sensors-moved",
+      "q": "screen=sensors&v=moved",
+      "scroll": true
+    },
+    {
+      "id": "accuracy",
+      "q": "screen=accuracy",
+      "scroll": true
+    },
+    {
+      "id": "accuracy-after1",
+      "q": "screen=accuracy&v=after1",
+      "scroll": true
+    },
+    {
+      "id": "accuracy-turnedover",
+      "q": "screen=accuracy&v=turnedover",
+      "scroll": true
+    },
+    {
+      "id": "accuracy-notturned",
+      "q": "screen=accuracy&v=notturned",
+      "scroll": true
+    },
+    {
+      "id": "accuracy-pass",
+      "q": "screen=accuracy&v=pass",
+      "scroll": true
+    },
+    {
+      "id": "accuracy-moving",
+      "q": "screen=accuracy&v=moving",
+      "scroll": true
+    },
+    {
+      "id": "accuracy-fail",
+      "q": "screen=accuracy&v=fail",
+      "scroll": true
+    },
+    {
+      "id": "paywall",
+      "q": "screen=paywall",
+      "scroll": true
+    },
+    {
+      "id": "paywall-test",
+      "q": "screen=paywall&v=test",
+      "scroll": true
+    },
+    {
+      "id": "paywall-errcharge",
+      "q": "screen=paywall&v=errcharge",
+      "scroll": true
+    },
+    {
+      "id": "paywall-errrestore",
+      "q": "screen=paywall&v=errrestore",
+      "scroll": true
+    },
+    {
+      "id": "sensorfail",
+      "q": "screen=sensorfail"
+    },
+    {
+      "id": "history-empty",
+      "q": "screen=history&v=empty"
+    },
+    {
+      "id": "emergency-callfail",
+      "q": "screen=emergency&v=callfail"
+    },
+    {
+      "id": "hold-paused",
+      "q": "screen=hold&pos=4&v=paused"
+    },
+    {
+      "id": "find-moved",
+      "q": "screen=find&pos=4&v=moved"
     }
   ],
   "themes": [

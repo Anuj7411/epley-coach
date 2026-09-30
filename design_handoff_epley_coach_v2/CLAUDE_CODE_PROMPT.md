@@ -25,8 +25,8 @@ This writes `reference/<device>/<day|night>/<screen>.png` and a `<screen>.json` 
 - Fonts: Bricolage Grotesque **variable** and Material Symbols Rounded **variable** (opsz 24, wght 500). `includeFontPadding = false`, `LineHeightStyle(Center, Trim.None)`, letter-spacing in em, `tnum` on live numbers.
 - Copy `logo-kit/android/` into `app/src/main/res/`.
 
-## 3. Screens (README §4, §4a, §4b, §8, §11)
-Build the components in §8, then every screen for day and night, all five positions and both ears. Clinical copy is **verbatim**. Never add postural restrictions. The ear only comes from triage (Practice mode is the only side picker).
+## 3. Screens (README §4, §4a, §4b, §8, §11, §16)
+Build the components in §8, then every screen for day and night, all five positions and both ears — including the v2.1 screens in §16 (setup steps, practice, safety question 2, settings, sensors, accuracy, paywall with RevenueCat, the doctor's PDF, and every edge state). Clinical copy is **verbatim**. Never add postural restrictions. The ear only comes from triage (Practice mode is the only side picker).
 
 ## 4. 3D figure (README §7)
 Do not model or approximate the figure. Put `figure/` in `assets/`, vendor `three@0.184.0` (`build/three.module.js`, `build/three.core.js`) into `assets/figure/vendor/` and change the two `https://unpkg.com/three@0.184.0/build/three.module.js` imports to `./vendor/three.module.js`. Show it with a transparent `WebView` loading `figure-view.html#step=&ear=&theme=&playing=` through `WebViewAssetLoader`; drive it with `evaluateJavascript("setFigure({...})")`. Wrap it in `FigureView(step, ear, theme, playing, sizeDp)`. Sizes: Welcome 208 · Find 248 · Hold 144 · Result 136 (design-dp, scaled by P1).

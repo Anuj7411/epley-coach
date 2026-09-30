@@ -49,6 +49,10 @@ data class FindModel(
     val zoneStart: Float,
     val zoneWidth: Float,
     val marker: Float,
+    /** Practice: a pill on the instruction card, the stand-in sub-text, and "Stop practice" (§16 B). */
+    val practice: Boolean = false,
+    /** The phone turned faster than a head can: the instruction card becomes a warning (§16 I). */
+    val moved: Boolean = false,
 )
 
 /** What Hold shows. */
@@ -61,6 +65,9 @@ data class HoldModel(
     val blocks: List<Float>,
     val turn: String,
     val tip: String,
+    val practice: Boolean = false,
+    /** Signal lost mid-hold: the count pauses and says so (§16 I). */
+    val paused: Boolean = false,
 )
 
 /** The design's copy per position (§4b), for a right ear. A left ear swaps every left/right word. */
@@ -121,12 +128,33 @@ fun FindView(
                 }
             }
         }
-        Column(
-            Modifier.enter(1).box(if (n) c.butterTint else c.butter, 32.dp, ring = if (n) c.butter else null).padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Txt(m.title, type(34f, 800, lineHeight = 1.02f, letterSpacing = -0.03f, wrap = Wrap.Balance), if (n) c.ink else Ink)
-            Txt(m.sub, type(17f, 500, lineHeight = 1.4f), if (n) c.soft else Ink)
+        if (m.moved) {
+            Column(
+                Modifier.enter(1).box(if (n) c.coralTint else c.coral, 32.dp, ring = if (n) c.coral else null).padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Txt("THE PHONE MOVED", type(14f, 800, lineHeight = 1.3f, letterSpacing = 0.06f), if (n) c.coral else Ink)
+                Txt("It turned faster than a head can.", type(28f, 800, lineHeight = 1.05f, letterSpacing = -0.02f, wrap = Wrap.Balance), if (n) c.ink else Ink)
+                Txt("Recalibrate before trusting the reading.", type(17f, 600, lineHeight = 1.4f), if (n) c.soft else Ink)
+            }
+        } else {
+            Column(
+                Modifier.enter(1).box(if (n) c.butterTint else c.butter, 32.dp, ring = if (n) c.butter else null).padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (m.practice) {
+                    Row(
+                        Modifier.box(if (n) c.lilac else Ink, 999.dp).padding(start = 8.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Sym("back_hand", 18f, if (n) Ink else c.butter, weight = 800)
+                        Txt("PRACTICE \u00b7 NOT A TREATMENT", type(14f, 800, letterSpacing = 0.06f), if (n) Ink else c.butter, maxLines = 1)
+                    }
+                }
+                Txt(m.title, type(34f, 800, lineHeight = 1.02f, letterSpacing = -0.03f, wrap = Wrap.Balance), if (n) c.ink else Ink)
+                Txt(if (m.practice) "The phone stands in for your head." else m.sub, type(17f, 500, lineHeight = 1.4f), if (n) c.soft else Ink)
+            }
         }
         if (warning != null) warning()
         Column(
@@ -171,7 +199,7 @@ fun FindView(
             RangeMeter(m.zoneStart, m.zoneWidth, m.marker)
         }
         Spacer(Modifier.flex())
-        PillButton("Stop", onStop, fill = c.coral, content = Ink, icon = "close")
+        PillButton(if (m.practice) "Stop practice" else "Stop", onStop, fill = c.coral, content = Ink, icon = "close")
     }
 }
 
@@ -213,13 +241,29 @@ private fun RangeMeter(zoneStart: Float, zoneWidth: Float, marker: Float) {
 fun HoldView(m: HoldModel, onStop: () -> Unit) {
     val c = Ds
     val n = c.night
-    DScreen(bg = if (n) c.ground else c.mint) {
+    // Signal lost: the ground goes back to bone (M2), because nothing is being held.
+    DScreen(bg = if (n || m.paused) c.ground else c.mint) {
         Column(
             Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp).enter(0),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            ProgressBars(total = 5, current = m.position, empty = if (n) c.line else Color(0x2E17161C))
-            Txt("Position ${m.position} of 5 · ${m.short}", type(16f, 600), if (n) c.muted else Ink)
+            ProgressBars(total = 5, current = m.position, empty = if (n) c.line else if (m.paused) c.line else Color(0x2E17161C))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (m.practice) {
+                    Row(
+                        Modifier.box(if (n) c.lilac else Ink, 999.dp).padding(start = 6.dp, end = 10.dp, top = 4.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Sym("back_hand", 18f, if (n) Ink else c.lilac, weight = 800)
+                        Txt("PRACTICE", type(14f, 800, letterSpacing = 0.04f), if (n) Ink else c.lilac, maxLines = 1)
+                    }
+                }
+                Txt(
+                    if (m.practice) "Position ${m.position} of 5" else "Position ${m.position} of 5 \u00b7 ${m.short}",
+                    type(16f, 600), if (n) c.muted else Ink,
+                )
+            }
         }
         val chip: @Composable () -> Unit = {
             Row(
@@ -234,7 +278,26 @@ fun HoldView(m: HoldModel, onStop: () -> Unit) {
             }
         }
         val stay: @Composable () -> Unit = {
-            Txt("Stay still.", type(44f, 800, lineHeight = 1f, letterSpacing = -0.035f), if (n) c.ink else Ink)
+            Txt(if (m.paused) "Signal lost." else "Stay still.", type(44f, 800, lineHeight = 1f, letterSpacing = -0.035f), if (n) c.ink else Ink)
+        }
+        val pausedCard: @Composable () -> Unit = {
+            Column(
+                Modifier.box(if (n) c.coralTint else c.surface, 28.dp, ring = if (n) c.coral else null).padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Row(
+                    Modifier.box(if (n) c.coral else Ink, 999.dp).padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Sym("pause_circle", 20f, if (n) Ink else Color.White, weight = 700)
+                    Txt("Paused", type(16f, 700), if (n) Ink else Color.White, maxLines = 1)
+                }
+                Txt(
+                    "The phone isn\u2019t sending readings. Stay where you are \u2014 the count carries on when it does.",
+                    type(17f, 600, lineHeight = 1.4f, wrap = Wrap.Pretty), c.ink,
+                )
+            }
         }
         val count: @Composable () -> Unit = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -269,23 +332,29 @@ fun HoldView(m: HoldModel, onStop: () -> Unit) {
                 Modifier.flex().enter(1).box(c.mintTint, 32.dp, ring = c.mint).padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Box { chip() }
+                if (!m.paused) Box { chip() }
                 stay()
                 Spacer(Modifier.weight(1f))
-                count()
-                blocks()
+                if (m.paused) pausedCard() else {
+                    count()
+                    blocks()
+                }
             }
         } else {
             Column(
                 Modifier.padding(start = 8.dp, end = 8.dp, top = 16.dp).enter(1),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Box { chip() }
+                if (!m.paused) Box { chip() }
                 stay()
             }
             Spacer(Modifier.flex())
-            Box(Modifier.padding(horizontal = 8.dp).enter(2)) { count() }
-            Box(Modifier.padding(horizontal = 8.dp, vertical = 16.dp)) { blocks() }
+            if (m.paused) {
+                Box(Modifier.enter(2)) { pausedCard() }
+            } else {
+                Box(Modifier.padding(horizontal = 8.dp).enter(2)) { count() }
+                Box(Modifier.padding(horizontal = 8.dp, vertical = 16.dp)) { blocks() }
+            }
         }
         Row(
             Modifier.enter(3).box(if (n) c.surface else Color.White.copy(alpha = 0.6f), 28.dp)
@@ -303,7 +372,7 @@ fun HoldView(m: HoldModel, onStop: () -> Unit) {
                 HeldAxis("Tip", m.tip)
             }
         }
-        PillButton("Stop", onStop, fill = c.coral, content = Ink, icon = "close")
+        PillButton(if (m.practice) "Stop practice" else "Stop", onStop, fill = c.coral, content = Ink, icon = "close")
     }
 }
 

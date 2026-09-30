@@ -27,7 +27,7 @@ The design is authored on a **390 dp wide frame**. On a device of width W dp and
 }
 ```
   Then write every screen with the literal numbers from this README (e.g. `44.sp`, `24.dp`) — the wrapper does the scaling. Use `Modifier.weight(1f)` exactly where a screen lists a flex region.
-- **Flex regions per screen** (the only elements that grow): Splash — centre block · Welcome — spacer above the notice · **Home — the lilac Start card (min 232)** · Safety — spacer above the buttons · Emergency — title block · Questions — spacer above "Change my last answer" · Ear result — lilac card · Can't treat / Not BPPV — main card · Find — spacer above Stop · Hold — spacer between "Stay still." and the count (night: inside the mint card) · Done — spacer above Finish · Your runs — spacer above Share · Practice — spacer above Start practice.
+- **Flex regions per screen** (the only elements that grow): Splash — centre block · Welcome — spacer above the notice · **Home — the lilac Start card (min 232)** · Safety — spacer above the buttons · Emergency — title block · Questions — spacer above "Change my last answer" · Ear result — lilac card · Can't treat / Not BPPV — main card · Find — spacer above Stop · Hold — spacer between "Stay still." and the count (night: inside the mint card) · Done — spacer above Finish · Your runs — spacer above Share · Practice — spacer above Start practice · Setup: How will you hold — spacer above the note · Calibrate / Direction — spacer above the button / countdown · Ready — the lilac hero card · Safety question 2 — spacer above the buttons · See a doctor / Sensor unavailable — main card · **Scrolling screens (no flex; content scrolls, bottom padding 16): Settings, Check sensors, Accuracy self-check, Paywall.**
 - Top 48 design-dp is the status-bar zone and bottom 32 design-dp the gesture zone (draw edge-to-edge; the zones are at least as tall as the system insets on all target phones).
 - System font scale: references are captured at fontScale 1.0. At larger font scales text may wrap; cards grow (never clip).
 
@@ -59,6 +59,9 @@ Devices and the 30 screen states are listed in `tools/screens.json` (add the use
 | `screenshots/412x915/` | **Device references for a 6.5" phone (412 × 915 dp) at 2×**, no bezel: all 15 screens day + night. |
 | `screenshots/390x844/` | 45 mockups (with bezel) at the 390 × 844 design size: every screen, questions 2–6, all five positions, left-ear variants. Index in §15. |
 | `EpleyScreen.dc.html` | **Source of truth for every screen.** One component; the `screen` prop picks the screen (15 day + 15 night), `pos` 1–5, `ear` R/L, `tq={n}` for a question. |
+| `Screens v2 additions.dc.html` | Every screen added in v2.1 (§16) in every state, day and night. |
+| `Doctor PDF.dc.html` | The A4 run-history PDF (§16 H). Uses `doc-page.js`. |
+| `screenshots/v21/` | 86 PNGs at 2× of the v2.1 screens and states (index in §16). |
 | `Screens.dc.html` | Every screen side by side (the page the screenshots were taken from). |
 | `Epley Coach Prototype.dc.html` | Clickable prototype of the full run: real question order and branching, all five positions, live hold countdown, Day/Night and Reduced-motion switches. |
 | `App Icon.dc.html` | App icon sheet: masks, themed icon, sizes, construction, system splash. |
@@ -429,3 +432,67 @@ Files are in `screenshots/390x844/`. Figure frames on some Find mockups are capt
 | `43-result-left-ear-day.png` | Ear result · left ear · day |
 | `44-find-pos4-left-ear-day.png` | Find · position 4 · left ear · day |
 | `45-done-left-ear-day.png` | Done · left ear · day |
+
+---
+
+## 16. Screens added in v2.1 (same system, same rules)
+All in `EpleyScreen.dc.html`, day and night. New props: `v` (state variant), `practice` (bool), `mount` ('cheek' | 'band'), `sel` ('none' | 'L' | 'R' on the practice picker), `price` (store string). Every state is listed in `tools/screens.json` and drawn in `Screens v2 additions.dc.html`.
+
+### Flow additions
+```
+Safety (Q1) ─ No → Safety question 2 ─ Yes → See a doctor (stop) · No → Triage Q1…
+Ear result ─ Start treatment → How will you hold (3/6) → Calibrate (4/6) → Direction (5/6) → Ready (6/6) → Find …
+Practice: Picker (1/4) → Calibrate (2/4) → Direction (3/4) → Ready (4/4) → Find/Hold ×5 → Done (practice)
+Home gear → Settings → Your runs · Check sensors → Accuracy self-check
+Your runs ─ Share with your doctor → Paywall (if the PDF isn't unlocked) → PDF share sheet
+```
+
+### A. Setup (screen `setupmount`, `calibrate`, `direction`, `ready`)
+- **Header** on all four = the question header: 48 dp back circle + segment bar + caption. Caption "Step N of 6" (practice: "Practice · step N of 4"); segments: done = ink, current = 2 dp ring, todo = line.
+- **How will you hold the phone?** Two option tiles (28 radius, 48 dp icon tile `face` / `headband`, title 22/800, description 16/500 muted, trailing chevron). Tap = choose + advance. Note card at the bottom.
+- **Calibrate.** Title "Sit up straight and look ahead" (practice "Hold the phone upright"). White card: figure **176 dp** held frame, step 5 end pose, mirrored for a left ear; mount instruction under it (cheek: "Flat on your cheekbone, screen facing out, top of the phone toward the top of your head." · band: "In the headband, tucked against the side of your head."). Practice: no figure — a 64 dp `stay_current_portrait` tile + "Hold it upright in front of you, screen facing you." Note (idle and countdown only). Button "Start, then get into position".
+  - `v=count`: the button area becomes a white 136 dp card: numeral 112/800 tabular (3 → 2 → 1, swaps with no tween) + "Get into position" / "The voice counts down out loud".
+  - `v=capture`: mint card (night: mint tint + outline), 64 dp `front_hand` tile, "Hold still" 28/800 + "Capturing when you stop moving". The note hides.
+  - `v=failnone` / `v=failflat`: coral warning card with the failure copy + **Try again**.
+- **Direction.** Title "Turn your head to your right" (practice "Turn the phone to your right"; side from triage / picker). Sub "About halfway to your shoulder, and hold it there." Figure 176 dp, step 1, **plays once** (M12), mirrored for left. Note. Button "Start, then turn to my right". Same count / capture / fail states.
+- **Ready.** Flex lilac hero: chip "All set" (`check_circle`), "Ready" 96/800, body. White list with filled check rows: "Right ear · posterior canal" / "Phone against your cheek" or "Phone in a headband" / "Direction learned" (practice: "Practice · right side" / "Phone in your hand"). Notes: the bed note (treatment only) and the volume-button note. **Start**.
+
+### B. Practice
+- **Picker** opens with `sel=none`: both tiles unselected, helper "Choose a side to start" 16/600 muted, **Start practice disabled**: fill = line (#D4D2DC / #34333C), text muted, no press effect, `aria-disabled`. Selected tile = lilac fill (night lilac tint) + 3 dp ink (night lilac) inset ring + filled radio + "Selected".
+- **Find (practice):** a pill "PRACTICE · NOT A TREATMENT" (`back_hand`, 14/800 +0.06em, ink on day with butter text; lilac on night) at the top of the butter card; sub-text "The phone stands in for your head."; the Stop button reads **Stop practice**.
+- **Hold (practice):** "PRACTICE" pill before the caption "Position N of 5"; **Stop practice**.
+- **Done (practice):** after-care card removed; replaced by the note "That was practice, so there's nothing to look after. Start treatment from Home when you're ready."
+
+### C. Safety question 2 (`safety2`) and See a doctor (`seedoctor`)
+- Same layout as the first safety screen; caption "One more"; the four rows wrap to two lines (min 56 dp, 10 dp vertical padding). **Yes, one applies** (coral) → See a doctor; **No, none apply** → Triage.
+- See a doctor = "Can't treat" family: surface card with 2 dp ink (night bone) inset ring, chip "See a doctor" (`stethoscope`), headline 44/800, body 17/500, **Back to home**.
+
+### D. Settings (`settings`, scrolls)
+Back circle; "Settings" 44/800; rows card (Your runs · Check sensors; 72 dp rows, 48 dp icon tiles, chevrons); About card: Rail wordmark lockup (28 dp), description 17/500, divider, four credits (label 14/700 muted, value 16/600): Triage questions / After-care / Head model (CC BY 4.0, **required**) / Type; NOT A MEDICAL DEVICE card.
+
+### E. Check sensors (`sensors`, scrolls)
+Title + sub; sensor card (48 dp `sensors` tile, "Orientation sensor", rate "0.6 °/s", **Still/Moving chip**: Still = mint + check, Moving = coral + `vibration`); mount radio list (±7° / ±5° / ±10°, 56 dp rows, filled radio for the selected mount; practice note appears when "In your hand" is chosen); Tip / Turn tiles (56/800 tabular; "--" before calibrating, `v=uncal`); warnings as coral cards with caps titles (`v=turnwarn`, `v=moved`); **Calibrate / Calibrate again**; after calibrating, ghost button "Back upright — check drift" + the drift line 16/600 muted; rows card: Accuracy self-check (→ F) · Record a log / Stop recording (`fiber_manual_record` filled) · Raw readings (expands a 14 px monospace block on the tile colour, radius 16).
+
+### F. Accuracy self-check (`accuracy`, scrolls)
+Title + sub; live card: value 72/800 tabular + Still/Moving chip, Reading 1 / Reading 2 rows ("—" until taken). States: `after1` note ("Now spin the phone 180°…"), `turnedover` / `notturned` coral warnings, `pass` mint result card (chip "Passed", Sensor error / Surface tilt 28/800), `fail` coral result card (chip "Outside tolerance"). Buttons: Take reading 1 → Take reading 2 → (result) **Correct this phone by −0.84°** (disabled while moving, `v=moving`) + ghost **Start again**.
+
+### G. Paywall (`paywall`, scrolls) — RevenueCat
+Back circle; lilac hero (chip "Doctor's PDF" `picture_as_pdf`, headline 40/800, body); "Free forever, with or without this" card with five filled-check rows; payment note 16/600 muted; test-build note (`v=test`); errors as coral cards (`v=errcharge` "That didn't go through. Nothing was charged." · `v=errrestore` "No previous purchase found on this account."); **Unlock the PDF · {price}** (`lock_open`, price string from RevenueCat `storeProduct.priceString`), then **Restore** / **Not now** as 48 dp text buttons side by side.
+
+### H. Doctor's PDF (`Doctor PDF.dc.html`, A4)
+16 mm margins, Bricolage. Header: wordmark lockup, "Run history" 26 pt/800, summary grid (period, runs, ears). Column heads DATE / EAR / OUTCOME / TIME (9 pt/700 muted, +0.04em). Each run: 11 pt row (date + time, ear · canal, outcome with a mint dot = held / coral square = stopped, duration), then a 9.5 pt table of positions: Pos, Position (mirrored names for a left ear), Held, Turn, Tip — tabular figures, 1 px #EFEDE8 rules; runs never split across pages. Closing two columns: **Method** paragraph and an ink-outlined **NOT A MEDICAL DEVICE** box. Running footer on every page. Generate natively (Android `PdfDocument` or a WebView print of this HTML with real data).
+
+### I. Edge and empty states
+- **Sensor unavailable** (`sensorfail`): surface card with coral inset ring, chip "No sensor" (`sensors_off`), headline 44/800 "This phone can't measure head angles", body, **Back to home**.
+- **Your runs empty** (`history&v=empty`): one white card, 48 dp `history` tile, "No runs yet." 17/600 muted; the Share card stays (it opens the paywall/PDF when there is data).
+- **Emergency call fails** (`emergency&v=callfail`): "Call your local emergency number now." 17/700 centred under the Call button.
+- **Signal lost mid-hold** (`hold&v=paused`): background returns to ground (360 ms, M2), title "Signal lost.", Holding chip hidden, count replaced by a card with a "Paused" chip (`pause_circle`) and "The phone isn't sending readings. Stay where you are — the count carries on when it does."; readings card and **Stop** stay.
+- **Find, phone moved** (`find&v=moved`): the butter instruction card is replaced by a coral card: "THE PHONE MOVED" caps + "It turned faster than a head can." 28/800 + "Recalibrate before trusting the reading."
+- **Figure fails to load:** the figure element collapses (height 0, no placeholder); every instruction and reading stays.
+
+### J. Fixes
+- Night Home: the Start card's 2 dp lilac inset ring now renders (it had been typed inside the `onClick` attribute). The ring is correct — night rule "tint + 2 dp outline".
+- Your runs uses real dates: groups "This week", then month names; today's runs read "Tonight, HH:MM" (21:00–05:59) or "Today, HH:MM".
+
+### Screenshot index (`screenshots/v21/`, 2×)
+File names encode screen, state and theme, e.g. `v21-003-calibrate-count-day.png`, `v21-031-side-practice-none-selected-night.png`. Numbers 001–022 setup, 023–038 practice, 039–042 safety Q2, 043–044 settings, 045–052 sensors, 053–066 accuracy, 067–074 paywall, 075–086 edge states.

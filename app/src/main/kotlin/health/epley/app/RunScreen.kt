@@ -1,6 +1,7 @@
 package health.epley.app
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +44,19 @@ fun RunScreen(
     }
     val livePitch = pose?.pitchDegrees
 
+    // Signal lost (README §14): no reading for 5 s while holding. The engine only advances on
+    // readings, so the count has already stopped; this says why instead of looking frozen.
+    var lastReadingAt by remember { mutableStateOf(System.currentTimeMillis()) }
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(run.pose) { lastReadingAt = System.currentTimeMillis() }
+    LaunchedEffect(holding) {
+        while (holding) {
+            now = System.currentTimeMillis()
+            kotlinx.coroutines.delay(500)
+        }
+    }
+    val signalLost = holding && now - lastReadingAt > 5_000
+
     if (holding) {
         val required = engineState?.holdSecondsRequired ?: 0
         val held = (engineState?.heldSeconds ?: 0.0).coerceAtMost(required.toDouble())
@@ -56,6 +70,8 @@ fun RunScreen(
                 blocks = holdBlocks(required, held.toFloat()),
                 turn = liveTurn?.let(::deg) ?: "--",
                 tip = livePitch?.let(::deg) ?: "--",
+                practice = run.practice,
+                paused = signalLost,
             ),
             onStop = onStop,
         )
@@ -67,7 +83,7 @@ fun RunScreen(
     if (step == null) {
         FindView(
             FindModel(position, ear, mirrorFor(ear, copy.title), mirrorFor(ear, copy.sub), mirrorFor(ear, copy.dir),
-                "--", "now --", "--", 0f, 0f, 0.5f),
+                "--", "now --", "--", 0f, 0f, 0.5f, practice = run.practice, moved = run.mountMoved),
             figurePlaying, { figurePlaying = !figurePlaying }, onStop,
         )
         return
@@ -121,12 +137,11 @@ fun RunScreen(
             zoneStart = frac(lo),
             zoneWidth = frac(hi) - frac(lo),
             marker = live?.let { frac(if (turnLed) target + (offset ?: 0.0) else it) } ?: 0.5f,
+            practice = run.practice,
+            moved = run.mountMoved,
         ),
         figurePlaying = figurePlaying,
         onToggleFigure = { figurePlaying = !figurePlaying },
         onStop = onStop,
-        warning = if (run.mountMoved) {
-            { DsWarning(caption = "THE PHONE MOVED", body = "It turned faster than a head can. Recalibrate before trusting the reading.") }
-        } else null,
     )
 }
