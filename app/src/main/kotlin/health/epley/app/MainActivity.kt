@@ -63,7 +63,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 
 /** Where the user is in the app when no run is in progress. */
-enum class Screen { HOME, SAFETY, TRIAGE, PRACTICE_SIDE, HOLD, CALIBRATE, DIRECTION, READY, PAYWALL, INSTRUMENT, ACCURACY }
+enum class Screen { HOME, RUNS, SAFETY, TRIAGE, PRACTICE_SIDE, HOLD, CALIBRATE, DIRECTION, READY, PAYWALL, INSTRUMENT, ACCURACY }
 
 /**
  * The app: a home screen, a six-step flow into a guided run, and the after-care that follows.
@@ -175,9 +175,14 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
 
         setContent {
+            // Night when the system is dark, or between 21:00 and 06:00. Read once, so the
+            // colours cannot change under someone lying with their head hanging back.
+            val night = remember { isNightNow(resources.configuration.isNightModeActive) }
             EpleyTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = Palette.Background) {
-                    App()
+                EpleyDesign(night = night) {
+                    Surface(modifier = Modifier.fillMaxSize(), color = Ds.ground) {
+                        App()
+                    }
                 }
             }
         }
@@ -234,16 +239,21 @@ class MainActivity : ComponentActivity() {
             )
 
             else -> when (screen) {
-                Screen.HOME -> HomeScreen(
-                    episodes = episodes,
+                Screen.HOME -> HomeScreenV2(
                     onStart = { screen = Screen.SAFETY },
                     onPractice = { screen = Screen.PRACTICE_SIDE },
+                    onInstrument = { screen = Screen.INSTRUMENT },
+                    onRuns = { screen = Screen.RUNS },
+                )
+
+                Screen.RUNS -> RunsScreenV2(
+                    episodes = episodes,
                     onExport = if (EpisodeLog.treatments(episodes).isEmpty()) {
                         null
                     } else {
                         { if (entitlements.hasExport) shareHistory() else screen = Screen.PAYWALL }
                     },
-                    onInstrument = { screen = Screen.INSTRUMENT },
+                    onBack = { screen = Screen.HOME },
                 )
 
                 Screen.PAYWALL -> PaywallScreen(
