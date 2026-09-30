@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Themed icon (Android 13+): Rail "e" mark. No spiral. -->
+<!-- Adaptive icon foreground (108dp, glyph inside 66dp safe zone): Rail "e" mark. No spiral. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
   <path android:pathData="M32.46 54H65.16A16.35 16.35 0 1 0 48.81 70.35H79"
-      android:strokeColor="#FF000000" android:strokeWidth="6.92"
+      android:strokeColor="#17161C" android:strokeWidth="6.92"
       android:strokeLineCap="butt" android:strokeLineJoin="miter" android:fillColor="#00000000"/>
 </vector>

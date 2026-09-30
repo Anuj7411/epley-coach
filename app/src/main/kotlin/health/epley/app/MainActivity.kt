@@ -8,6 +8,7 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -169,6 +170,9 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+
+        // Hands the system splash over to the app without a blank frame between them.
+        installSplashScreen()
 
         setContent {
             EpleyTheme {

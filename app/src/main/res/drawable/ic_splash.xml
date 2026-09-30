@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- windowSplashScreenAnimatedIcon, day (288dp, inside 192dp circle): Rail "e" mark. No spiral. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="288dp" android:height="288dp"
+    android:viewportWidth="288" android:viewportHeight="288">
+  <path android:pathData="M87.99 144H173.03A42.52 42.52 0 1 0 130.51 186.52H209"
+      android:strokeColor="#17161C" android:strokeWidth="17.99"
+      android:strokeLineCap="butt" android:strokeLineJoin="miter" android:fillColor="#00000000"/>
+</vector>

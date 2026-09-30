@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Epley" parent="android:Theme.Material.NoActionBar">
-        <!--
-          Palette.Ground, not #000000. docs/DESIGN.md rules out pure black: off-white text on it
-          causes halation, worst with astigmatism. This colour is also what the system paints
-          before the first frame and behind the splash, so a wrong value here shows as a flash
-          of a different dark on every cold start.
-        -->
-        <item name="android:statusBarColor">#121311</item>
-        <item name="android:windowBackground">#121311</item>
+    <!--
+      Day. windowBackground is the bone ground, so the frame the system paints before Compose
+      draws matches the first screen instead of flashing a different colour.
+    -->
+    <style name="Theme.Epley" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#EFEDE8</item>
+        <item name="android:navigationBarColor">#EFEDE8</item>
+        <item name="android:windowBackground">#EFEDE8</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
-
 </resources>

@@ -115,6 +115,10 @@ dependencies {
     // shape and a colour, so that none of the four is doing the job alone.
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.activity:activity-compose:1.13.0")
+    // The system splash, so the launcher icon hands over to the app without a blank frame.
+    // The platform attributes alone cannot do this: postSplashScreenTheme is an androidx
+    // attribute, and keeping the splash up while the figure model loads needs the API.
+    implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 

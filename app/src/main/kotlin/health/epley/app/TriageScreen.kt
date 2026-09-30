@@ -94,23 +94,28 @@ fun TriageScreen(
             progress = progress,
             onBack = onCancel,
             bottom = {
+                // The caveat rides with the buttons rather than floating above a gap. On every
+                // question, not just the first: a person answering six builds confidence with
+                // each one, and the accuracy of the set is what should be in front of them at the
+                // moment they answer the last.
+                InfoNote(
+                    "These questions agree with a specialist about 71% of the time. They are a " +
+                        "guide, not a diagnosis.",
+                )
                 ChoiceButton(first, { answer(true) })
                 ChoiceButton(second, { answer(false) })
                 if (undo != null) SecondaryButton("Change my last answer", undo)
             },
         ) {
-            Title(question)
-            if (questionNumber == 1) {
-                Body("For people a doctor has already diagnosed with BPPV. BPPV often comes back in a different ear, so this is asked every time.", secondary = true)
+            // One card holds the question and its context, so the screen reads as a single thing
+            // being asked rather than text stacked against the top edge. Previously a weighted
+            // spacer pushed the caveat to the floor and left a third of the screen empty.
+            Card {
+                Title(question)
+                if (questionNumber == 1) {
+                    Body("For people a doctor has already diagnosed with BPPV. BPPV often comes back in a different ear, so this is asked every time.", secondary = true)
+                }
             }
-            Spacer(Modifier.weight(1f))
-            // On every question, not just the first. A person answering six questions builds
-            // confidence with each one, and the accuracy of the set is the thing that should be
-            // in front of them at the moment they answer the last.
-            InfoNote(
-                "These questions agree with a specialist about 71% of the time. They are a guide, " +
-                    "not a diagnosis.",
-            )
         }
         return
     }
