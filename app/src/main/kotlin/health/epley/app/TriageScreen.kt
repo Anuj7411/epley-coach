@@ -304,16 +304,20 @@ private fun EarResult(
         ) {
             DsChip("Your result", Icons.Rounded.Check, if (c.night) ChipStyle.Outlined else ChipStyle.OnPastel, c.lilac)
             Spacer(Modifier.height(Space.m))
-            Text(
-                side.replaceFirstChar { it.uppercase() },
-                style = DsType.count(headline),
-                color = if (c.night) c.ink else Color(0xFF17161C),
-            )
-            Text(
-                "ear",
-                style = DsType.count(headline),
-                color = if (c.night) c.ink else Color(0xFF17161C),
-            )
+            // The two words are one headline, so they sit on consecutive lines with no gap
+            // between them rather than as two separately spaced children of the card.
+            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                Text(
+                    side.replaceFirstChar { it.uppercase() },
+                    style = DsType.count(headline),
+                    color = if (c.night) c.ink else Color(0xFF17161C),
+                )
+                Text(
+                    "ear",
+                    style = DsType.count(headline),
+                    color = if (c.night) c.ink else Color(0xFF17161C),
+                )
+            }
             Spacer(Modifier.height(Space.m))
             Text(
                 "Posterior canal, the type the Epley manoeuvre treats. We will set up for your $side side.",
