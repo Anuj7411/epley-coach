@@ -219,10 +219,12 @@ class MainActivity : ComponentActivity() {
         val backable = screen != Screen.HOME && screen != Screen.SPLASH && screen != Screen.WELCOME
         BackHandler(enabled = backable && !run.running) { screen = Screen.HOME }
 
+        // Practice skips the safety check, the questions and the mount choice — the phone stands
+        // in for the head, so there is nothing to screen and nothing to strap on.
+        val totalSteps = if (practice) 4 else 6
+        fun step(treatment: Int, practiceStep: Int) = if (practice) practiceStep else treatment
         fun label(treatment: Int, practiceStep: Int) =
             if (practice) "Practice · step $practiceStep of 4" else "Step $treatment of 6"
-        fun progress(treatment: Int, practiceStep: Int) =
-            if (practice) practiceStep / 4f else treatment / 6f
 
         if (!tracker.isSupported) {
             // FR-1. Some budget phones ship without a gyroscope, and every angle in this app comes
@@ -313,6 +315,7 @@ class MainActivity : ComponentActivity() {
                 )
 
                 Screen.PRACTICE_SIDE -> PracticeSideScreen(
+                    onTakeQuestions = { screen = Screen.SAFETY },
                     onSide = {
                         runController.preparePractice(it)
                         tracker.setMode(MountMode.IN_HAND)
@@ -323,6 +326,8 @@ class MainActivity : ComponentActivity() {
                 )
 
                 Screen.HOLD -> HoldScreen(
+                    step = step(3, 1),
+                    total = totalSteps,
                     onMode = {
                         tracker.setMode(it)
                         calibrationMessage = null
@@ -332,8 +337,9 @@ class MainActivity : ComponentActivity() {
                 )
 
                 Screen.CALIBRATE -> CalibrateScreen(
+                    step = step(4, 2),
+                    total = totalSteps,
                     stepLabel = label(4, 2),
-                    progress = progress(4, 2),
                     mode = trackerState.mode,
                     message = calibrationMessage,
                     countdown = setupCountdown,
@@ -360,8 +366,9 @@ class MainActivity : ComponentActivity() {
                 )
 
                 Screen.DIRECTION -> DirectionScreen(
+                    step = step(5, 3),
+                    total = totalSteps,
                     stepLabel = label(5, 3),
-                    progress = progress(5, 3),
                     side = run.side,
                     practice = practice,
                     message = run.polarityMessage,
@@ -387,8 +394,9 @@ class MainActivity : ComponentActivity() {
                 )
 
                 Screen.READY -> ReadyScreen(
+                    step = step(6, 4),
+                    total = totalSteps,
                     stepLabel = label(6, 4),
-                    progress = progress(6, 4),
                     side = run.side,
                     mode = trackerState.mode,
                     practice = practice,

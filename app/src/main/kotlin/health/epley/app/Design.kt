@@ -414,24 +414,27 @@ fun DsButton(
     enabled: Boolean = true,
 ) {
     val shape = RoundedCornerShape(Radius.button)
+    val content = if (enabled) contentColor else Ds.muted
     Row(
         modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
             .pressable(enabled = enabled, onClick = onClick)
             .clip(shape)
-            .background(if (enabled) fill else fill.copy(alpha = 0.4f))
+            // Disabled goes flat and muted rather than a faded pastel: a washed-out fill under
+            // dark text reads as a rendering fault, not as "not yet".
+            .background(if (enabled) fill else Ds.surface2)
             .then(if (outline != null) Modifier.border(2.dp, outline, shape) else Modifier)
             .padding(horizontal = Space.xl, vertical = Space.m),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = if (trailing != null) Arrangement.SpaceBetween else Arrangement.Center,
     ) {
         if (leading != null) {
-            Icon(leading, contentDescription = null, tint = contentColor, modifier = Modifier.size(28.dp))
+            Icon(leading, contentDescription = null, tint = content, modifier = Modifier.size(28.dp))
             Spacer(Modifier.width(Space.s))
         }
-        Text(label, style = DsType.action, color = contentColor, textAlign = TextAlign.Center)
-        if (trailing != null) Icon(trailing, contentDescription = null, tint = contentColor, modifier = Modifier.size(28.dp))
+        Text(label, style = DsType.action, color = content, textAlign = TextAlign.Center)
+        if (trailing != null) Icon(trailing, contentDescription = null, tint = content, modifier = Modifier.size(28.dp))
     }
 }
 

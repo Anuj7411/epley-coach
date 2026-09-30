@@ -16,8 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Settings
@@ -67,8 +67,8 @@ fun HomeScreenV2(
     // fills a tall screen without overflowing a short one. Bounded both ways so the proportion
     // can never produce something unusable.
     val viewport = LocalViewportHeight.current
-    val heroHeight = (viewport * 0.34f).coerceIn(200.dp, 340.dp)
-    val tileHeight = (viewport * 0.20f).coerceIn(124.dp, 200.dp)
+    val heroHeight = (viewport * 0.40f).coerceIn(200.dp, 360.dp)
+    val tileHeight = (viewport * 0.235f).coerceIn(124.dp, 210.dp)
     DsScreen(
         top = {
             Row(
@@ -82,13 +82,13 @@ fun HomeScreenV2(
     ) {
         Text(
             greeting(c.night),
-            style = DsType.title,
+            style = DsType.display,
             color = c.ink,
             modifier = Modifier.padding(start = Space.s, bottom = Space.s).enter(0),
         )
 
         // The one thing this screen is for, given the space that implies.
-        Box(Modifier.enter(1)) {
+        Box(Modifier.padding(top = Space.s).enter(1)) {
             DsCard(
                 fill = c.lilac,
                 tint = c.lilacTint,
@@ -125,7 +125,7 @@ fun HomeScreenV2(
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            Icons.Rounded.ArrowForward,
+                            Icons.AutoMirrored.Rounded.ArrowForward,
                             contentDescription = null,
                             tint = if (c.night) Color(0xFF17161C) else Color.White,
                             modifier = Modifier.size(28.dp),
@@ -136,7 +136,7 @@ fun HomeScreenV2(
         }
 
         Row(
-            Modifier.fillMaxWidth().enter(2),
+            Modifier.fillMaxWidth().padding(top = Space.s).enter(2),
             horizontalArrangement = Arrangement.spacedBy(Space.s),
         ) {
             SideTile(
@@ -156,7 +156,7 @@ fun HomeScreenV2(
         }
 
         // Required in-app (§1.1). It keeps its own card and sits above the fold.
-        Box(Modifier.enter(3)) {
+        Box(Modifier.padding(top = Space.s).enter(3)) {
             DsWarning(
                 caption = "NOT A MEDICAL DEVICE",
                 body = "An unregulated prototype. It must never be used on a patient.",
@@ -220,29 +220,6 @@ private fun HandGlyph(colour: Color) {
     }
 }
 
-/** A phone held upright. Drawn, because the extended icon set is not a dependency. */
-@Composable
-private fun PhoneGlyphV2(colour: Color) {
-    Canvas(Modifier.size(26.dp)) {
-        val weight = 2.4.dp.toPx()
-        val inset = size.width * 0.24f
-        drawRoundRect(
-            color = colour,
-            topLeft = Offset(inset, size.height * 0.05f),
-            size = androidx.compose.ui.geometry.Size(size.width - inset * 2f, size.height * 0.90f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(weight * 1.8f, weight * 1.8f),
-            style = Stroke(width = weight),
-        )
-        drawLine(
-            colour,
-            Offset(size.width * 0.41f, size.height * 0.80f),
-            Offset(size.width * 0.59f, size.height * 0.80f),
-            weight,
-            StrokeCap.Round,
-        )
-    }
-}
-
 /** Concentric arcs around a dot: something read off the air. */
 @Composable
 private fun SignalGlyphV2(colour: Color) {
@@ -277,7 +254,7 @@ fun RunsScreenV2(
     DsScreen(
         top = {
             Row(Modifier.fillMaxWidth().padding(vertical = Space.s), verticalAlignment = Alignment.CenterVertically) {
-                DsIconCircle(Icons.Rounded.ArrowBack, "Back", onBack)
+                DsIconCircle(Icons.AutoMirrored.Rounded.ArrowBack, "Back", onBack)
             }
         },
         bottom = {

@@ -364,15 +364,25 @@ private fun AngleGlyph(colour: Color) {
 // ---------------------------------------------------------------------------------------------
 
 /**
- * Position 1 seen from above: a head turned 45° with the phone on the cheekbone.
+ * A head seen from above, with the phone on the cheekbone.
  *
  * The handoff renders this from a 3D model. This is the same drawing held still — which is what
- * the handoff itself specifies for every held frame (M12), and what reduced motion shows in all
- * cases. It is a diagram, not decoration: the dashed line is the target, the plain line is
- * straight ahead, and the angle between them is the one the app measures.
+ * the handoff itself specifies for every held frame (M12), and what reduced motion shows in every
+ * case. It is a diagram, not decoration: the plain line is straight ahead, the dashed line is
+ * the target, and the angle between them is the one the app measures.
+ *
+ * @param targetDegrees the turn to draw, or null for the reference pose with no target at all.
+ * @param mirrored a left ear: every turn goes the other way.
+ * @param showHead false in practice, where the phone stands in for the head and drawing one
+ *   would suggest the app is watching something it is not.
  */
 @Composable
-private fun HeadAngleFigure(side: Dp) {
+fun HeadAngleFigure(
+    side: Dp,
+    targetDegrees: Int? = 45,
+    mirrored: Boolean = false,
+    showHead: Boolean = true,
+) {
     val c = Ds
     val guide = if (c.night) c.butter else Color(0xFF17161C)
     val skin = Color(0xFFC9BCFF)
@@ -393,7 +403,8 @@ private fun HeadAngleFigure(side: Dp) {
 
             // Shoulders, faded out by a radial gradient rather than a blur (which needs API 31)
             // so there is no crop line against the card, as in the handoff's shirt shader.
-            drawOval(
+            // There is no body when the phone stands in for the head.
+            if (showHead) drawOval(
                 Brush.radialGradient(
                     0f to shirt.copy(alpha = 0.62f),
                     0.55f to shirt.copy(alpha = 0.42f),
@@ -406,7 +417,7 @@ private fun HeadAngleFigure(side: Dp) {
             )
 
             // The head, tipped slightly so it reads as turned rather than face-on.
-            rotate(-20f, pivot = head) {
+            if (showHead) rotate(if (mirrored) 20f else -20f, pivot = head) {
                 drawOval(
                     skin,
                     topLeft = Offset(head.x - s * 0.20f, head.y - s * 0.24f),
@@ -432,56 +443,62 @@ private fun HeadAngleFigure(side: Dp) {
                 )
             }
 
-            // Straight ahead.
-            drawLine(
-                contour,
-                Offset(head.x, head.y),
-                Offset(head.x, s * 0.16f),
-                strokeWidth = s * 0.012f,
-            )
+            // Straight ahead. Only worth drawing when there is a turn to compare it against.
+            if (targetDegrees != null) {
+                drawLine(
+                    contour,
+                    Offset(head.x, head.y),
+                    Offset(head.x, s * 0.16f),
+                    strokeWidth = s * 0.012f,
+                )
+            }
 
-            // The target, 45° from straight ahead, toward the treated ear.
-            val reach = s * 0.40f
-            val rad = Math.toRadians(45.0)
-            val tip = Offset(
-                head.x + (reach * Math.sin(rad)).toFloat(),
-                head.y - (reach * Math.cos(rad)).toFloat(),
-            )
-            drawLine(
-                guide,
-                head,
-                tip,
-                strokeWidth = s * 0.016f,
-                cap = StrokeCap.Round,
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(s * 0.035f, s * 0.030f)),
-            )
+            val signed = (targetDegrees ?: 0) * (if (mirrored) -1 else 1)
+            val rad = Math.toRadians(signed.toDouble())
 
-            // The angle between them.
-            val r = s * 0.26f
-            drawArc(
-                color = guide,
-                startAngle = -90f,
-                sweepAngle = 45f,
-                useCenter = false,
-                topLeft = Offset(head.x - r, head.y - r),
-                size = Size(r * 2f, r * 2f),
-                style = Stroke(width = s * 0.014f, cap = StrokeCap.Round),
-            )
+            if (targetDegrees != null) {
+                // The target, drawn as a dashed line out from the head.
+                val reach = s * 0.40f
+                val tip = Offset(
+                    head.x + (reach * Math.sin(rad)).toFloat(),
+                    head.y - (reach * Math.cos(rad)).toFloat(),
+                )
+                drawLine(
+                    guide,
+                    head,
+                    tip,
+                    strokeWidth = s * 0.016f,
+                    cap = StrokeCap.Round,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(s * 0.035f, s * 0.030f)),
+                )
+
+                // The angle between them.
+                val r = s * 0.26f
+                drawArc(
+                    color = guide,
+                    startAngle = if (signed < 0) -90f + signed else -90f,
+                    sweepAngle = kotlin.math.abs(signed).toFloat(),
+                    useCenter = false,
+                    topLeft = Offset(head.x - r, head.y - r),
+                    size = Size(r * 2f, r * 2f),
+                    style = Stroke(width = s * 0.014f, cap = StrokeCap.Round),
+                )
+            }
 
             // The phone, flat against the cheek, along the target line.
-            drawPhone(head, rad, s, c.night)
+            drawPhone(head, rad, s, c.night, upright = !showHead)
         }
 
         // The reading, as a pill — drawn in Compose so it uses the app's own type.
-        Box(
+        if (targetDegrees != null) Box(
             Modifier
-                .offset(x = side * 0.545f, y = side * 0.105f)
+                .offset(x = if (mirrored) side * 0.16f else side * 0.545f, y = side * 0.105f)
                 .clip(RoundedCornerShape(50))
                 .background(if (c.night) c.butter else Color(0xFF17161C))
                 .padding(horizontal = 10.dp, vertical = 4.dp),
         ) {
             Text(
-                "45°",
+                "$targetDegrees°",
                 style = DsType.caps,
                 color = if (c.night) Color(0xFF17161C) else Color.White,
             )
@@ -490,18 +507,25 @@ private fun HeadAngleFigure(side: Dp) {
 }
 
 /** The phone: ink body, mint screen, lying along the target line at the cheekbone. */
-private fun DrawScope.drawPhone(head: Offset, targetRadians: Double, s: Float, night: Boolean) {
+private fun DrawScope.drawPhone(
+    head: Offset,
+    targetRadians: Double,
+    s: Float,
+    night: Boolean,
+    upright: Boolean,
+) {
     val body = if (night) Color(0xFFF1F0F5) else Color(0xFF17161C)
     val screen = Color(0xFFA8EBD6)
-    val distance = s * 0.190f
+    // Held in the hand it sits where the head would be, not beside it.
+    val distance = if (upright) 0f else s * 0.190f
     val centre = Offset(
         head.x + (distance * Math.sin(targetRadians)).toFloat(),
         head.y - (distance * Math.cos(targetRadians)).toFloat(),
     )
-    val w = s * 0.072f
-    val h = s * 0.200f
+    val w = if (upright) s * 0.30f else s * 0.072f
+    val h = if (upright) s * 0.60f else s * 0.200f
     // The phone lies flat on the cheek, so its long edge runs across the target line.
-    rotate(45f, pivot = centre) {
+    rotate(if (upright) 0f else Math.toDegrees(targetRadians).toFloat(), pivot = centre) {
         drawRoundRect(
             color = body,
             topLeft = Offset(centre.x - w / 2f, centre.y - h / 2f),

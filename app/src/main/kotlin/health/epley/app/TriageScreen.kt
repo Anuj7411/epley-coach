@@ -16,8 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Clear
@@ -150,7 +150,7 @@ fun TriageScreen(
                         onClick = undo,
                         fill = c.surface,
                         contentColor = c.ink,
-                        leading = Icons.Rounded.ArrowBack,
+                        leading = Icons.AutoMirrored.Rounded.ArrowBack,
                     )
                 }
                 DsNote(note)
@@ -185,13 +185,13 @@ fun TriageScreen(
                 val tile = (viewport * 0.17f).coerceIn(104.dp, 150.dp)
                 OptionTile(
                     first,
-                    if (questionNumber == 5) Icons.Rounded.ArrowForward else null,
+                    if (questionNumber == 5) Icons.AutoMirrored.Rounded.ArrowForward else null,
                     tile,
                     Modifier.enter(2),
                 ) { answer(true) }
                 OptionTile(
                     second,
-                    if (questionNumber == 5) Icons.Rounded.ArrowBack else null,
+                    if (questionNumber == 5) Icons.AutoMirrored.Rounded.ArrowBack else null,
                     tile,
                     Modifier.enter(3),
                 ) { answer(false) }
@@ -285,7 +285,7 @@ private fun EarResult(
     val headline = (LocalViewportHeight.current.value * 0.115f).coerceIn(56f, 96f).sp
     DsScreen(
         bottom = {
-            DsButton("Start treatment", { onFinished(result) }, trailing = Icons.Rounded.ArrowForward)
+            DsButton("Start treatment", { onFinished(result) }, trailing = Icons.AutoMirrored.Rounded.ArrowForward)
             Text(
                 "Questions from Kim HJ et al., Neurology 2020.",
                 style = DsType.label,
@@ -328,7 +328,7 @@ private fun EarResult(
         Box(Modifier.enter(1)) { DsNote(note) }
         if (undo != null) {
             Box(Modifier.enter(2)) {
-                DsButton("Change my last answer", undo, fill = c.surface, contentColor = c.ink, leading = Icons.Rounded.ArrowBack)
+                DsButton("Change my last answer", undo, fill = c.surface, contentColor = c.ink, leading = Icons.AutoMirrored.Rounded.ArrowBack)
             }
         }
     }
@@ -367,7 +367,7 @@ private fun HorizontalResult(
         }
         if (undo != null) {
             Box(Modifier.enter(1)) {
-                DsButton("Change my last answer", undo, fill = c.surface, contentColor = c.ink, leading = Icons.Rounded.ArrowBack)
+                DsButton("Change my last answer", undo, fill = c.surface, contentColor = c.ink, leading = Icons.AutoMirrored.Rounded.ArrowBack)
             }
         }
         Box(Modifier.enter(2)) { DsNote(note) }
@@ -394,7 +394,7 @@ private fun NotBppvResult(
                     undo,
                     fill = if (c.night) c.surface else Color(0x33FFFFFF),
                     contentColor = c.ink,
-                    leading = Icons.Rounded.ArrowBack,
+                    leading = Icons.AutoMirrored.Rounded.ArrowBack,
                 )
             }
             DsButton(
