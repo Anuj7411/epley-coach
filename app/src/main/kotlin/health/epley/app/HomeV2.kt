@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import health.epley.core.Episode
 import health.epley.core.EpisodeLog
@@ -61,6 +62,12 @@ fun HomeScreenV2(
 ) {
     val c = Ds
     val today = remember_today()
+    // Proportional, not fixed: the hero takes a share of whatever height this handset has, so it
+    // fills a tall screen without overflowing a short one. Bounded both ways so the proportion
+    // can never produce something unusable.
+    val viewport = LocalViewportHeight.current
+    val heroHeight = (viewport * 0.34f).coerceIn(200.dp, 340.dp)
+    val tileHeight = (viewport * 0.20f).coerceIn(124.dp, 200.dp)
     DsScreen(
         top = {
             Row(
@@ -86,6 +93,7 @@ fun HomeScreenV2(
                 tint = c.lilacTint,
                 outline = c.lilac,
                 radius = Radius.hero,
+                minHeight = heroHeight,
                 onClick = onStart,
             ) {
                 DsChip(
@@ -94,7 +102,7 @@ fun HomeScreenV2(
                     if (c.night) ChipStyle.Outlined else ChipStyle.OnPastel,
                     c.lilac,
                 )
-                Spacer(Modifier.height(Space.xxl))
+                Spacer(Modifier.weight(1f))
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
@@ -132,12 +140,14 @@ fun HomeScreenV2(
         ) {
             SideTile(
                 modifier = Modifier.weight(1f),
+                minHeight = tileHeight,
                 line1 = "Practise",
                 line2 = "in hand",
                 onClick = onPractice,
             ) { HandGlyph(if (c.night) c.butter else Color(0xFFE0A800)) }
             SideTile(
                 modifier = Modifier.weight(1f),
+                minHeight = tileHeight,
                 line1 = "Check",
                 line2 = "sensors",
                 onClick = onInstrument,
@@ -163,6 +173,7 @@ private fun remember_today(): String {
 @Composable
 private fun SideTile(
     modifier: Modifier,
+    minHeight: Dp,
     line1: String,
     line2: String,
     onClick: () -> Unit,
@@ -174,11 +185,12 @@ private fun SideTile(
             .pressable(onClick = onClick)
             .clip(RoundedCornerShape(Radius.card))
             .background(c.surface)
-            .heightIn(min = 112.dp)
+            .heightIn(min = minHeight)
             .padding(Space.l),
         verticalArrangement = Arrangement.spacedBy(Space.m),
     ) {
         glyph()
+        Spacer(Modifier.weight(1f))
         Column {
             Text(line1, style = DsType.cardTitle, color = c.ink)
             Text(line2, style = DsType.cardTitle, color = c.ink)

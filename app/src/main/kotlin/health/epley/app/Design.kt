@@ -15,6 +15,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -127,6 +128,15 @@ val NightColors = EpleyColors(
 
 val LocalEpley = staticCompositionLocalOf { DayColors }
 val LocalReducedMotion = staticCompositionLocalOf { false }
+
+/**
+ * Height available to a screen's content, between the top and bottom slots.
+ *
+ * Screens size their hero elements as a fraction of this rather than in fixed dp, so a card
+ * tuned on one handset does not leave a third of a taller screen empty, or overflow a shorter
+ * one. Always used with coerceIn bounds so the proportion cannot produce something unusable.
+ */
+val LocalViewportHeight = staticCompositionLocalOf { 640.dp }
 
 /** The current theme's colours. */
 val Ds: EpleyColors @Composable get() = LocalEpley.current
@@ -282,14 +292,17 @@ fun DsScreen(
             .padding(horizontal = Space.l, vertical = Space.s),
     ) {
         if (top != null) Column(Modifier.fillMaxWidth(), content = top)
-        Column(
-            Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .then(if (scroll) Modifier.verticalScroll(rememberScrollState()) else Modifier),
-            verticalArrangement = Arrangement.spacedBy(Space.s),
-            content = content,
-        )
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+            CompositionLocalProvider(LocalViewportHeight provides maxHeight) {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .then(if (scroll) Modifier.verticalScroll(rememberScrollState()) else Modifier),
+                    verticalArrangement = Arrangement.spacedBy(Space.s),
+                    content = content,
+                )
+            }
+        }
         if (bottom != null) {
             Column(
                 Modifier.fillMaxWidth().padding(top = Space.s),
@@ -316,6 +329,7 @@ fun DsCard(
     outline: Color? = null,
     radius: Dp = Radius.card,
     padding: Dp = Space.xl,
+    minHeight: Dp = 0.dp,
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -329,6 +343,7 @@ fun DsCard(
             .clip(shape)
             .background(bg)
             .then(if (c.night && outline != null) Modifier.border(2.dp, outline, shape) else Modifier)
+            .then(if (minHeight > 0.dp) Modifier.heightIn(min = minHeight) else Modifier)
             .padding(padding),
         verticalArrangement = Arrangement.spacedBy(Space.s),
         content = content,
