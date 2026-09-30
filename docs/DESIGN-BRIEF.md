@@ -126,6 +126,84 @@ Either show a phone in practice mode, or label the figure unmistakably.
 
 ---
 
+## 5b. Showing rather than telling — the language problem
+
+The app will be used by people who do not read or speak English comfortably. Spoken instructions
+are the weakest possible channel for them, and this app leans on speech heavily. A wordless
+visual demonstration is the right answer.
+
+Two facts decide where it can actually go.
+
+### The screen is against their face
+
+By position two the phone is **flat against the cheekbone, screen facing out**. The user cannot
+see it. By position four they are face-down with their eyes shut. **No animation shown during a
+hold reaches the person doing the manoeuvre** — it is physically out of view.
+
+So the demonstration has to happen **before** they move into each position, while they are still
+upright and looking at the screen. That is the pose-preview moment the app already has (FR-19),
+and it is exactly where a looping 3D demonstration belongs:
+
+| Moment | Who can see the screen | What belongs there |
+|---|---|---|
+| **Pose preview**, before each position | the user, upright, eyes open | **the looping 3D demonstration** — where the phone goes, which way the head turns, how far |
+| **During the hold** | nobody (user) / a helper, or the user in practice mode | sensor-driven figure, voice, haptics |
+| **Practice mode** | the user, phone in hand | demonstration and live figure both work |
+
+This also resolves the motion question cleanly: the demonstration loops while the user is upright
+and asymptomatic, and stops before they lie down. It never plays at them while they are dizzy.
+
+### What the demonstration must convey, without a single word
+
+1. **Which cheek** the phone goes against, for the affected side — mirrored correctly
+2. **Screen facing out**, not in
+3. **Which way the head turns**, and roughly how far — 45° reads as "halfway to your shoulder"
+4. **How far back the head tips**, and that it hangs off the edge
+5. **That the position is then held still** — the figure settles and stops
+
+A person who understands none of the audio should be able to copy the figure and be right.
+
+### The voice has to be rewritten to match
+
+Right now the spoken lines stand alone. If a figure is showing the movement, the words become a
+second channel describing the *same* motion in the *same* order, so the two reinforce rather than
+compete. Short, imperative, no numbers a dizzy person has to convert — "halfway to your shoulder"
+rather than "forty-five degrees", which is already the rule in `Maneuver.kt`.
+
+### A defect this exposes
+
+`GuidanceOutput` calls `setLanguage(Locale.getDefault())` — it tries to speak in the device's
+language. But **every string in the app is hardcoded English in Kotlin; there is no
+`strings.xml`.** On a phone set to Hindi, the engine selects a Hindi voice and is then handed
+English words, which it will pronounce as Hindi phonetics. The result is likely *less*
+intelligible than plain English.
+
+Two options, and they are not equivalent:
+
+- **Short term:** force `Locale.US` for speech so English is at least pronounced as English, and
+  let the 3D demonstration carry meaning for everyone else.
+- **Properly:** extract all copy to `strings.xml`, translate, and let both the text and the voice
+  follow the device locale. This is a real piece of work and it is not a design task.
+
+Whoever designs the demonstration should assume **the visual may be the only channel the user
+understands.** Design it to stand completely alone.
+
+### None of this may cost accuracy
+
+The measurement path is the product. Protect it:
+
+- The demonstration renders **only on preview screens, while the engine is not measuring.** No 3D
+  scene runs during a hold.
+- During measurement the sensor arrives at **50Hz** and every hold is timed from sensor
+  timestamps. A renderer competing for the main thread can drop samples, and dropped samples move
+  the measured angle. Keep the in-run figure light — it is a readout, not a scene.
+- Tolerance bands, dwell gating and the stillness threshold are clinical values from Kwon et al.
+  **No visual change may alter them.** If a band looks too wide on screen, the band is right and
+  the drawing is wrong.
+- Nothing added here may delay the abort gesture or the safety screener.
+
+---
+
 ## 6. Screens to design — all eleven
 
 Current state is honest, not flattering.
