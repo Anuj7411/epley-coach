@@ -63,7 +63,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 
 /** Where the user is in the app when no run is in progress. */
-enum class Screen { HOME, RUNS, SAFETY, TRIAGE, PRACTICE_SIDE, HOLD, CALIBRATE, DIRECTION, READY, PAYWALL, INSTRUMENT, ACCURACY }
+enum class Screen { SPLASH, WELCOME, HOME, RUNS, SAFETY, TRIAGE, PRACTICE_SIDE, HOLD, CALIBRATE, DIRECTION, READY, PAYWALL, INSTRUMENT, ACCURACY }
 
 /**
  * The app: a home screen, a six-step flow into a guided run, and the after-care that follows.
@@ -113,7 +113,16 @@ class MainActivity : ComponentActivity() {
      */
     private var wakeLock: android.os.PowerManager.WakeLock? = null
 
-    private var screen by mutableStateOf(Screen.HOME)
+    private var screen by mutableStateOf(Screen.SPLASH)
+
+    /**
+     * Welcome is shown once (README §11). Read before the splash finishes, written the moment
+     * "Get started" is pressed, so a kill during Welcome still shows it again — the three facts
+     * on it are worth repeating, and nothing is lost by repeating them.
+     */
+    private val welcomePrefs by lazy { getSharedPreferences("welcome", Context.MODE_PRIVATE) }
+    private var welcomePending by mutableStateOf(true)
+
     private var episodes by mutableStateOf<List<Episode>>(emptyList())
 
     /**
@@ -171,6 +180,8 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        welcomePending = !welcomePrefs.getBoolean("seen", false)
+
         // Hands the system splash over to the app without a blank frame between them.
         installSplashScreen()
 
@@ -203,7 +214,10 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(run.polarity, screen) {
             if (screen == Screen.DIRECTION && run.polarity != null) screen = Screen.READY
         }
-        BackHandler(enabled = screen != Screen.HOME && !run.running) { screen = Screen.HOME }
+        // Back from Splash or Welcome leaves the app. Sending it to Home instead would be a way
+        // past the one screen that has to be read.
+        val backable = screen != Screen.HOME && screen != Screen.SPLASH && screen != Screen.WELCOME
+        BackHandler(enabled = backable && !run.running) { screen = Screen.HOME }
 
         fun label(treatment: Int, practiceStep: Int) =
             if (practice) "Practice · step $practiceStep of 4" else "Step $treatment of 6"
@@ -244,6 +258,18 @@ class MainActivity : ComponentActivity() {
             )
 
             else -> when (screen) {
+                Screen.SPLASH -> SplashScreenV2(
+                    onDone = { screen = if (welcomePending) Screen.WELCOME else Screen.HOME },
+                )
+
+                Screen.WELCOME -> WelcomeScreenV2(
+                    onGetStarted = {
+                        welcomePrefs.edit().putBoolean("seen", true).apply()
+                        welcomePending = false
+                        screen = Screen.HOME
+                    },
+                )
+
                 Screen.HOME -> HomeScreenV2(
                     onStart = { screen = Screen.SAFETY },
                     onPractice = { screen = Screen.PRACTICE_SIDE },

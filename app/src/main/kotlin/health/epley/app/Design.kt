@@ -54,7 +54,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -170,12 +172,35 @@ fun EpleyDesign(night: Boolean, content: @Composable () -> Unit) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Type — Bricolage Grotesque (README §3.3). Until the font is added, the system sans stands in;
-// swapping it is this one line.
+// Type — Bricolage Grotesque (README §3.3)
 // ---------------------------------------------------------------------------------------------
 
+/**
+ * One variable font file, registered once per weight the design uses.
+ *
+ * `variationSettings` only takes effect from API 26; below that the file renders at its default
+ * instance, which is wght 800. That is the heaviest weight here, so on Android 7 the lighter text
+ * comes out bold rather than wrong — the layout is unchanged and nothing becomes unreadable.
+ *
+ * opsz is pinned at 40 rather than varied per size. The real design moves it with the type size,
+ * but a Compose FontFamily resolves on weight alone, and 40 sits between the 14sp labels and the
+ * 56sp results without either looking mis-cut.
+ */
+private fun bricolage(weight: Int) = Font(
+    resId = R.font.bricolage_grotesque,
+    weight = FontWeight(weight),
+    variationSettings = FontVariation.Settings(
+        FontVariation.weight(weight),
+        FontVariation.Setting("opsz", 40f),
+    ),
+)
+
+val Bricolage = FontFamily(
+    bricolage(400), bricolage(500), bricolage(600), bricolage(700), bricolage(800),
+)
+
 object DsType {
-    var family: FontFamily = FontFamily.Default
+    var family: FontFamily = Bricolage
     private val tnum = "tnum"
 
     fun count(size: TextUnit) = TextStyle(fontFamily = family, fontWeight = FontWeight.ExtraBold, fontSize = size,
