@@ -79,7 +79,7 @@ fun HomeScreenV2(
         ) {
             Txt(date, style = type(16f, 600), color = c.muted, maxLines = 1)
             Box(
-                Modifier.size(48.dp).pressable(onClick = onRuns).box(if (n) c.surface else Color.White, 24.dp),
+                Modifier.size(48.dp).label("Settings").pressable(onClick = onRuns).box(if (n) c.surface else Color.White, 24.dp),
                 contentAlignment = Alignment.Center,
             ) { Sym("settings", 24f, c.ink) }
         }
@@ -268,7 +268,7 @@ fun RunsView(groups: List<RunGroup>, onShare: (() -> Unit)?, onBack: () -> Unit)
     DScreen(bg = c.ground) {
         Row(Modifier.enter(0), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Box(
-                Modifier.size(48.dp).pressable(onClick = onBack).box(c.surface, 24.dp),
+                Modifier.size(48.dp).label("Back").pressable(onClick = onBack).box(c.surface, 24.dp),
                 contentAlignment = Alignment.Center,
             ) { Sym("arrow_back", 24f, c.ink) }
         }
@@ -312,8 +312,9 @@ fun RunsView(groups: List<RunGroup>, onShare: (() -> Unit)?, onBack: () -> Unit)
                             Sym(if (r.ok) "check" else "close", 24f, if (!n) Ink else if (r.ok) c.mint else c.coral)
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Txt(r.date, type(17f, 700), c.ink, maxLines = 1)
-                            Txt(r.detail, type(16f, 600), c.muted, maxLines = 1)
+                            // Wraps rather than truncates at large font sizes (README ★P1).
+                            Txt(r.date, type(17f, 700), c.ink)
+                            Txt(r.detail, type(16f, 600), c.muted)
                         }
                         if (r.duration.isNotEmpty()) Txt(r.duration, type(16f, 600, tnum = true), c.muted, maxLines = 1)
                     }

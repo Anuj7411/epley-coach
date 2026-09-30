@@ -40,7 +40,7 @@ import kotlin.math.abs
 private fun PageHeader(caption: String, onBack: () -> Unit) {
     val c = Ds
     Row(Modifier.enter(0), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Box(Modifier.size(48.dp).pressable(onClick = onBack).box(c.surface, 24.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(48.dp).label("Back").pressable(onClick = onBack).box(c.surface, 24.dp), contentAlignment = Alignment.Center) {
             Sym("arrow_back", 24f, c.ink)
         }
         Txt(caption, type(16f, 600), c.muted, maxLines = 1)

@@ -86,7 +86,7 @@ fun PracticeSideView(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Box(Modifier.size(48.dp).pressable(onClick = onBack).box(c.surface, 24.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(48.dp).label("Back").pressable(onClick = onBack).box(c.surface, 24.dp), contentAlignment = Alignment.Center) {
                 Sym("arrow_back", 24f, c.ink)
             }
             Txt("Practice mode", type(16f, 600), c.muted)
@@ -188,7 +188,7 @@ private fun StepHeader(caption: String, step: Int, total: Int, onBack: () -> Uni
     val c = Ds
     Column(Modifier.enter(0), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Box(Modifier.size(48.dp).pressable(onClick = onBack).box(c.surface, 24.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(48.dp).label("Back").pressable(onClick = onBack).box(c.surface, 24.dp), contentAlignment = Alignment.Center) {
                 Sym("arrow_back", 24f, c.ink)
             }
             Txt(caption, type(16f, 600), c.muted, maxLines = 1)

@@ -40,7 +40,7 @@ fun PaywallScreen(
 
     DScreen(bg = c.ground) {
         Row(Modifier.enter(0), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Box(Modifier.size(48.dp).pressable(onClick = onCancel).box(c.surface, 24.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(48.dp).label("Back").pressable(onClick = onCancel).box(c.surface, 24.dp), contentAlignment = Alignment.Center) {
                 Sym("arrow_back", 24f, c.ink)
             }
             Txt("Share with your doctor", type(16f, 600), c.muted, maxLines = 1)

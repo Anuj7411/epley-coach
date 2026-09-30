@@ -162,8 +162,14 @@ class MainActivity : ComponentActivity() {
         tracker.tiltOffsetDegrees = deviceCalibration.tiltOffsetDegrees
         // A clone with no RevenueCat key of its own still builds and runs; it just gets the
         // stand-in, which says so on the paywall rather than pretending to take money.
-        entitlements = if (BuildConfig.REVENUECAT_API_KEY.isNotBlank()) {
-            RevenueCatEntitlements(this, BuildConfig.REVENUECAT_API_KEY)
+        //
+        // A Test Store key crashes any non-debuggable build, by RevenueCat's own documentation, and
+        // must never ship. So a release build uses RevenueCat only with a real store key; with a
+        // test key it gets the stand-in too. Debug builds keep the Test Store.
+        val key = BuildConfig.REVENUECAT_API_KEY
+        val usable = key.isNotBlank() && (BuildConfig.DEBUG || !key.startsWith("test_"))
+        entitlements = if (usable) {
+            RevenueCatEntitlements(this, key)
         } else {
             PlaceholderEntitlements(this)
         }

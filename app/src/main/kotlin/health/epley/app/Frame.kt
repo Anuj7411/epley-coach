@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -43,6 +45,8 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.TextStyle
@@ -81,7 +85,11 @@ val LocalDesignScale = staticCompositionLocalOf { 1f }
  * The ground under every screen, owned by the frame rather than each screen, so a screen change
  * cross-fades it (README M2: bone to mint on Hold, to coral on Emergency) instead of snapping.
  */
-class Ground { var target by mutableStateOf(Color.Unspecified) }
+class Ground {
+    var target by mutableStateOf(Color.Unspecified)
+    /** The colour on screen right now, mid-fade included; read at draw time by the bar strips. */
+    var shown by mutableStateOf(Color.Unspecified)
+}
 
 val LocalGround = staticCompositionLocalOf<Ground?> { null }
 
@@ -102,6 +110,7 @@ fun DesignFrame(content: @Composable () -> Unit) {
         LocalDesignScale provides s,
         LocalGround provides ground,
     ) {
+        SideEffect { ground.shown = shown }
         Box(Modifier.fillMaxSize().background(shown)) { content() }
     }
 }
@@ -243,7 +252,9 @@ fun Sym(
             platformStyle = PlatformTextStyle(includeFontPadding = false),
             lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None),
         ),
-        modifier = modifier.layout { measurable, _ ->
+        // The glyph is a private-use character; a screen reader would read it as noise. The
+        // control that holds the icon carries the label instead.
+        modifier = modifier.clearAndSetSemantics {}.layout { measurable, _ ->
             val box = size.dp.roundToPx()
             val p = measurable.measure(Constraints())
             layout(box, box) { p.place((box - p.width) / 2, (box - p.height) / 2) }
@@ -367,6 +378,15 @@ fun DScreen(
                 )
             }
         }
+        // The status and gesture zones keep the ground colour, so scrolled content passes under the
+        // system bars instead of showing through behind the clock. Drawn from the frame's current
+        // colour at draw time, so they fade with the ground (M2) rather than jumping ahead of it.
+        val strip = Modifier.fillMaxWidth().drawBehind {
+            val c = ground?.shown?.takeIf { it != Color.Unspecified } ?: bg
+            drawRect(c)
+        }
+        Box(strip.height(topZone).align(Alignment.TopCenter))
+        Box(strip.height(bottomZone).align(Alignment.BottomCenter))
     }
 }
 
@@ -417,7 +437,7 @@ private fun CssLines(
     modifier: Modifier,
     maxLines: Int,
 ) {
-    val measurer = rememberTextMeasurer()
+    val measurer = rememberTextMeasurer(cacheSize = 64)
     val plain = remember(style) { style.copy(lineBreak = LineBreak.Simple, hyphens = Hyphens.None, textAlign = TextAlign.Unspecified) }
     val holder = remember(text, plain, mode, maxLines) { LinesHolder() }
     val center = style.textAlign == TextAlign.Center
@@ -438,10 +458,14 @@ private fun CssLines(
         val broken = if (maxLines == 1 || w == Constraints.Infinity) {
             text.lines()
         } else {
-            holder.byWidth.getOrPut(w) { cssWrap(text, w, mode, measurer, plain).lines() }
+            holder.byWidth.getOrPut(w) {
+                TextCache.breaks(listOf(text, plain, mode, w, density, fontScale)) {
+                    cssWrap(text, w, mode, measurer, plain, density, fontScale).lines()
+                }
+            }
         }.take(maxLines)
         val layouts = broken.map { line ->
-            val r = measurer.measure(line, plain, softWrap = false, maxLines = 1)
+            val r = TextCache.line(measurer, line, plain, density, fontScale)
             // A single line that does not fit ends in an ellipsis rather than running under
             // whatever sits beside it (CSS white-space: nowrap would overflow; nothing here should).
             if (w == Constraints.Infinity || r.size.width <= w) r else {
@@ -470,19 +494,45 @@ private class LinesHolder {
     var baselines = FloatArray(0)
 }
 
+/**
+ * App-wide caches of measured lines and computed breaks. Every screen is re-created on entry, so
+ * without these each screen change re-measured every line and re-ran balance / pretty from
+ * scratch — measured on the phone as one 50–85 ms frame per screen change. Keyed by everything
+ * that changes a measurement: text, style, width, density and font scale.
+ */
+private object TextCache {
+    private fun <K, V> lru(max: Int) = object : LinkedHashMap<K, V>(64, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<K, V>?) = size > max
+    }
+    private val lines = lru<List<Any>, TextLayoutResult>(1024)
+    private val widths = lru<List<Any>, Int>(8192)
+    private val breaks = lru<List<Any>, List<String>>(512)
+
+    @Synchronized
+    fun line(m: TextMeasurer, text: String, style: TextStyle, d: Float, f: Float): TextLayoutResult =
+        lines.getOrPut(listOf(text, style, d, f)) { m.measure(text, style, softWrap = false, maxLines = 1) }
+
+    @Synchronized
+    fun width(m: TextMeasurer, text: String, style: TextStyle, d: Float, f: Float): Int =
+        widths.getOrPut(listOf(text, style, d, f)) { m.measure(text, style, softWrap = false, maxLines = 1).size.width }
+
+    @Synchronized
+    fun breaks(key: List<Any>, compute: () -> List<String>): List<String> = breaks.getOrPut(key, compute)
+}
+
 private enum class WrapMode { Greedy, Balance, Pretty }
 
 /** Breaks each paragraph (split on explicit newlines) as Chrome would, as explicit newlines. */
-private fun cssWrap(text: String, width: Int, mode: WrapMode, m: TextMeasurer, style: TextStyle): String =
-    text.split('\n').joinToString("\n") { wrapParagraph(it, width, mode, m, style) }
+private fun cssWrap(text: String, width: Int, mode: WrapMode, m: TextMeasurer, style: TextStyle, d: Float, f: Float): String =
+    text.split('\n').joinToString("\n") { wrapParagraph(it, width, mode, m, style, d, f) }
 
-private fun wrapParagraph(p: String, w: Int, mode: WrapMode, m: TextMeasurer, style: TextStyle): String {
+private fun wrapParagraph(p: String, w: Int, mode: WrapMode, m: TextMeasurer, style: TextStyle, d: Float, f: Float): String {
     val words = p.split(' ').filter { it.isNotEmpty() }
     if (words.size < 2) return p
     val cache = HashMap<Long, Int>()
     // Width of words [i, j) set on one line, measured exactly as the Text will lay it out.
     fun width(i: Int, j: Int): Int = cache.getOrPut((i.toLong() shl 32) or j.toLong()) {
-        m.measure(words.subList(i, j).joinToString(" "), style, softWrap = false, maxLines = 1).size.width
+        TextCache.width(m, words.subList(i, j).joinToString(" "), style, d, f)
     }
     fun greedy(limit: Int): List<Int> {
         val starts = mutableListOf(0)
@@ -609,3 +659,6 @@ fun PillButton(
         Txt(label, type(20f, 700), content)
     }
 }
+
+/** An icon-only control needs a spoken label: TalkBack reads [label] for it. */
+fun Modifier.label(label: String): Modifier = this.semantics(mergeDescendants = true) { contentDescription = label }

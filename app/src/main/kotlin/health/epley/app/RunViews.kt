@@ -197,7 +197,8 @@ private fun RangeMeter(zoneStart: Float, zoneWidth: Float, marker: Float) {
         // design's top: -6px. A plain size() was clamped to the track and cut the marker in half.
         Box(
             Modifier
-                .offset(x = w * at - 2.dp)
+                // Lambda offset: the marker moves every frame of its glide without recomposing.
+                .offset { androidx.compose.ui.unit.IntOffset(((w * at - 2.dp).roundToPx()), 0) }
                 .requiredSize(4.dp, 24.dp)
                 .box(c.ink, 2.dp),
         )
