@@ -19,10 +19,14 @@ for (const theme of ['day', 'night']) {
   for (const f of (await fs.readdir(path.join(refDir, theme))).filter(n => n.endsWith('.png'))) {
     const ref = PNG.sync.read(await fs.readFile(path.join(refDir, theme, f)));
     let act; try { act = PNG.sync.read(await fs.readFile(path.join(actualDir, theme, f))); } catch { rows.push([theme, f, 'MISSING', '']); fail++; continue; }
-    if (act.width !== ref.width || act.height !== ref.height) { rows.push([theme, f, 'SIZE', `${act.width}×${act.height} vs ${ref.width}×${ref.height}`]); fail++; continue; }
-    const diff = new PNG({ width: ref.width, height: ref.height });
-    const n = pixelmatch(ref.data, act.data, diff.data, ref.width, ref.height, { threshold: 0.1, includeAA: false });
-    const pct = n / (ref.width * ref.height) * 100;
+    // A fractional device size (412 dp x 2.625 = 1081.5 px) rounds up in Chrome and down on
+    // Android. Up to 2 px of that is rounding, not layout: compare the common area.
+    if (Math.abs(act.width - ref.width) > 2 || Math.abs(act.height - ref.height) > 2) { rows.push([theme, f, 'SIZE', `${act.width}×${act.height} vs ${ref.width}×${ref.height}`]); fail++; continue; }
+    const W = Math.min(act.width, ref.width), H = Math.min(act.height, ref.height);
+    const crop = (img) => { if (img.width === W && img.height === H) return img.data; const out = Buffer.alloc(W * H * 4); for (let y = 0; y < H; y++) img.data.copy(out, y * W * 4, y * img.width * 4, y * img.width * 4 + W * 4); return out; };
+    const diff = new PNG({ width: W, height: H });
+    const n = pixelmatch(crop(ref), crop(act), diff.data, W, H, { threshold: 0.1, includeAA: false });
+    const pct = n / (W * H) * 100;
     await fs.writeFile(path.join(diffDir, `${theme}-${f}`), PNG.sync.write(diff));
     rows.push([theme, f, pct <= LIMIT ? 'PASS' : 'FAIL', pct.toFixed(2) + '%']); if (pct > LIMIT) fail++;
   }

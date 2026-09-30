@@ -179,7 +179,7 @@ fun CheckSensorsScreen(
                 contentAlignment = Alignment.Center,
             ) { Sym("sensors", 24f, if (!n) Ink else if (tracker.isSupported) c.mint else c.coral) }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Txt(if (tracker.isSupported) tracker.sensorName else "No orientation sensor", type(17f, 700), c.ink, maxLines = 1)
+                Txt(if (tracker.isSupported) "Orientation sensor" else "No orientation sensor", type(17f, 700), c.ink, maxLines = 1)
                 Txt("%.0f°/s".format(state.angularRateDegPerSec), type(16f, 600, tnum = true), c.muted, maxLines = 1)
             }
             Row(
@@ -277,6 +277,7 @@ fun CheckSensorsScreen(
             Box(Modifier.box(c.surface, 28.dp).padding(16.dp)) {
                 Txt(
                     buildString {
+                        appendLine(tracker.sensorName)
                         if (q != null) appendLine("q  %+.3f %+.3f %+.3f %+.3f".format(q.x, q.y, q.z, q.w))
                         appendLine("fused %+.2f  gravity %+.2f".format(state.devicePitchDegrees, state.gravityTiltDegrees))
                         appendLine("accel %+.2f  |a| %.3f".format(state.accelTiltDegrees, state.accelMagnitude))

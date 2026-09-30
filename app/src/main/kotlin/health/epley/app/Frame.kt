@@ -440,7 +440,20 @@ private fun CssLines(
         } else {
             holder.byWidth.getOrPut(w) { cssWrap(text, w, mode, measurer, plain).lines() }
         }.take(maxLines)
-        val layouts = broken.map { measurer.measure(it, plain, softWrap = false, maxLines = 1) }
+        val layouts = broken.map { line ->
+            val r = measurer.measure(line, plain, softWrap = false, maxLines = 1)
+            // A single line that does not fit ends in an ellipsis rather than running under
+            // whatever sits beside it (CSS white-space: nowrap would overflow; nothing here should).
+            if (w == Constraints.Infinity || r.size.width <= w) r else {
+                var lo = 0
+                var hi = line.length
+                while (hi - lo > 1) {
+                    val mid = (lo + hi) / 2
+                    if (measurer.measure(line.take(mid).trimEnd() + "…", plain, softWrap = false, maxLines = 1).size.width <= w) lo = mid else hi = mid
+                }
+                measurer.measure(line.take(lo).trimEnd() + "…", plain, softWrap = false, maxLines = 1)
+            }
+        }
         val em = plain.fontSize.toPx()
         val lh = if (plain.lineHeight.isSp) plain.lineHeight.toPx() else em * 1.2f
         holder.lines = layouts

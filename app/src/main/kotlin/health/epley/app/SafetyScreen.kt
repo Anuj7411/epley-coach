@@ -121,7 +121,9 @@ fun SafetyQuestion(
         Column(Modifier.enter(2).box(c.surface, 28.dp).padding(horizontal = 24.dp, vertical = 4.dp)) {
             items.forEachIndexed { i, item ->
                 if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(if (n) c.surface2 else c.ground))
-                Box(Modifier.fillMaxWidth().heightIn(min = 52.dp), contentAlignment = Alignment.CenterStart) {
+                // 8 dp either side only matters for the two-line rows of question 2; the
+                // design's single-line rows are still their 52 dp minimum.
+                Box(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(vertical = 8.dp), contentAlignment = Alignment.CenterStart) {
                     Txt(item, type(17f, 600), c.ink)
                 }
             }
