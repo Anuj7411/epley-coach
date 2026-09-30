@@ -283,8 +283,14 @@ fun Modifier.pressable(enabled: Boolean = true, onClick: () -> Unit): Modifier {
         tween(Motion.PRESS, easing = StandardEase),
         label = "press",
     )
+    // A light tick with every tap, the way the platform's own controls answer a touch. It goes
+    // through the system, so it follows the phone's haptic setting and is silent when that is off.
+    val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
     return graphicsLayer { scaleX = scale; scaleY = scale }
-        .clickable(interactionSource = source, indication = null, enabled = enabled, onClick = onClick)
+        .clickable(interactionSource = source, indication = null, enabled = enabled) {
+            haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.ContextClick)
+            onClick()
+        }
 }
 
 // ---------------------------------------------------------------------------------------------

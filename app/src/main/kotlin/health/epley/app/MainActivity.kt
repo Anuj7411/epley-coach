@@ -65,7 +65,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 
 /** Where the user is in the app when no run is in progress. */
-enum class Screen { SPLASH, WELCOME, HOME, RUNS, SAFETY, TRIAGE, PRACTICE_SIDE, HOLD, CALIBRATE, DIRECTION, READY, PAYWALL, INSTRUMENT, ACCURACY }
+enum class Screen { SPLASH, WELCOME, HOME, SETTINGS, RUNS, SAFETY, TRIAGE, PRACTICE_SIDE, HOLD, CALIBRATE, DIRECTION, READY, PAYWALL, INSTRUMENT, ACCURACY }
 
 /**
  * The app: a home screen, a six-step flow into a guided run, and the after-care that follows.
@@ -260,17 +260,9 @@ class MainActivity : ComponentActivity() {
             if (practice) "Practice · step $practiceStep of 4" else "Step $treatment of 6"
 
         if (!tracker.isSupported) {
-            // FR-1. Some budget phones ship without a gyroscope, and every angle in this app comes
-            // from one. Saying so here is the only honest option; the flow behind it would measure
-            // nothing and claim a completed manoeuvre.
-            FlowFrame(stepLabel = null, progress = null, onBack = null, bottom = {}) {
-                Title("This phone can't measure head angles", color = Palette.Move)
-                Body(
-                    "It has no orientation sensor, which is what the whole app depends on. " +
-                        "Nothing here would be measured, so it won't pretend to guide you.",
-                )
-                Body("Most phones from the last decade do have one.", secondary = true)
-            }
+            // FR-1 / README §14. Every angle comes from this sensor; without it the flow would
+            // measure nothing and claim a completed manoeuvre.
+            SensorUnavailableScreen()
             return
         }
 
@@ -310,7 +302,13 @@ class MainActivity : ComponentActivity() {
                     onStart = { screen = Screen.SAFETY },
                     onPractice = { screen = Screen.PRACTICE_SIDE },
                     onInstrument = { screen = Screen.INSTRUMENT },
+                    onRuns = { screen = Screen.SETTINGS },
+                )
+
+                Screen.SETTINGS -> SettingsScreen(
                     onRuns = { screen = Screen.RUNS },
+                    onSensors = { screen = Screen.INSTRUMENT },
+                    onBack = { screen = Screen.HOME },
                 )
 
                 Screen.RUNS -> RunsScreenV2(
@@ -463,7 +461,7 @@ class MainActivity : ComponentActivity() {
                     onBack = { screen = Screen.INSTRUMENT },
                 )
 
-                Screen.INSTRUMENT -> ProbeScreen(
+                Screen.INSTRUMENT -> CheckSensorsScreen(
                     tracker = tracker,
                     onAccuracyCheck = { screen = Screen.ACCURACY },
                     onBack = { screen = Screen.HOME },
@@ -652,283 +650,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-private fun ProbeScreen(
-    tracker: HeadTracker,
-    onAccuracyCheck: () -> Unit,
-    onBack: () -> Unit,
-    onToggleLogging: () -> Boolean,
-    isLogging: Boolean,
-    logDirectory: String,
-) {
-    val state by tracker.state.collectAsState()
-    var logging by remember { mutableStateOf(isLogging) }
-    var calibrationMessage by remember { mutableStateOf<String?>(null) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .safeDrawingPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        SecondaryButton("Back to home", onBack)
 
-        SecondaryButton("Accuracy self-check", onAccuracyCheck)
-
-        // Raw diagnostic: the orientation as the sensor gives it, and the phone's own axes in
-        // world coordinates. Where a wrong angle gets traced back to its cause.
-        state.quaternion?.let { q ->
-            val y = q.rotate(health.epley.core.Vector3(0.0, 1.0, 0.0)).normalized()
-            val z = q.rotate(health.epley.core.Vector3(0.0, 0.0, 1.0)).normalized()
-            Text(
-                "q  %+.3f %+.3f %+.3f %+.3f".format(q.x, q.y, q.z, q.w) +
-                    "  Yw %+.3f %+.3f %+.3f".format(y.x, y.y, y.z) +
-                    "  Zw %+.3f %+.3f %+.3f".format(z.x, z.y, z.z) +
-                    "  fused %+.2f  gravity %+.2f  accel %+.2f  |a| %.3f".format(
-                        state.devicePitchDegrees, state.gravityTiltDegrees,
-                        state.accelTiltDegrees, state.accelMagnitude,
-                    ),
-                color = Color(0xFF9E9E9E),
-                fontSize = 13.sp,
-                fontFamily = FontFamily.Monospace,
-            )
-        }
-
-        Text(
-            text = if (tracker.isSupported) tracker.sensorName else "NO ORIENTATION SENSOR",
-            color = if (tracker.isSupported) Color(0xFF7FB3FF) else Color(0xFFFF6B6B),
-            fontSize = 13.sp,
-            fontFamily = FontFamily.Monospace,
-        )
-
-        MountPicker(
-            selected = state.mode,
-            onSelect = {
-                tracker.setMode(it)
-                calibrationMessage = null
-            },
-        )
-
-        Text(
-            text = state.mode.instruction,
-            color = Color(0xFFCCCCCC),
-            fontSize = 14.sp,
-        )
-
-        if (!state.mode.tracksTheHead) {
-            // This mode measures a hand. Saying so once, plainly, is the difference between a
-            // practice feature and a false claim about someone's treatment.
-            Text(
-                text = "PRACTICE ONLY — this reads the phone, not your head. Nothing here is a treatment.",
-                color = Color(0xFFFFD93D),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
-
-        if (state.isJolted) {
-            Text(
-                text = "MOUNT MOVED — the phone turned faster than a neck can (peak " +
-                    "${state.peakRateDegPerSec.toInt()}°/s). Recalibrate before trusting these numbers.",
-                color = Color(0xFFFF6B6B),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
-
-        calibrationMessage?.let {
-            Text(text = it, color = Color(0xFFFF6B6B), fontSize = 13.sp)
-        }
-
-        if (!state.isCalibrated) {
-            Text(
-                text = "Get into that position, hold still, then calibrate.",
-                color = Color(0xFF888888),
-                fontSize = 14.sp,
-            )
-        }
-
-        AngleReadout(
-            label = "HEAD PITCH",
-            degrees = state.pose?.pitchDegrees,
-            hint = "crown below horizontal: −90 sitting, 0 lying flat, + hanging — does not drift",
-        )
-
-        AngleReadout(
-            label = "HEAD ROTATION",
-            degrees = state.pose?.headRotationDegrees,
-            hint = if (state.pose?.isRotationReliable == false) {
-                "UNRELIABLE — swung ${state.pose?.swingDegrees?.toInt()}° from the reference axis"
-            } else {
-                "about the body axis — gyro integrated, watch this one"
-            },
-            hintIsWarning = state.pose?.isRotationReliable == false,
-        )
-
-        Spacer(Modifier.height(4.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                text = "%.1f °/s".format(state.angularRateDegPerSec),
-                color = if (state.isStill) Color(0xFF6BCB77) else Color(0xFFFFD93D),
-                fontSize = 20.sp,
-                fontFamily = FontFamily.Monospace,
-            )
-            Text(
-                text = if (state.isStill) "STILL" else "MOVING",
-                color = if (state.isStill) Color(0xFF6BCB77) else Color(0xFFFFD93D),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
-
-        Text(
-            text = "samples ${state.sampleCount}   since calib ${state.samplesSinceCalibration}   " +
-                "accuracy ${state.sensorAccuracy}",
-            color = Color(0xFF888888),
-            fontSize = 12.sp,
-            fontFamily = FontFamily.Monospace,
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        Button(
-            onClick = {
-                calibrationMessage = when (tracker.calibrate()) {
-                    CalibrationResult.OK -> null
-                    CalibrationResult.NO_SAMPLES -> "No sensor data yet — wait a second and retry."
-                    CalibrationResult.PHONE_TOO_FLAT ->
-                        "The phone is not being held the way this mount needs. It has to be on " +
-                            "edge — not lying flat, not tipped fully back — so it can tell which " +
-                            "way you are facing. Position it and try again."
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text(if (state.isCalibrated) "RE-CALIBRATE" else "CALIBRATE") }
-
-        if (state.isCalibrated) {
-            OutlinedButton(
-                onClick = { tracker.recordUprightCheck() },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("BACK UPRIGHT — CHECK DRIFT") }
-
-            // The one honest measurement of whether the mount held. Truth here is zero on both
-            // angles, so whatever it reads is the error, and it costs nothing to take.
-            Text(
-                text = if (state.residualChecks == 0) {
-                    "Return to the calibration pose and tap the button: whatever it reads then " +
-                        "is how far the mount has drifted."
-                } else {
-                    "drift  last %.1f°   worst %.1f°   over %d check(s)   tolerance %.0f°".format(
-                        state.lastResidualDegrees ?: 0.0,
-                        state.worstResidualDegrees,
-                        state.residualChecks,
-                        state.mode.toleranceDegrees,
-                    )
-                },
-                color = when {
-                    state.residualChecks == 0 -> Color(0xFF888888)
-                    state.worstResidualDegrees <= state.mode.toleranceDegrees / 2 -> Color(0xFF6BCB77)
-                    else -> Color(0xFFFF6B6B)
-                },
-                fontSize = 12.sp,
-                fontFamily = FontFamily.Monospace,
-            )
-        }
-
-        Button(
-            onClick = { logging = onToggleLogging() },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text(if (logging) "STOP LOGGING" else "START LOGGING") }
-
-        if (logging) {
-            Text(
-                text = "writing to $logDirectory",
-                color = Color(0xFF6BCB77),
-                fontSize = 11.sp,
-                fontFamily = FontFamily.Monospace,
-            )
-        }
-    }
-}
-
-/**
- * Choose how the phone is being held.
- *
- * On screen before anything else, because the mount decides both the tolerance the app can promise
- * and which way it thinks the face points. A user with no headband picks the first option and
- * loses nothing but two degrees of tolerance; a reviewer with no intention of lying on a bed picks
- * the last and sees the whole thing work in their hand.
- */
-@Composable
-private fun MountPicker(
-    selected: MountMode,
-    onSelect: (MountMode) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            "HOW ARE YOU HOLDING THE PHONE",
-            color = Color(0xFF888888),
-            fontSize = 11.sp,
-            fontFamily = FontFamily.Monospace,
-        )
-        for (mode in MountMode.entries) {
-            val isSelected = mode == selected
-            Button(
-                onClick = { onSelect(mode) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isSelected) Color(0xFF2A4A7F) else Color(0xFF1A1A1A),
-                    contentColor = if (isSelected) Color.White else Color(0xFF999999),
-                ),
-            ) {
-                Text(
-                    text = "${mode.displayName}   ±${mode.toleranceDegrees.toInt()}°",
-                    fontSize = 14.sp,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AngleReadout(
-    label: String,
-    degrees: Double?,
-    hint: String,
-    hintIsWarning: Boolean = false,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFF111111))
-            .padding(14.dp),
-    ) {
-        Text(label, color = Color(0xFF888888), fontSize = 12.sp, fontFamily = FontFamily.Monospace)
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(
-                text = degrees?.let { "%+.1f".format(it) } ?: "--",
-                color = Color.White,
-                // Deliberately huge: this has to be readable while the phone sits on an angle
-                // finder a metre away, with the reader holding a protractor in the other hand.
-                fontSize = 64.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace,
-            )
-            Text("°", color = Color(0xFF888888), fontSize = 28.sp)
-        }
-        Text(
-            text = hint,
-            color = if (hintIsWarning) Color(0xFFFF6B6B) else Color(0xFF666666),
-            fontSize = 11.sp,
-        )
-    }
-}
 
 /**
  * Appends every sample to a CSV in the app's external files directory.

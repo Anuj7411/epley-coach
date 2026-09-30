@@ -21,6 +21,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -74,16 +77,32 @@ import kotlin.math.roundToInt
 
 val LocalDesignScale = staticCompositionLocalOf { 1f }
 
+/**
+ * The ground under every screen, owned by the frame rather than each screen, so a screen change
+ * cross-fades it (README M2: bone to mint on Hold, to coral on Emergency) instead of snapping.
+ */
+class Ground { var target by mutableStateOf(Color.Unspecified) }
+
+val LocalGround = staticCompositionLocalOf<Ground?> { null }
+
 @Composable
 fun DesignFrame(content: @Composable () -> Unit) {
     val cfg = LocalConfiguration.current
     val d = LocalDensity.current
     val s = (cfg.screenWidthDp / 390f).coerceIn(0.85f, 1.25f)
+    val ground = remember { Ground() }
+    val reduced = LocalReducedMotion.current
+    val shown by animateColorAsState(
+        if (ground.target == Color.Unspecified) Color.Transparent else ground.target,
+        if (reduced) tween(Motion.REDUCED, easing = LinearEasing) else tween(Motion.BG, easing = StandardEase),
+        label = "ground",
+    )
     CompositionLocalProvider(
         LocalDensity provides Density(d.density * s, d.fontScale),
         LocalDesignScale provides s,
+        LocalGround provides ground,
     ) {
-        Box(Modifier.fillMaxSize()) { content() }
+        Box(Modifier.fillMaxSize().background(shown)) { content() }
     }
 }
 
@@ -328,16 +347,14 @@ fun DScreen(
     gap: Dp = 8.dp,
     content: @Composable () -> Unit,
 ) {
-    val reduced = LocalReducedMotion.current
-    val animated by animateColorAsState(
-        bg,
-        if (reduced) tween(Motion.REDUCED, easing = LinearEasing) else tween(Motion.BG, easing = StandardEase),
-        label = "ground",
-    )
+    // The frame paints the ground and cross-fades it between screens (M2); a screen only says
+    // which colour it wants. Outside a frame (previews), it paints its own.
+    val ground = LocalGround.current
+    SideEffect { ground?.target = bg }
     val bars = WindowInsets.systemBars.asPaddingValues()
     val topZone = max(48.dp.value, bars.calculateTopPadding().value).dp
     val bottomZone = max(32.dp.value, bars.calculateBottomPadding().value).dp
-    BoxWithConstraints(Modifier.fillMaxSize().background(animated)) {
+    BoxWithConstraints(Modifier.fillMaxSize().then(if (ground == null) Modifier.background(bg) else Modifier)) {
         val viewport = maxHeight - topZone - bottomZone - top - bottom
         Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             CompositionLocalProvider(LocalViewportHeight provides viewport) {

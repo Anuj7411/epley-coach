@@ -16,7 +16,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -176,6 +180,9 @@ fun FindView(
 private fun RangeMeter(zoneStart: Float, zoneWidth: Float, marker: Float) {
     val c = Ds
     val n = c.night
+    // M7: the marker follows each new reading over 240 ms; the numeral beside it swaps instantly.
+    val reduced = LocalReducedMotion.current
+    val at by animateFloatAsState(marker, if (reduced) snap() else tween(Motion.MARKER, easing = StandardEase), label = "marker")
     BoxWithConstraints(Modifier.fillMaxWidth().height(12.dp)) {
         val w = maxWidth
         Box(Modifier.fillMaxWidth().fillMaxHeight().box(if (n) c.surface2 else c.ground, 6.dp))
@@ -190,7 +197,7 @@ private fun RangeMeter(zoneStart: Float, zoneWidth: Float, marker: Float) {
         // design's top: -6px. A plain size() was clamped to the track and cut the marker in half.
         Box(
             Modifier
-                .offset(x = w * marker - 2.dp)
+                .offset(x = w * at - 2.dp)
                 .requiredSize(4.dp, 24.dp)
                 .box(c.ink, 2.dp),
         )

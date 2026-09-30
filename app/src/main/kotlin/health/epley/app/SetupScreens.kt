@@ -46,37 +46,7 @@ import health.epley.core.word
 // ---------------------------------------------------------------------------------------------
 
 /** Back circle plus a caption, the header every setup step carries. */
-@Composable
-private fun SetupHeader(caption: String, onBack: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = Space.s),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Space.l),
-    ) {
-        DsIconCircle(Icons.AutoMirrored.Rounded.ArrowBack, "Back", onBack)
-        Text(caption, style = DsType.label, color = Ds.muted)
-    }
-}
-
 /** Back circle, caption and the step segments, for the four numbered steps. */
-@Composable
-private fun SetupProgressHeader(caption: String, step: Int, total: Int, onBack: () -> Unit) {
-    Column(
-        Modifier.fillMaxWidth().padding(vertical = Space.s),
-        verticalArrangement = Arrangement.spacedBy(Space.m),
-    ) {
-        Row(
-            Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Space.l),
-        ) {
-            DsIconCircle(Icons.AutoMirrored.Rounded.ArrowBack, "Back", onBack)
-            Text(caption, style = DsType.label, color = Ds.muted)
-        }
-        DsProgressSegments(total = total, current = step)
-    }
-}
-
 // ---------------------------------------------------------------------------------------------
 // Practice: which side to rehearse (README §4.12)
 // ---------------------------------------------------------------------------------------------
@@ -171,16 +141,16 @@ fun PracticeSideView(
 private fun SideChoice(letter: String, label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val c = Ds
     val n = c.night
+    // M5: selection cross-fades its colours over 200 ms; nothing moves.
+    val reduced = LocalReducedMotion.current
+    val spec = if (reduced) androidx.compose.animation.core.snap() else androidx.compose.animation.core.tween<Color>(Motion.TOGGLE, easing = StandardEase)
+    val fill by androidx.compose.animation.animateColorAsState(if (!selected) c.surface else if (n) c.lilacTint else c.lilac, spec, label = "fill")
+    val ring by androidx.compose.animation.animateColorAsState(if (!selected) Color.Transparent else if (n) c.lilac else Ink, spec, label = "ring")
     Column(
         modifier
             .heightIn(min = 280.dp)
             .pressable(onClick = onClick)
-            .box(
-                if (!selected) c.surface else if (n) c.lilacTint else c.lilac,
-                32.dp,
-                ring = if (!selected) null else if (n) c.lilac else Ink,
-                ringWidth = 3.dp,
-            )
+            .box(fill, 32.dp, ring = ring, ringWidth = 3.dp)
             .padding(24.dp),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -209,69 +179,118 @@ private fun SideChoice(letter: String, label: String, selected: Boolean, modifie
 }
 
 // ---------------------------------------------------------------------------------------------
-// How the phone is held
+// How the phone is held (app-only; built in the design's language: the Question layout)
 // ---------------------------------------------------------------------------------------------
 
-/**
- * Only the two head-mounted choices. Practice sets its own mount, because there the phone is the
- * head and there is nothing to strap it to.
- */
+/** The header of the numbered setup steps: back circle, "Step N of 6", then the segments. */
 @Composable
-fun HoldScreen(step: Int, total: Int, onMode: (MountMode) -> Unit, onBack: () -> Unit) {
+private fun StepHeader(caption: String, step: Int, total: Int, onBack: () -> Unit) {
     val c = Ds
-    DsScreen(top = { SetupProgressHeader("Step $step of $total", step, total, onBack) }) {
-        Text(
-            "How will you hold the phone?",
-            style = DsType.title,
-            color = c.ink,
-            modifier = Modifier.padding(start = Space.s).enter(0),
-        )
-        Text(
-            "It has to move with your head, so it goes against the side of your face.",
-            style = DsType.body,
-            color = c.muted,
-            modifier = Modifier.padding(start = Space.s, bottom = Space.s).enter(1),
-        )
-        Box(Modifier.enter(2)) {
-            ChoiceCard(
-                title = "Against your cheek",
-                body = "Needs nothing. Hold it flat on your cheekbone, screen facing out, top of " +
-                    "the phone toward the top of your head.",
-                onClick = { onMode(MountMode.CHEEK) },
-            )
+    Column(Modifier.enter(0), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Box(Modifier.size(48.dp).pressable(onClick = onBack).box(c.surface, 24.dp), contentAlignment = Alignment.Center) {
+                Sym("arrow_back", 24f, c.ink)
+            }
+            Txt(caption, type(16f, 600), c.muted, maxLines = 1)
         }
-        Box(Modifier.enter(3)) {
-            ChoiceCard(
-                title = "In a headband or cap",
-                body = "Most accurate, and both hands stay free. Tuck it against the side of " +
-                    "your head.",
-                onClick = { onMode(MountMode.HEADBAND) },
-            )
+        Box(Modifier.padding(horizontal = 8.dp)) { ProgressBars(total = total, current = step) }
+    }
+}
+
+/** Title and sub-text as the question screens set them. */
+@Composable
+private fun StepTitle(title: String, sub: String?, index: Int = 1) {
+    val c = Ds
+    Column(
+        Modifier.padding(start = 8.dp, end = 8.dp, top = 16.dp, bottom = 8.dp).enter(index),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Txt(title, type(34f, 800, lineHeight = 1.05f, letterSpacing = -0.03f, wrap = Wrap.Balance), c.ink)
+        if (sub != null) Txt(sub, type(17f, 500, lineHeight = 1.45f, wrap = Wrap.Pretty), c.muted)
+    }
+}
+
+/** The ring note, as on the question screens. */
+@Composable
+private fun StepNote(text: String, icon: String = "info") {
+    val c = Ds
+    Row(
+        Modifier.box(Color.Transparent, 24.dp, ring = c.line, ringWidth = 1.5.dp).padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Sym(icon, 24f, c.muted)
+        Txt(text, type(16f, 600, lineHeight = 1.4f, wrap = Wrap.Pretty), c.ink, modifier = Modifier.weight(1f))
+    }
+}
+
+/** A failed capture: coral card, as the design's warning family. */
+@Composable
+private fun StepWarning(text: String) {
+    val c = Ds
+    val n = c.night
+    Row(
+        Modifier.box(if (n) c.coralTint else c.coral, 28.dp, ring = if (n) c.coral else null).padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Box(Modifier.size(48.dp).box(if (n) c.coral else Color.White.copy(alpha = 0.6f), 16.dp), contentAlignment = Alignment.Center) {
+            Sym("warning", 24f, Ink)
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Txt("TRY AGAIN", type(14f, 800, letterSpacing = 0.06f), if (n) c.coral else Ink)
+            Txt(text, type(16f, 600, lineHeight = 1.35f, wrap = Wrap.Pretty), if (n) c.ink else Ink)
         }
     }
 }
 
-/** A tappable option: the whole card is the target, not a button underneath a paragraph. */
+/**
+ * Only the two head-mounted choices. Practice sets its own mount, because there the phone is the
+ * head and there is nothing to strap it to. Laid out as the two-option questions (§4.6).
+ */
 @Composable
-private fun ChoiceCard(title: String, body: String, onClick: () -> Unit) {
+fun HoldScreen(step: Int, total: Int, onMode: (MountMode) -> Unit, onBack: () -> Unit) {
     val c = Ds
-    DsCard(padding = Space.l, minHeight = 104.dp, onClick = onClick) {
-        Row(
-            Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Space.m),
-        ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Space.xs)) {
-                Text(title, style = DsType.cardTitle, color = c.ink)
-                Text(body, style = DsType.label, color = c.muted)
-            }
-            Icon(
-                Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                contentDescription = null,
-                tint = c.muted,
-                modifier = Modifier.size(28.dp),
-            )
+    DScreen(bg = c.ground) {
+        StepHeader("Step $step of $total", step, total, onBack)
+        StepTitle("How will you hold the phone?", "It has to move with your head, so it goes against the side of your face.")
+        Column(Modifier.enter(2), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ChoiceCard(
+                "Against your cheek",
+                "Needs nothing. Flat on your cheekbone, screen facing out, top of the phone toward the top of your head.",
+                "back_hand",
+            ) { onMode(MountMode.CHEEK) }
+            ChoiceCard(
+                "In a headband or cap",
+                "Most accurate, and both hands stay free. Tuck it against the side of your head.",
+                "check_circle",
+            ) { onMode(MountMode.HEADBAND) }
         }
+        Spacer(Modifier.flex())
+        StepNote("Either way, the voice guides you. You can keep your eyes shut.")
+    }
+}
+
+@Composable
+private fun ChoiceCard(title: String, body: String, icon: String, onClick: () -> Unit) {
+    val c = Ds
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 104.dp)
+            .pressable(onClick = onClick)
+            .box(c.surface, 28.dp)
+            .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Box(Modifier.size(48.dp).box(if (c.night) c.surface2 else c.ground, 16.dp), contentAlignment = Alignment.Center) {
+            Sym(icon, 24f, c.ink)
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Txt(title, type(22f, 800, lineHeight = 1.15f, letterSpacing = -0.01f), c.ink)
+            Txt(body, type(16f, 600, lineHeight = 1.35f, wrap = Wrap.Pretty), c.muted)
+        }
+        Sym("chevron_right", 24f, c.muted)
     }
 }
 
@@ -280,11 +299,9 @@ private fun ChoiceCard(title: String, body: String, onClick: () -> Unit) {
 // ---------------------------------------------------------------------------------------------
 
 /**
- * Capture the reference pose.
- *
- * The button is pressed while the screen can still be seen; the pose is taken afterwards, once
- * the sensor agrees the person has stopped moving. Asking someone to press a button on a screen
- * that is flat against their own cheek does not work — that was found by trying it.
+ * Capture the reference pose. The button is pressed while the screen can still be seen; the pose
+ * is taken afterwards, once the sensor agrees the person has stopped moving. Asking someone to
+ * press a button on a screen flat against their own cheek does not work — found by trying it.
  */
 @Composable
 fun CalibrateScreen(
@@ -299,61 +316,50 @@ fun CalibrateScreen(
     ear: Char = 'R',
 ) {
     val c = Ds
-    DsScreen(
-        top = { SetupProgressHeader(stepLabel, step, total, onBack) },
-        bottom = {
-            if (countdown == null) {
-                DsButton("Start, then get into position", onCalibrate)
-            } else {
-                CountdownCardV2(countdown)
-            }
-        },
-    ) {
-        Text(
+    DScreen(bg = c.ground) {
+        StepHeader(stepLabel, step, total, onBack)
+        StepTitle(
             if (mode.tracksTheHead) "Sit up straight and look ahead" else "Hold the phone upright",
-            style = DsType.title,
-            color = c.ink,
-            modifier = Modifier.padding(start = Space.s).enter(0),
+            null,
         )
-        Box(Modifier.enter(1)) {
-            DsCard(radius = Radius.hero) {
-                // The reference pose, from the design's own renderer: position 5's end pose is
-                // seated, facing forward, head level, with the phone on the cheek — exactly what
-                // is captured here. In practice the phone is the head, so no head is drawn.
-                if (mode.tracksTheHead) {
-                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        FigureView(
-                            step = 5, ear = ear, night = c.night, playing = false, size = 208,
-                            description = "Figure: sitting up, facing forward, head level, phone on the cheek",
-                        )
-                    }
-                }
-                Text(mode.instruction, style = DsType.body, color = c.ink)
-            }
-        }
-        Text(
+        Column(
+            Modifier.enter(2).box(c.surface, 32.dp).padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            // The reference pose, from the design's own renderer: position 5's end pose is seated,
+            // facing forward, head level, phone on the cheek — exactly what is captured here. In
+            // practice the phone is the head, so no head is drawn.
             if (mode.tracksTheHead) {
-                "Tap now, while you can still see the screen. The app counts you down out loud, " +
-                    "then captures the position once you are still, so you never have to press " +
-                    "anything with the phone against your face."
-            } else {
-                "Screen toward your face, like reading it. Tap, then hold it still."
-            },
-            style = DsType.body,
-            color = c.muted,
-            modifier = Modifier.padding(start = Space.s).enter(2),
-        )
-        if (message != null) {
-            Box(Modifier.enter(3)) { DsWarning("Try again", message) }
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    FigureView(
+                        step = 5, ear = ear, night = c.night, playing = false, size = 208,
+                        description = "Figure: sitting up, facing forward, head level, phone on the cheek",
+                    )
+                }
+            }
+            Txt(mode.instruction, type(17f, 600, lineHeight = 1.4f, wrap = Wrap.Pretty), c.ink)
+        }
+        if (message != null) Box(Modifier.enter(3)) { StepWarning(message) }
+        Spacer(Modifier.flex())
+        if (countdown == null) {
+            StepNote(
+                if (mode.tracksTheHead) {
+                    "Tap while you can still see the screen. The app counts you down out loud, then " +
+                        "captures the position once you are still."
+                } else {
+                    "Screen toward your face, like reading it. Tap, then hold it still."
+                },
+            )
+            PillButton("Start, then get into position", onCalibrate, fill = if (c.night) c.lilac else Ink, content = if (c.night) Ink else Color.White)
+        } else {
+            CountdownCardV2(countdown)
         }
     }
 }
 
 /**
- * Learn which way is which, by asking for one turn toward the identified ear.
- *
- * The sensor reports a signed rotation, but nothing in it says which sign is the user's right.
- * One deliberate turn settles it; the app cannot work it out alone.
+ * Learn which way is which, by asking for one turn toward the identified ear. The sensor reports
+ * a signed rotation, but nothing in it says which sign is the user's right; one turn settles it.
  */
 @Composable
 fun DirectionScreen(
@@ -369,53 +375,33 @@ fun DirectionScreen(
 ) {
     val c = Ds
     val word = side.word
-    DsScreen(
-        top = { SetupProgressHeader(stepLabel, step, total, onBack) },
-        bottom = {
-            if (countdown == null) {
-                DsButton("Start, then turn to my $word", onLearn)
-            } else {
-                CountdownCardV2(countdown)
-            }
-        },
-    ) {
-        Text(
+    DScreen(bg = c.ground) {
+        StepHeader(stepLabel, step, total, onBack)
+        StepTitle(
             if (practice) "Turn the phone to your $word" else "Turn your head to your $word",
-            style = DsType.title,
-            color = c.ink,
-            modifier = Modifier.padding(start = Space.s).enter(0),
+            if (practice) "Turn it like a key, about halfway, and hold it there."
+            else "About halfway to your shoulder, and hold it there.",
         )
-        Text(
-            if (practice) {
-                "Tap now, then turn it like a key, about halfway, and hold it there."
-            } else {
-                "Tap now, then turn about halfway to your shoulder and hold it there. The app " +
-                    "counts you down out loud and captures it once you are still."
-            },
-            style = DsType.body,
-            color = c.ink,
-            modifier = Modifier.padding(start = Space.s).enter(1),
-        )
-        Box(Modifier.enter(2)) {
-            DsCard(radius = Radius.hero) {
-                // The design's own figure: its first position is exactly this move.
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    FigureView(
-                        step = 1,
-                        ear = if (side == Side.LEFT) 'L' else 'R',
-                        night = c.night,
-                        playing = true,
-                        size = 208,
-                        description = "Figure: head turned 45° toward the ${side.word} ear",
-                    )
-                }
+        Box(Modifier.enter(2).box(c.surface, 32.dp).padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 16.dp)) {
+            // The design's own figure: its first position is exactly this move.
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                FigureView(
+                    step = 1,
+                    ear = if (side == Side.LEFT) 'L' else 'R',
+                    night = c.night,
+                    playing = true,
+                    size = 208,
+                    description = "Figure: head turned 45° toward the $word ear",
+                )
             }
         }
-        Box(Modifier.enter(3)) {
-            DsNote("This teaches the app which direction is which. It can't work that out on its own.")
-        }
-        if (message != null) {
-            Box(Modifier.enter(4)) { DsWarning("Try again", message) }
+        if (message != null) Box(Modifier.enter(3)) { StepWarning(message) }
+        Spacer(Modifier.flex())
+        if (countdown == null) {
+            StepNote("This teaches the app which direction is which. It can’t work that out on its own.")
+            PillButton("Start, then turn to my $word", onLearn, fill = if (c.night) c.lilac else Ink, content = if (c.night) Ink else Color.White)
+        } else {
+            CountdownCardV2(countdown)
         }
     }
 }
@@ -424,23 +410,18 @@ fun DirectionScreen(
 @Composable
 private fun CountdownCardV2(countdown: Int) {
     val c = Ds
-    DsCard(fill = c.lilac, tint = c.lilacTint, outline = c.lilac, radius = Radius.hero) {
-        Column(
-            Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Space.xs),
-        ) {
-            Text(
-                if (countdown > 0) "$countdown" else "Hold still",
-                style = if (countdown > 0) DsType.count(64.sp) else DsType.title,
-                color = if (c.night) c.ink else Color(0xFF17161C),
-            )
-            Text(
-                if (countdown > 0) "Get into position" else "Capturing when you stop moving",
-                style = DsType.label,
-                color = if (c.night) c.soft else Color(0xCC17161C),
-                textAlign = TextAlign.Center,
-            )
+    val n = c.night
+    Column(
+        Modifier.fillMaxWidth().box(if (n) c.lilacTint else c.lilac, 32.dp, ring = if (n) c.lilac else null).padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        if (countdown > 0) {
+            Txt("$countdown", type(96f, 800, lineHeight = 0.86f, letterSpacing = -0.055f, tnum = true), if (n) c.ink else Ink, maxLines = 1)
+            Txt("Get into position", type(20f, 700), if (n) c.soft else Ink, maxLines = 1)
+        } else {
+            Txt("Hold still", type(44f, 800, lineHeight = 1f, letterSpacing = -0.035f), if (n) c.ink else Ink, maxLines = 1)
+            Txt("Capturing when you stop moving", type(17f, 600, align = TextAlign.Center), if (n) c.soft else Ink)
         }
     }
 }
@@ -462,57 +443,50 @@ fun ReadyScreen(
     onBack: () -> Unit,
 ) {
     val c = Ds
-    DsScreen(
-        top = { SetupProgressHeader(stepLabel, step, total, onBack) },
-        bottom = { DsButton("Start", onStart, trailing = Icons.AutoMirrored.Rounded.ArrowForward) },
-    ) {
-        Text(
-            "Ready",
-            style = DsType.display,
-            color = c.ink,
-            modifier = Modifier.padding(start = Space.s).enter(0),
-        )
-        Box(Modifier.enter(1)) {
-            DsCard(padding = Space.l) {
-                ConfirmedLine(
-                    if (practice) {
-                        "Practice · ${side.word} ear"
-                    } else {
-                        "${side.word.replaceFirstChar { it.uppercase() }} ear · posterior canal"
-                    },
-                )
-                DsDivider()
-                ConfirmedLine(
-                    when {
-                        practice -> "Phone in your hand"
-                        mode == MountMode.HEADBAND -> "Phone in a headband"
-                        else -> "Phone against your cheek"
-                    },
-                )
-                DsDivider()
-                ConfirmedLine("Direction learned")
+    val n = c.night
+    DScreen(bg = c.ground) {
+        StepHeader(stepLabel, step, total, onBack)
+        Column(
+            Modifier.flex().enter(1).box(if (n) c.lilacTint else c.lilac, 32.dp, ring = if (n) c.lilac else null).padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Row(
+                Modifier
+                    .box(if (n) Color.Transparent else Color.White.copy(alpha = 0.55f), 999.dp, ring = if (n) c.lilac else null)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Sym("check_circle", 20f, if (n) c.lilac else Ink, weight = 600)
+                Txt("All set", type(16f, 600), if (n) c.lilac else Ink, maxLines = 1)
             }
-        }
-        if (!practice) {
-            Text(
-                "Sit on the bed so that when you lie back, your head can hang over the end.",
-                style = DsType.body,
-                color = c.muted,
-                modifier = Modifier.padding(start = Space.s).enter(2),
+            Spacer(Modifier.weight(1f))
+            Txt("Ready", type(96f, 800, lineHeight = 0.86f, letterSpacing = -0.055f), if (n) c.ink else Ink, maxLines = 1)
+            Txt(
+                "The voice will guide you through five positions. You can keep your eyes shut.",
+                type(17f, 600, lineHeight = 1.4f, wrap = Wrap.Pretty),
+                if (n) c.soft else Ink,
             )
         }
-        Text(
-            "The voice will guide you through five positions. You can keep your eyes shut.",
-            style = DsType.body,
-            color = c.ink,
-            modifier = Modifier.padding(start = Space.s).enter(3),
-        )
-        Box(Modifier.enter(4)) {
-            DsNote(
-                "Hold either volume button for a moment to stop. A quick press still changes " +
-                    "the volume.",
+        Column(Modifier.enter(2).box(c.surface, 28.dp).padding(horizontal = 16.dp, vertical = 8.dp)) {
+            ConfirmedLine(
+                if (practice) "Practice · ${side.word} side"
+                else "${side.word.replaceFirstChar { it.uppercase() }} ear · posterior canal",
             )
+            Box(Modifier.fillMaxWidth().height(1.dp).background(if (n) c.surface2 else c.ground))
+            ConfirmedLine(
+                when {
+                    practice -> "Phone in your hand"
+                    mode == MountMode.HEADBAND -> "Phone in a headband"
+                    else -> "Phone against your cheek"
+                },
+            )
+            Box(Modifier.fillMaxWidth().height(1.dp).background(if (n) c.surface2 else c.ground))
+            ConfirmedLine("Direction learned")
         }
+        if (!practice) StepNote("Sit on the bed so that when you lie back, your head can hang over the end.", icon = "bed")
+        StepNote("Hold either volume button for a moment to stop. A quick press still changes the volume.")
+        PillButton("Start", onStart, fill = if (n) c.lilac else Ink, content = if (n) Ink else Color.White, icon = "arrow_forward")
     }
 }
 
@@ -520,16 +494,11 @@ fun ReadyScreen(
 private fun ConfirmedLine(text: String) {
     val c = Ds
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 44.dp),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Space.m),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Icon(
-            Icons.Rounded.Check,
-            contentDescription = null,
-            tint = c.mint,
-            modifier = Modifier.size(22.dp),
-        )
-        Text(text, style = DsType.rowTitle, color = c.ink)
+        Sym("check_circle", 22f, if (c.night) c.mint else Ink, fill = true)
+        Txt(text, type(17f, 600), c.ink, modifier = Modifier.weight(1f))
     }
 }

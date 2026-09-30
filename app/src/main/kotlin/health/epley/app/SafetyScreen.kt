@@ -215,33 +215,3 @@ private fun SeeDoctorStop(onHome: () -> Unit) {
         PillButton("Back to home", onHome, fill = if (n) c.lilac else Ink, content = if (n) Ink else Color.White)
     }
 }
-
-/**
- * The muted note used by screens not yet moved to the v2 system. Replaced by [DsNote] as each
- * screen is converted.
- */
-@Composable
-fun InfoNote(text: String) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(Palette.Surface)
-            .padding(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Icon(
-            Icons.Rounded.Warning,
-            contentDescription = null,
-            tint = Palette.InkFaint,
-            modifier = Modifier.size(20.dp),
-        )
-        Text(
-            text,
-            color = Palette.InkMuted,
-            fontSize = AppType.ReadingFloor,
-            lineHeight = AppType.LabelLine,
-            fontFamily = AppType.Sans,
-        )
-    }
-}
