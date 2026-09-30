@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Epley figure view</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&display=swap" rel="stylesheet">
+<style>html,body{margin:0;height:100%;background:transparent;overflow:hidden}canvas{display:block;width:100vw;height:100vw;max-height:100vh;max-width:100vh}</style>
+</head>
+<body>
+<canvas id="fig"></canvas>
+<script type="module">
+// Host page for the 3D figure inside an Android WebView (transparent background).
+// Usage: figure-view.html#step=4&ear=R&theme=light&playing=1
+// Or from Kotlin: webView.evaluateJavascript("setFigure({step:2, ear:'L', theme:'night', playing:true})", null)
+// For fully offline builds, replace the unpkg import inside epley-figure-*.js with './vendor/three.module.js'
+// (copy build/three.module.js and build/three.core.js from three@0.184.0).
+import { getFigure } from './epley-figure-app.js';
+const read = () => { const p = new URLSearchParams(location.hash.slice(1)); return { step: +(p.get('step') || 1), ear: p.get('ear') || 'R', theme: p.get('theme') || 'light', playing: p.get('playing') !== '0' }; };
+const api = await getFigure();
+const h = api.attach(document.getElementById('fig'), read());
+window.setFigure = o => h.set(o);
+window.replayFigure = () => h.replay();
+addEventListener('hashchange', () => h.set(read()));
+window.AndroidFigure?.onReady?.();
+</script>
+</body>
+</html>

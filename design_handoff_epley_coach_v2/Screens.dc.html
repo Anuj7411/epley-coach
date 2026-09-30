@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&amp;display=swap" rel="stylesheet">
+<style>html,body{margin:0;background:#E3E1DB}body{font-family:'Bricolage Grotesque',sans-serif;color:#17161C;-webkit-font-smoothing:antialiased}a{color:#17161C}a:hover{color:#55535E}</style>
+</helmet>
+<main style="padding:48px;display:flex;flex-direction:column;gap:48px">
+  <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:44px;line-height:1;font-weight:800;letter-spacing:-.035em">Epley Coach · every screen</span><span style="font-size:17px;font-weight:500;color:#55535E">Rendered from EpleyScreen.dc.html. Labels match the file names in screenshots/.</span></div>
+  <div style="display:flex;flex-wrap:wrap;gap:40px 32px">
+    <sc-for list="{{ items }}" as="it" hint-placeholder-count="12">
+      <figure style="margin:0;display:flex;flex-direction:column;gap:12px">
+        <div id="{{ it.id }}" style="display:flex;width:max-content"><dc-import name="EpleyScreen" screen="{{ it.screen }}" pos="{{ it.pos }}" ear="{{ it.ear }}" tq="{{ it.tq }}" device-w="{{ w }}" device-h="{{ h }}" bare="{{ bare }}" reduced-motion="{{ true }}" hint-size="414px,868px"></dc-import></div>
+        <figcaption style="font-size:15px;font-weight:700;color:#55535E">{{ it.id }}</figcaption>
+      </figure>
+    </sc-for>
+  </div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const BASE = ['splash', 'welcome', 'home', 'safety', 'emergency', 'triage', 'triage4', 'result', 'horizontal', 'notbppv', 'find', 'hold', 'done', 'history', 'side'];
+class Component extends DCLogic {
+  renderVals() {
+    const items = []; let n = 0;
+    const add = (id, screen, extra = {}) => items.push({ id: String(++n).padStart(2, '0') + '-' + id, screen, pos: extra.pos ?? 4, ear: extra.ear ?? 'R', tq: extra.tq ?? null });
+    for (const t of ['day', 'night']) for (const b of BASE) add(b + '-' + t, t === 'night' ? b + '-night' : b);
+    for (const q of [2, 3, 5, 6]) add('triage-q' + q + '-day', 'triage', { tq: { n: q } });
+    for (const p of [1, 2, 3, 5]) { add('find-pos' + p + '-day', 'find', { pos: p }); add('hold-pos' + p + '-day', 'hold', { pos: p }); }
+    add('result-left-ear-day', 'result', { ear: 'L' });
+    add('find-pos4-left-ear-day', 'find', { pos: 4, ear: 'L' });
+    add('done-left-ear-day', 'done', { ear: 'L' });
+    const q = new URLSearchParams(location.search);
+    return { items, w: Number(q.get('w') || 390), h: Number(q.get('h') || 844), bare: q.get('bare') === '1' };
+  }
+}
+</script>
+</body>
+</html>

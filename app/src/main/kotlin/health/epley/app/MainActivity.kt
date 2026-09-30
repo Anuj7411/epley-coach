@@ -8,6 +8,8 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
@@ -185,6 +187,19 @@ class MainActivity : ComponentActivity() {
         // Hands the system splash over to the app without a blank frame between them.
         installSplashScreen()
 
+        // The design draws edge to edge into its own 48 dp status and 32 dp gesture zones
+        // (README ★P1). Bar icons are dark on the day ground and light on the night one.
+        val nightAtLaunch = isNightNow(
+            resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
+                android.content.res.Configuration.UI_MODE_NIGHT_YES,
+        )
+        val bars = if (nightAtLaunch) {
+            SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+        } else {
+            SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
+        }
+        enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
+
         setContent {
             // Night when the system is dark, or between 21:00 and 06:00. Read once, so the
             // colours cannot change under someone lying with their head hanging back.
@@ -197,7 +212,8 @@ class MainActivity : ComponentActivity() {
             EpleyTheme {
                 EpleyDesign(night = night) {
                     Surface(modifier = Modifier.fillMaxSize(), color = Ds.ground) {
-                        App()
+                        // README ★P1: every screen is written in design dp inside this frame.
+                        DesignFrame { App() }
                     }
                 }
             }

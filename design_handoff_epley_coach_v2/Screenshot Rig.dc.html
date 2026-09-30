@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&amp;display=swap" rel="stylesheet">
+<style>html,body{margin:0;background:#000000}a{color:#17161C}a:hover{color:#55535E}</style>
+</helmet>
+<div id="shot" style="display:flex;width:max-content">
+  <dc-import name="EpleyScreen" screen="{{ screen }}" pos="{{ pos }}" ear="{{ ear }}" tq="{{ tq }}" live="{{ live }}" device-w="{{ w }}" device-h="{{ h }}" bare="{{ bare }}" reduced-motion="{{ still }}" hint-size="390px,844px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+// Reference renderer. URL: Screenshot Rig.dc.html?screen=home-night&w=412&h=915&pos=4&ear=R&q=1&bare=1&still=1
+// bare=1 → no bezel, no rounded corners, fake status/gesture bars hidden (their space is kept). still=1 → 3D figure shows its held frame.
+class Component extends DCLogic {
+  renderVals() {
+    const q = new URLSearchParams(location.search), num = (k, d) => (q.has(k) ? Number(q.get(k)) : d);
+    const live = {}; if (q.has('value')) live.value = num('value'); if (q.has('count')) live.count = num('count');
+    return { screen: q.get('screen') || 'home', pos: num('pos', 4), ear: q.get('ear') || 'R', tq: q.has('q') ? { n: num('q', 1) } : null, live,
+      w: num('w', 390), h: num('h', 844), bare: q.get('bare') !== '0', still: q.get('still') !== '0' };
+  }
+}
+</script>
+</body>
+</html>

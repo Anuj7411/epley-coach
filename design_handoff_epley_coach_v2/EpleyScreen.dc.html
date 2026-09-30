@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0..1,0&amp;family=Atkinson+Hyperlegible+Next:wght@700&display=swap" rel="stylesheet">
+<style>body{margin:0;background:transparent}a{color:#17161C}a:hover{color:#55535E}</style>
+</helmet>
+<div style="width:{{ bezelW }}px;height:{{ bezelH }}px;zoom:{{ zoom }};box-sizing:border-box;padding:{{ bezelPad }}px;border-radius:{{ bezelR }}px;background:#0B0A0E;box-shadow:0 1px 0 1px #2A2931 inset,0 48px 96px -32px rgba(23,22,28,.45);font-family:'Bricolage Grotesque',sans-serif;-webkit-font-smoothing:antialiased">
+
+<sc-if value="{{ isHome }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#EFEDE8;color:#17161C;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative"><span>21:40</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#0B0A0E"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_5_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 0">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 8px"><span style="font-size:16px;font-weight:600;color:#55535E;white-space:nowrap">Tuesday 30 September</span><span style="width:48px;height:48px;border-radius:24px;background:#FFFFFF;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1">settings</span></span></div>
+    <div style="display:flex;flex-direction:column;gap:8px;padding:16px 8px 24px"><span style="font-size:44px;line-height:1;font-weight:800;letter-spacing:-.035em">Ready when<br>you are.</span></div>
+    <div style="background:#C9BCFF;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:24px;min-height:232px;flex:1;box-sizing:border-box;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.safety }}">
+      <span style="align-self:flex-start;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.55);font-size:16px;font-weight:600;white-space:nowrap"><span style="font-family:'Material Symbols Rounded';font-size:20px;line-height:1">health_and_safety</span>Safety check first</span>
+      <div style="flex:1"></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px"><div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:34px;line-height:1;font-weight:800;letter-spacing:-.03em">Start<br>treatment</span><span style="font-size:16px;font-weight:600;white-space:nowrap">5 positions · about 6 min</span></div><span style="width:64px;height:64px;flex:none;border-radius:32px;background:#17161C;color:#FFFFFF;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:32px;line-height:1">arrow_forward</span></span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+      <div style="background:#FFE38A;border-radius:28px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;gap:24px;min-height:136px;box-sizing:border-box;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.side }}"><span style="font-family:'Material Symbols Rounded';font-size:28px;line-height:1">back_hand</span><span style="font-size:20px;line-height:1.1;font-weight:700;letter-spacing:-.01em">Practise<br>in hand</span></div>
+      <div style="background:#FFFFFF;border-radius:28px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;gap:24px;min-height:136px;box-sizing:border-box"><span style="font-family:'Material Symbols Rounded';font-size:28px;line-height:1">sensors</span><span style="font-size:20px;line-height:1.1;font-weight:700;letter-spacing:-.01em">Check<br>sensors</span></div>
+    </div>
+    <div style="background:#FFC4B8;border-radius:28px;padding:16px;display:flex;align-items:center;gap:16px"><span style="width:48px;height:48px;flex:none;border-radius:16px;background:rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;">warning</span></span><div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font-size:14px;font-weight:800;letter-spacing:.06em">NOT A MEDICAL DEVICE</span><span style="font-size:16px;line-height:1.35;font-weight:600;text-wrap:pretty">An unregulated prototype. It must never be used on a patient.</span></div></div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#17161C"></span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isSide }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#EFEDE8;color:#17161C;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative"><span>21:41</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#0B0A0E"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_5_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="display:flex;align-items:center;gap:16px;padding:0 8px 0 0"><span style="width:48px;height:48px;border-radius:24px;background:#FFFFFF;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.back }}"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1">arrow_back</span></span><span style="font-size:16px;font-weight:600;color:#55535E">Practice mode</span></div>
+    <div style="display:flex;flex-direction:column;gap:12px;padding:24px 8px 24px"><span style="font-size:34px;line-height:1.05;font-weight:800;letter-spacing:-.03em;text-wrap:balance">Which side to rehearse?</span><span style="font-size:17px;line-height:1.45;font-weight:500;color:#55535E;text-wrap:pretty">Nothing is measured. Walk through the moves with the phone in your hand before you try them lying down.</span></div>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+      <div style="background:#FFFFFF;border-radius:32px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;min-height:280px;box-sizing:border-box">
+        <span style="font-family:'Material Symbols Rounded';font-size:28px;line-height:1;color:#55535E">radio_button_unchecked</span>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:112px;line-height:.8;font-weight:800;letter-spacing:-.06em">L</span><span style="font-size:20px;font-weight:700">Left side</span></div>
+      </div>
+      <div style="background:#C9BCFF;border-radius:32px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;min-height:280px;box-sizing:border-box;box-shadow:0 0 0 3px #17161C inset">
+        <span style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700"><span style="font-family:'Material Symbols Rounded';font-size:28px;line-height:1;font-variation-settings:'FILL' 1">radio_button_checked</span>Selected</span>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:112px;line-height:.8;font-weight:800;letter-spacing:-.06em">R</span><span style="font-size:20px;font-weight:700">Right side</span></div>
+      </div>
+    </div>
+    <div style="background:#FFFFFF;border-radius:28px;padding:16px;display:flex;align-items:center;gap:16px;min-height:80px;box-sizing:border-box">
+      <span style="width:48px;height:48px;flex:none;border-radius:16px;background:#EFEDE8;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1">help</span></span>
+      <span style="flex:1;font-size:17px;font-weight:700">Not sure which ear? Take the 6 questions</span>
+      <span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;color:#55535E">chevron_right</span>
+    </div>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;min-height:64px;border-radius:32px;background:#17161C;color:#FFFFFF;padding:0 24px 0 32px;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.home }}">Start practice<span style="font-family:'Material Symbols Rounded';font-size:28px;line-height:1">arrow_forward</span></div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#17161C"></span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isFind }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#EFEDE8;color:#17161C;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#17161C"><span>21:44</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#0B0A0E"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_5_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="display:flex;flex-direction:column;gap:8px;padding:0 8px 8px">
+      <div style="display:flex;gap:4px"><sc-for list="{{ posBars }}" as="b" hint-placeholder-count="5"><span style="flex:1;height:8px;border-radius:4px;background:{{ b.bg }};box-shadow:0 0 0 2px {{ b.ring }} inset"></span></sc-for></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:32px"><span style="font-size:16px;font-weight:600;white-space:nowrap;color:#55535E">Position {{ posN }} of 5</span><span style="display:flex;align-items:center;gap:8px;padding:4px 12px 4px 8px;border-radius:999px;box-shadow:0 0 0 2px #17161C inset;font-size:16px;font-weight:700;white-space:nowrap"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:20px">explore</span>Finding position</span></div>
+    </div>
+    <div style="background:#FFE38A;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:34px;line-height:1.02;font-weight:800;letter-spacing:-.03em;text-wrap:balance">{{ posTitle }}</span>
+      <span style="font-size:17px;line-height:1.4;font-weight:500;">{{ posSub }}</span>
+    </div>
+    <div style="background:#FFFFFF;border-radius:32px;padding:16px 24px 24px;display:flex;flex-direction:column;gap:16px">
+      <div style="position:relative;display:flex;justify-content:center">
+        <canvas ref="{{ figRef }}" role="img" aria-label="{{ figLabel }}" style="width:248px;height:248px;display:block;flex:none"></canvas>
+        <span onClick="{{ toggleFig }}" role="button" aria-pressed="{{ figStillPressed }}" style="position:absolute;right:-8px;bottom:0;height:48px;padding:0 16px 0 12px;border-radius:24px;background:#EFEDE8;display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;cursor:pointer;white-space:nowrap"><span style="font-family:'Material Symbols Rounded';font-size:22px;line-height:1;font-variation-settings:'FILL' 1">{{ figToggleIcon }}</span>{{ figToggleWord }}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;padding-top:16px;border-top:1px solid #EFEDE8"><span style="font-size:56px;line-height:.9;font-weight:800;letter-spacing:-.045em;font-variant-numeric:tabular-nums">{{ findRemain }}</span><div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font-size:20px;font-weight:800;letter-spacing:-.01em;white-space:nowrap">{{ posDir }}</span><span style="font-size:16px;font-weight:600;color:#55535E;white-space:nowrap">{{ findNow }} · aim {{ posAim }}</span></div></div>
+      <div style="position:relative;height:12px;border-radius:6px;background:#EFEDE8"><span style="position:absolute;left:{{ zoneL }};width:{{ zoneW }};top:0;bottom:0;border-radius:6px;background:#A8EBD6"></span><span style="position:absolute;left:{{ markerLeft }};top:-6px;transition:left 240ms cubic-bezier(0.2,0,0,1);width:4px;height:24px;margin-left:-2px;border-radius:2px;background:#17161C"></span></div>
+    </div>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:#FFC4B8;color:#17161C;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.stop }}"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px">close</span>Stop</div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#17161C"></span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isHold }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#A8EBD6;color:#17161C;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#17161C"><span>21:44</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#0B0A0E"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_5_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="display:flex;flex-direction:column;gap:12px;padding:0 8px 8px">
+      <div style="display:flex;gap:4px"><sc-for list="{{ posBars }}" as="b" hint-placeholder-count="5"><span style="flex:1;height:8px;border-radius:4px;background:{{ b.bg }};box-shadow:0 0 0 2px {{ b.ring }} inset"></span></sc-for></div>
+      <span style="font-size:16px;font-weight:600">Position {{ posN }} of 5 · {{ posShort }}</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;padding:16px 8px 0">
+      <span style="align-self:flex-start;display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:999px;background:#17161C;color:#A8EBD6;font-size:16px;font-weight:700;white-space:nowrap"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:20px;font-variation-settings:'FILL' 1">check_circle</span>Holding</span>
+      <span style="font-size:44px;line-height:1;font-weight:800;letter-spacing:-.035em">Stay still.</span>
+    </div>
+    <div style="flex:1"></div>
+    <div style="display:flex;flex-direction:column;gap:16px;padding:0 8px"><span style="font-size:232px;line-height:.72;font-weight:800;letter-spacing:-.075em;font-variant-numeric:tabular-nums;margin-left:-12px">{{ holdCount }}</span><span style="font-size:20px;font-weight:700;white-space:nowrap">seconds left of {{ holdTotal }}</span></div>
+    <div style="display:flex;gap:4px;padding:16px 8px"><sc-for list="{{ holdBlocks }}" as="b" hint-placeholder-count="9"><span style="flex:1;height:16px;border-radius:4px;overflow:hidden;display:flex;box-shadow:0 0 0 2px {{ b.ring }} inset"><span style="width:{{ b.w }};background:#17161C;transition:width 1000ms linear"></span></span></sc-for></div>
+    <div style="background:rgba(255,255,255,.6);border-radius:28px;padding:16px 24px 16px 8px;display:flex;align-items:center;gap:16px">
+      <canvas ref="{{ figRef }}" role="img" aria-label="{{ figLabel }}" style="width:144px;height:144px;display:block;flex:none"></canvas>
+      <div style="flex:1;display:flex;flex-direction:column;gap:12px"><div style="display:flex;flex-direction:column;gap:4px;"><span style="display:flex;align-items:center;gap:4px;font-size:16px;font-weight:600;"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:20px;">check</span>Turn</span><span style="font-size:28px;line-height:1;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ holdTurn }}</span></div><div style="display:flex;flex-direction:column;gap:4px;padding-top:12px;border-top:1px solid rgba(23,22,28,.12)"><span style="display:flex;align-items:center;gap:4px;font-size:16px;font-weight:600;"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:20px;">check</span>Tip</span><span style="font-size:28px;line-height:1;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ holdTip }}</span></div></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:#FFC4B8;color:#17161C;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.stop }}"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px">close</span>Stop</div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#17161C"></span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#EFEDE8;color:#17161C;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative"><span>21:47</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#0B0A0E"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_5_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="background:#C9BCFF;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:16px;min-height:128px;box-sizing:border-box">
+      <span style="width:64px;height:64px;border-radius:20px;background:#17161C;color:#FFFFFF;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:40px">check</span></span>
+      <div style="flex:1"></div>
+      <span style="font-size:44px;line-height:1;font-weight:800;letter-spacing:-.035em">All five<br>positions held.</span>
+    </div>
+    <div style="background:#FFFFFF;border-radius:28px;padding:8px 16px;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:12px;min-height:40px"><span style="width:24px;font-size:16px;font-weight:700;color:#55535E;font-variant-numeric:tabular-nums">1</span><span style="flex:1;font-size:17px;font-weight:600">{{ doneL1 }}</span><span style="font-size:16px;font-weight:600;color:#55535E;font-variant-numeric:tabular-nums">3 s</span><span style="font-family:'Material Symbols Rounded';font-size:22px;line-height:1;font-variation-settings:'FILL' 1">check_circle</span></div>
+      <div style="display:flex;align-items:center;gap:12px;min-height:40px;border-top:1px solid #EFEDE8"><span style="width:24px;font-size:16px;font-weight:700;color:#55535E;font-variant-numeric:tabular-nums">2</span><span style="flex:1;font-size:17px;font-weight:600">Lie back</span><span style="font-size:16px;font-weight:600;color:#55535E;font-variant-numeric:tabular-nums">45 s</span><span style="font-family:'Material Symbols Rounded';font-size:22px;line-height:1;font-variation-settings:'FILL' 1">check_circle</span></div>
+      <div style="display:flex;align-items:center;gap:12px;min-height:40px;border-top:1px solid #EFEDE8"><span style="width:24px;font-size:16px;font-weight:700;color:#55535E;font-variant-numeric:tabular-nums">3</span><span style="flex:1;font-size:17px;font-weight:600">{{ doneL3 }}</span><span style="font-size:16px;font-weight:600;color:#55535E;font-variant-numeric:tabular-nums">45 s</span><span style="font-family:'Material Symbols Rounded';font-size:22px;line-height:1;font-variation-settings:'FILL' 1">check_circle</span></div>
+      <div style="display:flex;align-items:center;gap:12px;min-height:40px;border-top:1px solid #EFEDE8"><span style="width:24px;font-size:16px;font-weight:700;color:#55535E;font-variant-numeric:tabular-nums">4</span><span style="flex:1;font-size:17px;font-weight:600">{{ doneL4 }}</span><span style="font-size:16px;font-weight:600;color:#55535E;font-variant-numeric:tabular-nums">45 s</span><span style="font-family:'Material Symbols Rounded';font-size:22px;line-height:1;font-variation-settings:'FILL' 1">check_circle</span></div>
+      <div style="display:flex;align-items:center;gap:12px;min-height:40px;border-top:1px solid #EFEDE8"><span style="width:24px;font-size:16px;font-weight:700;color:#55535E;font-variant-numeric:tabular-nums">5</span><span style="flex:1;font-size:17px;font-weight:600">Sit up</span><span style="font-size:16px;font-weight:600;color:#55535E;font-variant-numeric:tabular-nums">5 s</span><span style="font-family:'Material Symbols Rounded';font-size:22px;line-height:1;font-variation-settings:'FILL' 1">check_circle</span></div>
+    </div>
+    <div style="background:#A8EBD6;border-radius:28px;padding:16px 24px 16px 16px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:flex-start;gap:12px"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;flex:none;">bed</span><span style="flex:1;font-size:17px;line-height:1.3;font-weight:600;text-wrap:pretty">No restrictions afterwards. You can lie flat and sleep normally.</span></div><div style="display:flex;align-items:flex-start;gap:12px"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;flex:none;">hourglass_top</span><span style="flex:1;font-size:17px;line-height:1.3;font-weight:600;text-wrap:pretty">Still dizzy? Repeat once, an hour later.</span></div><div style="display:flex;align-items:flex-start;gap:12px"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;flex:none;">stethoscope</span><span style="flex:1;font-size:17px;line-height:1.3;font-weight:600;text-wrap:pretty">Worse, or still dizzy after the repeat? See a doctor.</span></div></div>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;justify-content:center;min-height:64px;border-radius:32px;background:#17161C;color:#FFFFFF;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.home }}">Finish</div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#17161C"></span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isHistory }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#EFEDE8;color:#17161C;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative"><span>21:52</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#0B0A0E"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_5_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="display:flex;align-items:center;gap:16px"><span style="width:48px;height:48px;border-radius:24px;background:#FFFFFF;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.back }}"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1">arrow_back</span></span></div>
+    <span style="font-size:44px;line-height:1;font-weight:800;letter-spacing:-.035em;padding:24px 8px 16px">Your runs</span>
+    <span style="font-size:16px;font-weight:600;color:#55535E;padding:8px 8px 0">September</span>
+    <div style="background:#FFFFFF;border-radius:28px;padding:8px 16px;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:16px;min-height:72px"><span style="width:48px;height:48px;flex:none;border-radius:16px;background:#A8EBD6;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1">check</span></span><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:17px;font-weight:700">Tue 22 Sep</span><span style="font-size:16px;font-weight:600;color:#55535E">Right ear · all 5 held</span></div><span style="font-size:16px;font-weight:600;color:#55535E;font-variant-numeric:tabular-nums">6 min</span></div>
+      <div style="display:flex;align-items:center;gap:16px;min-height:72px;border-top:1px solid #EFEDE8"><span style="width:48px;height:48px;flex:none;border-radius:16px;background:#FFC4B8;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1">close</span></span><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:17px;font-weight:700">Mon 21 Sep</span><span style="font-size:16px;font-weight:600;color:#55535E">Right ear · stopped at 2</span></div><span style="font-size:16px;font-weight:600;color:#55535E;font-variant-numeric:tabular-nums">1 min</span></div>
+    </div>
+    <span style="font-size:16px;font-weight:600;color:#55535E;padding:16px 8px 0">July</span>
+    <div style="background:#FFFFFF;border-radius:28px;padding:8px 16px;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:16px;min-height:72px"><span style="width:48px;height:48px;flex:none;border-radius:16px;background:#A8EBD6;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1">check</span></span><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:17px;font-weight:700">Sat 4 Jul</span><span style="font-size:16px;font-weight:600;color:#55535E">Left ear · all 5 held</span></div><span style="font-size:16px;font-weight:600;color:#55535E;font-variant-numeric:tabular-nums">7 min</span></div>
+    </div>
+    <div style="flex:1"></div>
+    <div style="background:#C9BCFF;border-radius:28px;padding:16px 16px 16px 24px;display:flex;align-items:center;gap:16px">
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font-size:20px;font-weight:800;letter-spacing:-.01em">Share with your doctor</span><span style="font-size:16px;font-weight:600">PDF of angles and hold times</span></div>
+      <span style="width:56px;height:56px;flex:none;border-radius:28px;background:#17161C;color:#FFFFFF;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1">ios_share</span></span>
+    </div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#17161C"></span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isFindNight }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#111015;color:#F1F0F5;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#A9A7B3"><span>03:14</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#000000"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_3_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="display:flex;flex-direction:column;gap:8px;padding:0 8px 8px">
+      <div style="display:flex;gap:4px"><sc-for list="{{ posBars }}" as="b" hint-placeholder-count="5"><span style="flex:1;height:8px;border-radius:4px;background:{{ b.bg }};box-shadow:0 0 0 2px {{ b.ring }} inset"></span></sc-for></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:32px"><span style="font-size:16px;font-weight:600;white-space:nowrap;color:#A9A7B3">Position {{ posN }} of 5</span><span style="display:flex;align-items:center;gap:8px;padding:4px 12px 4px 8px;border-radius:999px;box-shadow:0 0 0 2px #FFE38A inset;color:#FFE38A;font-size:16px;font-weight:700;white-space:nowrap"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:20px">explore</span>Finding position</span></div>
+    </div>
+    <div style="background:#2B2718;box-shadow:0 0 0 2px #FFE38A inset;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:34px;line-height:1.02;font-weight:800;letter-spacing:-.03em;text-wrap:balance">{{ posTitle }}</span>
+      <span style="font-size:17px;line-height:1.4;font-weight:500;color:#D8D6E0">{{ posSub }}</span>
+    </div>
+    <div style="background:#1D1C23;border-radius:32px;padding:16px 24px 24px;display:flex;flex-direction:column;gap:16px">
+      <div style="position:relative;display:flex;justify-content:center">
+        <canvas ref="{{ figRef }}" role="img" aria-label="{{ figLabel }}" style="width:248px;height:248px;display:block;flex:none"></canvas>
+        <span onClick="{{ toggleFig }}" role="button" aria-pressed="{{ figStillPressed }}" style="position:absolute;right:-8px;bottom:0;height:48px;padding:0 16px 0 12px;border-radius:24px;background:#2A2931;display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;cursor:pointer;white-space:nowrap"><span style="font-family:'Material Symbols Rounded';font-size:22px;line-height:1;font-variation-settings:'FILL' 1">{{ figToggleIcon }}</span>{{ figToggleWord }}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;padding-top:16px;border-top:1px solid #2A2931"><span style="font-size:56px;line-height:.9;font-weight:800;letter-spacing:-.045em;font-variant-numeric:tabular-nums">{{ findRemain }}</span><div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font-size:20px;font-weight:800;letter-spacing:-.01em;white-space:nowrap">{{ posDir }}</span><span style="font-size:16px;font-weight:600;color:#A9A7B3;white-space:nowrap">{{ findNow }} · aim {{ posAim }}</span></div></div>
+      <div style="position:relative;height:12px;border-radius:6px;background:#2A2931"><span style="position:absolute;left:{{ zoneL }};width:{{ zoneW }};top:0;bottom:0;border-radius:6px;background:#2E5C4F"></span><span style="position:absolute;left:{{ markerLeft }};top:-6px;transition:left 240ms cubic-bezier(0.2,0,0,1);width:4px;height:24px;margin-left:-2px;border-radius:2px;background:#F1F0F5"></span></div>
+    </div>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:#F5AE9F;color:#17161C;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.stop }}"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px">close</span>Stop</div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#F1F0F5"></span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isHoldNight }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#111015;color:#F1F0F5;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#A9A7B3"><span>03:14</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#000000"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_3_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="display:flex;flex-direction:column;gap:12px;padding:0 8px 8px">
+      <div style="display:flex;gap:4px"><sc-for list="{{ posBars }}" as="b" hint-placeholder-count="5"><span style="flex:1;height:8px;border-radius:4px;background:{{ b.bg }};box-shadow:0 0 0 2px {{ b.ring }} inset"></span></sc-for></div>
+      <span style="font-size:16px;font-weight:600;color:#A9A7B3">Position {{ posN }} of 5 · {{ posShort }}</span>
+    </div>
+    <div style="flex:1;background:#1B2B26;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 0 0 2px #8FDCC4 inset">
+      <span style="align-self:flex-start;display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:999px;background:#8FDCC4;color:#17161C;font-size:16px;font-weight:700;white-space:nowrap"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:20px;font-variation-settings:'FILL' 1">check_circle</span>Holding</span>
+      <span style="font-size:44px;line-height:1;font-weight:800;letter-spacing:-.035em">Stay still.</span>
+      <div style="flex:1"></div>
+      <div style="display:flex;flex-direction:column;gap:16px"><span style="font-size:200px;line-height:.72;font-weight:800;letter-spacing:-.075em;font-variant-numeric:tabular-nums;color:#8FDCC4;margin-left:-10px">{{ holdCount }}</span><span style="font-size:20px;font-weight:700;white-space:nowrap">seconds left of {{ holdTotal }}</span></div>
+      <div style="display:flex;gap:4px"><sc-for list="{{ holdBlocks }}" as="b" hint-placeholder-count="9"><span style="flex:1;height:16px;border-radius:4px;overflow:hidden;display:flex;box-shadow:0 0 0 2px {{ b.ring }} inset"><span style="width:{{ b.w }};background:#8FDCC4;transition:width 1000ms linear"></span></span></sc-for></div>
+    </div>
+    <div style="background:#1D1C23;border-radius:28px;padding:16px 24px 16px 8px;display:flex;align-items:center;gap:16px">
+      <canvas ref="{{ figRef }}" role="img" aria-label="{{ figLabel }}" style="width:144px;height:144px;display:block;flex:none"></canvas>
+      <div style="flex:1;display:flex;flex-direction:column;gap:12px"><div style="display:flex;flex-direction:column;gap:4px;"><span style="display:flex;align-items:center;gap:4px;font-size:16px;font-weight:600;color:#A9A7B3"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:20px;color:#8FDCC4">check</span>Turn</span><span style="font-size:28px;line-height:1;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ holdTurn }}</span></div><div style="display:flex;flex-direction:column;gap:4px;padding-top:12px;border-top:1px solid #2A2931"><span style="display:flex;align-items:center;gap:4px;font-size:16px;font-weight:600;color:#A9A7B3"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:20px;color:#8FDCC4">check</span>Tip</span><span style="font-size:28px;line-height:1;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ holdTip }}</span></div></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:#F5AE9F;color:#17161C;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.stop }}"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px">close</span>Stop</div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#F1F0F5"></span></div>
+</div>
+</sc-if>
+
+
+<sc-if value="{{ isHomeNight }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#111015;color:#F1F0F5;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#A9A7B3"><span>03:12</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#000000"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_3_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 8px"><span style="font-size:16px;font-weight:600;color:#A9A7B3;white-space:nowrap">Wednesday 1 October</span><span style="width:48px;height:48px;flex:none;border-radius:24px;background:#1D1C23;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;">settings</span></span></div>
+    <div style="display:flex;flex-direction:column;gap:8px;padding:16px 8px 24px"><span style="font-size:44px;line-height:1;font-weight:800;letter-spacing:-.035em">Take it slow.<br>Sit up first.</span></div>
+    <div style="background:#221E30;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:24px;min-height:232px;flex:1;box-sizing:border-box;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.safety }};box-shadow:0 0 0 2px #C9BCFF inset">
+      <span style="align-self:flex-start;display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:999px;box-shadow:0 0 0 2px #C9BCFF inset;color:#C9BCFF;font-size:16px;font-weight:700;white-space:nowrap"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:20px">health_and_safety</span>Safety check first</span>
+      <div style="flex:1"></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px"><div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:34px;line-height:1;font-weight:800;letter-spacing:-.03em">Start<br>treatment</span><span style="font-size:16px;font-weight:600;color:#D8D6E0;white-space:nowrap">5 positions · about 6 min</span></div><span style="width:64px;height:64px;flex:none;border-radius:32px;background:#C9BCFF;color:#17161C;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:32px">arrow_forward</span></span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+      <div style="background:#1D1C23;border-radius:28px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;gap:24px;min-height:136px;box-sizing:border-box;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.side }}"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px;color:#FFE38A">back_hand</span><span style="font-size:20px;line-height:1.1;font-weight:700;letter-spacing:-.01em">Practise<br>in hand</span></div>
+      <div style="background:#1D1C23;border-radius:28px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;gap:24px;min-height:136px;box-sizing:border-box"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px;color:#A9A7B3">sensors</span><span style="font-size:20px;line-height:1.1;font-weight:700;letter-spacing:-.01em">Check<br>sensors</span></div>
+    </div>
+    <div style="background:#33211D;border-radius:28px;padding:16px;display:flex;align-items:center;gap:16px;box-shadow:0 0 0 2px #F5AE9F inset"><span style="width:48px;height:48px;flex:none;border-radius:16px;background:#F5AE9F;color:#17161C;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;">warning</span></span><div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font-size:14px;font-weight:800;letter-spacing:.06em;color:#F5AE9F">NOT A MEDICAL DEVICE</span><span style="font-size:16px;line-height:1.35;font-weight:600;text-wrap:pretty">An unregulated prototype. It must never be used on a patient.</span></div></div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#F1F0F5"></span></div>
+</div>
+</sc-if>
+<sc-if value="{{ isSideNight }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#111015;color:#F1F0F5;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#A9A7B3"><span>03:13</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#000000"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_3_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="display:flex;align-items:center;gap:16px"><span style="width:48px;height:48px;flex:none;border-radius:24px;background:#1D1C23;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.back }}"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;">arrow_back</span></span><span style="font-size:16px;font-weight:600;color:#A9A7B3">Practice mode</span></div>
+    <div style="display:flex;flex-direction:column;gap:12px;padding:24px 8px 24px"><span style="font-size:34px;line-height:1.05;font-weight:800;letter-spacing:-.03em;text-wrap:balance">Which side to rehearse?</span><span style="font-size:17px;line-height:1.45;font-weight:500;color:#A9A7B3;text-wrap:pretty">Nothing is measured. Walk through the moves with the phone in your hand before you try them lying down.</span></div>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+      <div style="background:#1D1C23;border-radius:32px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;min-height:280px;box-sizing:border-box">
+        <span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px;color:#A9A7B3">radio_button_unchecked</span>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:112px;line-height:.8;font-weight:800;letter-spacing:-.06em;color:#A9A7B3">L</span><span style="font-size:20px;font-weight:700">Left side</span></div>
+      </div>
+      <div style="background:#221E30;border-radius:32px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;min-height:280px;box-sizing:border-box;box-shadow:0 0 0 3px #C9BCFF inset">
+        <span style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;color:#C9BCFF"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px;font-variation-settings:'FILL' 1">radio_button_checked</span>Selected</span>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:112px;line-height:.8;font-weight:800;letter-spacing:-.06em;color:#C9BCFF">R</span><span style="font-size:20px;font-weight:700">Right side</span></div>
+      </div>
+    </div>
+    <div style="background:#1D1C23;border-radius:28px;padding:16px;display:flex;align-items:center;gap:16px;min-height:80px;box-sizing:border-box">
+      <span style="width:48px;height:48px;flex:none;border-radius:16px;background:#2A2931;color:#F1F0F5;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;">help</span></span>
+      <span style="flex:1;font-size:17px;font-weight:700">Not sure which ear? Take the 6 questions</span>
+      <span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;color:#A9A7B3">chevron_right</span>
+    </div>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;min-height:64px;border-radius:32px;background:#C9BCFF;color:#17161C;padding:0 24px 0 32px;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.home }}">Start practice<span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px">arrow_forward</span></div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#F1F0F5"></span></div>
+</div>
+</sc-if>
+<sc-if value="{{ isDoneNight }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#111015;color:#F1F0F5;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#A9A7B3"><span>03:19</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#000000"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_3_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="background:#221E30;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:24px;min-height:128px;box-sizing:border-box;box-shadow:0 0 0 2px #C9BCFF inset">
+      <span style="width:64px;height:64px;border-radius:20px;background:#C9BCFF;color:#17161C;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:40px">check</span></span>
+      <div style="flex:1"></div>
+      <span style="font-size:44px;line-height:1;font-weight:800;letter-spacing:-.035em">All five<br>positions held.</span>
+    </div>
+    <div style="background:#1D1C23;border-radius:28px;padding:4px 16px;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:12px;min-height:40px;"><span style="width:24px;font-size:16px;font-weight:700;color:#A9A7B3;font-variant-numeric:tabular-nums">1</span><span style="flex:1;font-size:17px;font-weight:600">{{ doneL1 }}</span><span style="font-size:16px;font-weight:600;color:#A9A7B3;font-variant-numeric:tabular-nums">3 s</span><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:22px;color:#8FDCC4;font-variation-settings:'FILL' 1">check_circle</span></div><div style="display:flex;align-items:center;gap:12px;min-height:40px;border-top:1px solid #2A2931"><span style="width:24px;font-size:16px;font-weight:700;color:#A9A7B3;font-variant-numeric:tabular-nums">2</span><span style="flex:1;font-size:17px;font-weight:600">Lie back</span><span style="font-size:16px;font-weight:600;color:#A9A7B3;font-variant-numeric:tabular-nums">45 s</span><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:22px;color:#8FDCC4;font-variation-settings:'FILL' 1">check_circle</span></div><div style="display:flex;align-items:center;gap:12px;min-height:40px;border-top:1px solid #2A2931"><span style="width:24px;font-size:16px;font-weight:700;color:#A9A7B3;font-variant-numeric:tabular-nums">3</span><span style="flex:1;font-size:17px;font-weight:600">{{ doneL3 }}</span><span style="font-size:16px;font-weight:600;color:#A9A7B3;font-variant-numeric:tabular-nums">45 s</span><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:22px;color:#8FDCC4;font-variation-settings:'FILL' 1">check_circle</span></div><div style="display:flex;align-items:center;gap:12px;min-height:40px;border-top:1px solid #2A2931"><span style="width:24px;font-size:16px;font-weight:700;color:#A9A7B3;font-variant-numeric:tabular-nums">4</span><span style="flex:1;font-size:17px;font-weight:600">{{ doneL4 }}</span><span style="font-size:16px;font-weight:600;color:#A9A7B3;font-variant-numeric:tabular-nums">45 s</span><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:22px;color:#8FDCC4;font-variation-settings:'FILL' 1">check_circle</span></div><div style="display:flex;align-items:center;gap:12px;min-height:40px;border-top:1px solid #2A2931"><span style="width:24px;font-size:16px;font-weight:700;color:#A9A7B3;font-variant-numeric:tabular-nums">5</span><span style="flex:1;font-size:17px;font-weight:600">Sit up</span><span style="font-size:16px;font-weight:600;color:#A9A7B3;font-variant-numeric:tabular-nums">5 s</span><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:22px;color:#8FDCC4;font-variation-settings:'FILL' 1">check_circle</span></div>
+    </div>
+    <div style="background:#1B2B26;border-radius:28px;padding:16px 24px 16px 16px;display:flex;flex-direction:column;gap:8px;box-shadow:0 0 0 2px #8FDCC4 inset"><div style="display:flex;align-items:flex-start;gap:12px"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;flex:none;color:#8FDCC4">bed</span><span style="flex:1;font-size:17px;line-height:1.3;font-weight:600;text-wrap:pretty">No restrictions afterwards. You can lie flat and sleep normally.</span></div><div style="display:flex;align-items:flex-start;gap:12px"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;flex:none;color:#8FDCC4">hourglass_top</span><span style="flex:1;font-size:17px;line-height:1.3;font-weight:600;text-wrap:pretty">Still dizzy? Repeat once, an hour later.</span></div><div style="display:flex;align-items:flex-start;gap:12px"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;flex:none;color:#8FDCC4">stethoscope</span><span style="flex:1;font-size:17px;line-height:1.3;font-weight:600;text-wrap:pretty">Worse, or still dizzy after the repeat? See a doctor.</span></div></div>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;justify-content:center;min-height:64px;border-radius:32px;background:#C9BCFF;color:#17161C;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.home }}">Finish</div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#F1F0F5"></span></div>
+</div>
+</sc-if>
+<sc-if value="{{ isHistoryNight }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#111015;color:#F1F0F5;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#A9A7B3"><span>03:24</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#000000"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_3_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="display:flex;align-items:center;gap:16px"><span style="width:48px;height:48px;flex:none;border-radius:24px;background:#1D1C23;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.back }}"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;">arrow_back</span></span></div>
+    <span style="font-size:44px;line-height:1;font-weight:800;letter-spacing:-.035em;padding:24px 8px 16px">Your runs</span>
+    <span style="font-size:16px;font-weight:600;color:#A9A7B3;padding:8px 8px 0">This week</span>
+    <div style="background:#1D1C23;border-radius:28px;padding:8px 16px;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:16px;min-height:72px;"><span style="width:48px;height:48px;flex:none;border-radius:16px;background:#1B2B26;color:#8FDCC4;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;">check</span></span><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:17px;font-weight:700">Tonight, 03:19</span><span style="font-size:16px;font-weight:600;color:#A9A7B3">Right ear · all 5 held</span></div><span style="font-size:16px;font-weight:600;color:#A9A7B3;font-variant-numeric:tabular-nums">6 min</span></div><div style="display:flex;align-items:center;gap:16px;min-height:72px;border-top:1px solid #2A2931"><span style="width:48px;height:48px;flex:none;border-radius:16px;background:#1B2B26;color:#8FDCC4;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;">check</span></span><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:17px;font-weight:700">Tue 22 Sep</span><span style="font-size:16px;font-weight:600;color:#A9A7B3">Right ear · all 5 held</span></div><span style="font-size:16px;font-weight:600;color:#A9A7B3;font-variant-numeric:tabular-nums">6 min</span></div><div style="display:flex;align-items:center;gap:16px;min-height:72px;border-top:1px solid #2A2931"><span style="width:48px;height:48px;flex:none;border-radius:16px;background:#33211D;color:#F5AE9F;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;">close</span></span><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:17px;font-weight:700">Mon 21 Sep</span><span style="font-size:16px;font-weight:600;color:#A9A7B3">Right ear · stopped at 2</span></div><span style="font-size:16px;font-weight:600;color:#A9A7B3;font-variant-numeric:tabular-nums">1 min</span></div>
+    </div>
+    <span style="font-size:16px;font-weight:600;color:#A9A7B3;padding:16px 8px 0">July</span>
+    <div style="background:#1D1C23;border-radius:28px;padding:8px 16px;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:16px;min-height:72px;"><span style="width:48px;height:48px;flex:none;border-radius:16px;background:#1B2B26;color:#8FDCC4;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;">check</span></span><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:17px;font-weight:700">Sat 4 Jul</span><span style="font-size:16px;font-weight:600;color:#A9A7B3">Left ear · all 5 held</span></div><span style="font-size:16px;font-weight:600;color:#A9A7B3;font-variant-numeric:tabular-nums">7 min</span></div>
+    </div>
+    <div style="flex:1"></div>
+    <div style="background:#221E30;border-radius:28px;padding:16px 16px 16px 24px;display:flex;align-items:center;gap:16px;box-shadow:0 0 0 2px #C9BCFF inset">
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font-size:20px;font-weight:800;letter-spacing:-.01em">Share with your doctor</span><span style="font-size:16px;font-weight:600;color:#D8D6E0">PDF of angles and hold times</span></div>
+      <span style="width:56px;height:56px;flex:none;border-radius:28px;background:#C9BCFF;color:#17161C;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;">ios_share</span></span>
+    </div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#F1F0F5"></span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isSafety }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#EFEDE8;color:#17161C;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#17161C"><span>21:40</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#0B0A0E"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_5_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="display:flex;align-items:center;gap:12px;padding:0 8px"><span style="display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:999px;background:#FFC4B8;font-size:16px;font-weight:700;white-space:nowrap"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:20px">health_and_safety</span>Safety check</span><span style="font-size:16px;font-weight:600;color:#55535E;white-space:nowrap">Before every run</span></div>
+    <div style="display:flex;flex-direction:column;gap:12px;padding:24px 8px 16px"><span style="font-size:34px;line-height:1.05;font-weight:800;letter-spacing:-.03em;text-wrap:balance">Do you have any of these right now?</span><span style="font-size:17px;line-height:1.45;font-weight:500;color:#55535E;text-wrap:pretty">This step can’t be skipped.</span></div>
+    <div style="background:#FFFFFF;border-radius:28px;padding:4px 24px;display:flex;flex-direction:column"><div style="display:flex;align-items:center;min-height:52px;"><span style="font-size:17px;font-weight:600;white-space:nowrap">Weakness or numbness</span></div><div style="display:flex;align-items:center;min-height:52px;border-top:1px solid #EFEDE8"><span style="font-size:17px;font-weight:600;white-space:nowrap">Trouble speaking</span></div><div style="display:flex;align-items:center;min-height:52px;border-top:1px solid #EFEDE8"><span style="font-size:17px;font-weight:600;white-space:nowrap">Double vision</span></div><div style="display:flex;align-items:center;min-height:52px;border-top:1px solid #EFEDE8"><span style="font-size:17px;font-weight:600;white-space:nowrap">Can’t walk</span></div><div style="display:flex;align-items:center;min-height:52px;border-top:1px solid #EFEDE8"><span style="font-size:17px;font-weight:600;white-space:nowrap">Sudden severe headache</span></div><div style="display:flex;align-items:center;min-height:52px;border-top:1px solid #EFEDE8"><span style="font-size:17px;font-weight:600;white-space:nowrap">Sudden hearing loss</span></div></div>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:#FFC4B8;color:#17161C;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.emergency }}">Yes, one or more</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:#17161C;color:#FFFFFF;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.triage }}">No, none of these</div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#17161C"></span></div>
+</div>
+</sc-if>
+<sc-if value="{{ isEmergency }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#FFC4B8;color:#17161C;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#17161C"><span>21:41</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#0B0A0E"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_5_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="flex:1;display:flex;flex-direction:column;gap:24px;padding:24px 8px 0">
+      <span style="align-self:flex-start;display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:999px;background:#17161C;color:#FFC4B8;font-size:16px;font-weight:700;white-space:nowrap"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:20px;font-variation-settings:'FILL' 1">warning</span>Red flag</span>
+      <span style="font-size:64px;line-height:.95;font-weight:800;letter-spacing:-.045em;text-wrap:balance">Stop. Get emergency help now.</span>
+      <span style="font-size:20px;line-height:1.4;font-weight:600;text-wrap:pretty">Do not start the treatment.</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:#17161C;color:#FFFFFF;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.call }}"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px">call</span>Call emergency</div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#17161C"></span></div>
+</div>
+</sc-if>
+<sc-if value="{{ isTriage }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#EFEDE8;color:#17161C;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#17161C"><span>21:42</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#0B0A0E"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_5_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="display:flex;flex-direction:column;gap:8px;padding:0 8px 8px">
+      <div style="display:flex;gap:4px"><sc-for list="{{ tqBars }}" as="b" hint-placeholder-count="6"><span style="flex:1;height:8px;border-radius:4px;background:{{ b.bg }};box-shadow:0 0 0 2px {{ b.ring }} inset;transition:background-color 200ms cubic-bezier(0.2,0,0,1)"></span></sc-for></div>
+      <span style="font-size:16px;font-weight:600;color:#55535E">Step 2 of 6 · question {{ tqN }} of 6</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;padding:16px 8px 16px"><span style="font-size:34px;line-height:1.05;font-weight:800;letter-spacing:-.03em;text-wrap:balance">{{ tqText }}</span>
+      <sc-if value="{{ tqHasSub }}" hint-placeholder-val="{{ false }}"><span style="font-size:17px;line-height:1.45;font-weight:500;color:#55535E;text-wrap:pretty">{{ tqSub }}</span></sc-if>
+    </div>
+    <sc-if value="{{ tqYN }}" hint-placeholder-val="{{ true }}">
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+        <div style="background:#FFFFFF;border-radius:32px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;gap:24px;min-height:168px;box-sizing:border-box;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.a0 }}"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px;color:#55535E">check</span><span style="font-size:56px;line-height:.9;font-weight:800;letter-spacing:-.045em">Yes</span></div>
+        <div style="background:#FFFFFF;border-radius:32px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;gap:24px;min-height:168px;box-sizing:border-box;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.a1 }}"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px;color:#55535E">close</span><span style="font-size:56px;line-height:.9;font-weight:800;letter-spacing:-.045em">No</span></div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ tqChoice }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <sc-for list="{{ tqOptions }}" as="o" hint-placeholder-count="2">
+          <div style="background:#FFFFFF;border-radius:28px;padding:20px 24px 20px 20px;display:flex;align-items:center;gap:16px;min-height:104px;box-sizing:border-box;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ o.on }}">
+            <span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px;flex:none;color:#55535E">radio_button_unchecked</span>
+            <span style="flex:1;min-width:0;font-size:22px;line-height:1.15;font-weight:800;letter-spacing:-.01em;text-wrap:balance">{{ o.label }}</span>
+            <sc-if value="{{ o.hasIcon }}" hint-placeholder-val="{{ false }}"><span style="width:48px;height:48px;flex:none;border-radius:24px;background:#EFEDE8;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:28px;line-height:1">{{ o.icon }}</span></span></sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+    <div style="flex:1"></div>
+    <sc-if value="{{ tqCanUndo }}" hint-placeholder-val="{{ false }}"><div style="background:#FFFFFF;border-radius:28px;padding:8px 16px 8px 8px;display:flex;align-items:center;gap:16px;min-height:64px;box-sizing:border-box;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.undo }}"><span style="width:48px;height:48px;flex:none;border-radius:16px;background:#EFEDE8;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;">arrow_back</span></span><span style="flex:1;font-size:17px;font-weight:700">Change my last answer</span></div></sc-if>
+    <div style="border-radius:24px;padding:16px;display:flex;align-items:flex-start;gap:12px;box-shadow:0 0 0 1.5px #D4D2DC inset"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;flex:none;color:#55535E">info</span><span style="flex:1;font-size:16px;line-height:1.4;font-weight:600;text-wrap:pretty">These questions agree with a specialist about 71% of the time. They are a guide, not a diagnosis.</span></div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#17161C"></span></div>
+</div>
+</sc-if>
+<sc-if value="{{ isResult }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#EFEDE8;color:#17161C;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#17161C"><span>21:43</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#0B0A0E"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_5_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="flex:1;background:#C9BCFF;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:16px">
+      <span style="align-self:flex-start;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.55);font-size:16px;font-weight:600;white-space:nowrap"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:20px">hearing</span>Your result</span>
+      <div style="flex:1"></div>
+      <span style="font-size:96px;line-height:.86;font-weight:800;letter-spacing:-.055em">{{ earTitle1 }}<br>ear</span>
+      <span style="font-size:17px;line-height:1.4;font-weight:600;text-wrap:pretty">Posterior canal, the type the Epley manoeuvre treats. We will set up for your {{ earSide }} side.</span>
+    </div>
+    <div style="background:#FFFFFF;border-radius:28px;padding:8px 24px 8px 8px;display:flex;align-items:center;gap:16px">
+      <canvas ref="{{ figRef }}" role="img" aria-label="{{ firstMoveLabel }}" style="width:136px;height:136px;display:block;flex:none"></canvas>
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font-size:16px;font-weight:600;color:#55535E">First move</span><span style="font-size:20px;line-height:1.15;font-weight:800;letter-spacing:-.01em;text-wrap:balance">Turn your head 45° toward your {{ earSide }} ear</span></div>
+    </div>
+    <div style="border-radius:24px;padding:16px;display:flex;align-items:flex-start;gap:12px;box-shadow:0 0 0 1.5px #D4D2DC inset"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;flex:none;color:#55535E">info</span><span style="flex:1;font-size:16px;line-height:1.4;font-weight:600;text-wrap:pretty">These questions agree with a specialist about 71% of the time. They are a guide, not a diagnosis.</span></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:#17161C;color:#FFFFFF;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.find }}"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px">arrow_forward</span>Start treatment</div>
+    <span style="font-size:14px;font-weight:600;color:#55535E;text-align:center">Questions from Kim HJ et al., Neurology 2020.</span>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#17161C"></span></div>
+</div>
+</sc-if>
+<sc-if value="{{ isSafetyNight }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#111015;color:#F1F0F5;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#A9A7B3"><span>03:12</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#000000"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_3_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="display:flex;align-items:center;gap:12px;padding:0 8px"><span style="display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:999px;box-shadow:0 0 0 2px #F5AE9F inset;color:#F5AE9F;font-size:16px;font-weight:700;white-space:nowrap"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:20px">health_and_safety</span>Safety check</span><span style="font-size:16px;font-weight:600;color:#A9A7B3;white-space:nowrap">Before every run</span></div>
+    <div style="display:flex;flex-direction:column;gap:12px;padding:24px 8px 16px"><span style="font-size:34px;line-height:1.05;font-weight:800;letter-spacing:-.03em;text-wrap:balance">Do you have any of these right now?</span><span style="font-size:17px;line-height:1.45;font-weight:500;color:#A9A7B3;text-wrap:pretty">This step can’t be skipped.</span></div>
+    <div style="background:#1D1C23;border-radius:28px;padding:4px 24px;display:flex;flex-direction:column"><div style="display:flex;align-items:center;min-height:52px;"><span style="font-size:17px;font-weight:600;white-space:nowrap">Weakness or numbness</span></div><div style="display:flex;align-items:center;min-height:52px;border-top:1px solid #2A2931"><span style="font-size:17px;font-weight:600;white-space:nowrap">Trouble speaking</span></div><div style="display:flex;align-items:center;min-height:52px;border-top:1px solid #2A2931"><span style="font-size:17px;font-weight:600;white-space:nowrap">Double vision</span></div><div style="display:flex;align-items:center;min-height:52px;border-top:1px solid #2A2931"><span style="font-size:17px;font-weight:600;white-space:nowrap">Can’t walk</span></div><div style="display:flex;align-items:center;min-height:52px;border-top:1px solid #2A2931"><span style="font-size:17px;font-weight:600;white-space:nowrap">Sudden severe headache</span></div><div style="display:flex;align-items:center;min-height:52px;border-top:1px solid #2A2931"><span style="font-size:17px;font-weight:600;white-space:nowrap">Sudden hearing loss</span></div></div>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:#F5AE9F;color:#17161C;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.emergency }}">Yes, one or more</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:#C9BCFF;color:#17161C;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.triage }}">No, none of these</div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#F1F0F5"></span></div>
+</div>
+</sc-if>
+<sc-if value="{{ isEmergencyNight }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#111015;color:#F1F0F5;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#A9A7B3"><span>03:13</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#000000"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_3_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="flex:1;background:#33211D;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:24px;box-shadow:0 0 0 2px #F5AE9F inset">
+      <span style="align-self:flex-start;display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:999px;background:#F5AE9F;color:#17161C;font-size:16px;font-weight:700;white-space:nowrap"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:20px;font-variation-settings:'FILL' 1">warning</span>Red flag</span>
+      <span style="font-size:56px;line-height:.95;font-weight:800;letter-spacing:-.045em;text-wrap:balance">Stop. Get emergency help now.</span>
+      <span style="font-size:20px;line-height:1.4;font-weight:600;color:#D8D6E0;text-wrap:pretty">Do not start the treatment.</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:#F5AE9F;color:#17161C;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.call }}"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px">call</span>Call emergency</div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#F1F0F5"></span></div>
+</div>
+</sc-if>
+<sc-if value="{{ isTriageNight }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#111015;color:#F1F0F5;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#A9A7B3"><span>03:14</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#000000"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_3_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="display:flex;flex-direction:column;gap:8px;padding:0 8px 8px">
+      <div style="display:flex;gap:4px"><sc-for list="{{ tqBars }}" as="b" hint-placeholder-count="6"><span style="flex:1;height:8px;border-radius:4px;background:{{ b.bg }};box-shadow:0 0 0 2px {{ b.ring }} inset;transition:background-color 200ms cubic-bezier(0.2,0,0,1)"></span></sc-for></div>
+      <span style="font-size:16px;font-weight:600;color:#A9A7B3">Step 2 of 6 · question {{ tqN }} of 6</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;padding:16px 8px 16px"><span style="font-size:34px;line-height:1.05;font-weight:800;letter-spacing:-.03em;text-wrap:balance">{{ tqText }}</span>
+      <sc-if value="{{ tqHasSub }}" hint-placeholder-val="{{ false }}"><span style="font-size:17px;line-height:1.45;font-weight:500;color:#A9A7B3;text-wrap:pretty">{{ tqSub }}</span></sc-if>
+    </div>
+    <sc-if value="{{ tqYN }}" hint-placeholder-val="{{ true }}">
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+        <div style="background:#1D1C23;border-radius:32px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;gap:24px;min-height:168px;box-sizing:border-box;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.a0 }}"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px;color:#A9A7B3">check</span><span style="font-size:56px;line-height:.9;font-weight:800;letter-spacing:-.045em">Yes</span></div>
+        <div style="background:#1D1C23;border-radius:32px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;gap:24px;min-height:168px;box-sizing:border-box;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.a1 }}"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px;color:#A9A7B3">close</span><span style="font-size:56px;line-height:.9;font-weight:800;letter-spacing:-.045em">No</span></div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ tqChoice }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <sc-for list="{{ tqOptions }}" as="o" hint-placeholder-count="2">
+          <div style="background:#1D1C23;border-radius:28px;padding:20px 24px 20px 20px;display:flex;align-items:center;gap:16px;min-height:104px;box-sizing:border-box;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ o.on }}">
+            <span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px;flex:none;color:#A9A7B3">radio_button_unchecked</span>
+            <span style="flex:1;min-width:0;font-size:22px;line-height:1.15;font-weight:800;letter-spacing:-.01em;text-wrap:balance">{{ o.label }}</span>
+            <sc-if value="{{ o.hasIcon }}" hint-placeholder-val="{{ false }}"><span style="width:48px;height:48px;flex:none;border-radius:24px;background:#2A2931;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:28px;line-height:1">{{ o.icon }}</span></span></sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+    <div style="flex:1"></div>
+    <sc-if value="{{ tqCanUndo }}" hint-placeholder-val="{{ false }}"><div style="background:#1D1C23;border-radius:28px;padding:8px 16px 8px 8px;display:flex;align-items:center;gap:16px;min-height:64px;box-sizing:border-box;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.undo }}"><span style="width:48px;height:48px;flex:none;border-radius:16px;background:#2A2931;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;">arrow_back</span></span><span style="flex:1;font-size:17px;font-weight:700">Change my last answer</span></div></sc-if>
+    <div style="border-radius:24px;padding:16px;display:flex;align-items:flex-start;gap:12px;box-shadow:0 0 0 1.5px #34333C inset"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;flex:none;color:#A9A7B3">info</span><span style="flex:1;font-size:16px;line-height:1.4;font-weight:600;text-wrap:pretty">These questions agree with a specialist about 71% of the time. They are a guide, not a diagnosis.</span></div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#F1F0F5"></span></div>
+</div>
+</sc-if>
+<sc-if value="{{ isResultNight }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#111015;color:#F1F0F5;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#A9A7B3"><span>03:15</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#000000"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_3_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="flex:1;background:#221E30;box-shadow:0 0 0 2px #C9BCFF inset;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:16px">
+      <span style="align-self:flex-start;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;box-shadow:0 0 0 2px #C9BCFF inset;color:#C9BCFF;font-size:16px;font-weight:600;white-space:nowrap"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:20px">hearing</span>Your result</span>
+      <div style="flex:1"></div>
+      <span style="font-size:96px;line-height:.86;font-weight:800;letter-spacing:-.055em">{{ earTitle1 }}<br>ear</span>
+      <span style="font-size:17px;line-height:1.4;font-weight:600;color:#D8D6E0;text-wrap:pretty">Posterior canal, the type the Epley manoeuvre treats. We will set up for your {{ earSide }} side.</span>
+    </div>
+    <div style="background:#1D1C23;border-radius:28px;padding:8px 24px 8px 8px;display:flex;align-items:center;gap:16px">
+      <canvas ref="{{ figRef }}" role="img" aria-label="{{ firstMoveLabel }}" style="width:136px;height:136px;display:block;flex:none"></canvas>
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font-size:16px;font-weight:600;color:#A9A7B3">First move</span><span style="font-size:20px;line-height:1.15;font-weight:800;letter-spacing:-.01em;text-wrap:balance">Turn your head 45° toward your {{ earSide }} ear</span></div>
+    </div>
+    <div style="border-radius:24px;padding:16px;display:flex;align-items:flex-start;gap:12px;box-shadow:0 0 0 1.5px #34333C inset"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;flex:none;color:#A9A7B3">info</span><span style="flex:1;font-size:16px;line-height:1.4;font-weight:600;text-wrap:pretty">These questions agree with a specialist about 71% of the time. They are a guide, not a diagnosis.</span></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:#C9BCFF;color:#17161C;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.find }}"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px">arrow_forward</span>Start treatment</div>
+    <span style="font-size:14px;font-weight:600;color:#A9A7B3;text-align:center">Questions from Kim HJ et al., Neurology 2020.</span>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#F1F0F5"></span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isSplash }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#C9BCFF;color:#17161C;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#17161C"><span>21:39</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#0B0A0E"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_5_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px">
+      <img ref="{{ markRef }}" src="logo-kit/svg/epley-wordmark-ink.svg" alt="epley" style="width:208px;display:block">
+      <span style="font-size:20px;line-height:1;font-weight:700;letter-spacing:.01em;color:#17161C">coach</span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding-bottom:24px">
+      <span style="width:120px;height:4px;border-radius:2px;background:rgba(23,22,28,.16);overflow:hidden;display:flex"><span ref="{{ loadRef }}" style="width:100%;background:#17161C;border-radius:2px;transform-origin:left"></span></span>
+      <span style="font-size:14px;font-weight:700;letter-spacing:.06em;color:#17161C">NOT A MEDICAL DEVICE</span>
+    </div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#17161C"></span></div>
+</div>
+</sc-if>
+<sc-if value="{{ isSplashNight }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#111015;color:#F1F0F5;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#A9A7B3"><span>03:11</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#000000"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_3_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px">
+      <img ref="{{ markRef }}" src="logo-kit/svg/epley-wordmark-bone.svg" alt="epley" style="width:208px;display:block">
+      <span style="font-size:20px;line-height:1;font-weight:700;letter-spacing:.01em;color:#A9A7B3">coach</span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding-bottom:24px">
+      <span style="width:120px;height:4px;border-radius:2px;background:#2A2931;overflow:hidden;display:flex"><span ref="{{ loadRef }}" style="width:100%;background:#C9BCFF;border-radius:2px;transform-origin:left"></span></span>
+      <span style="font-size:14px;font-weight:700;letter-spacing:.06em;color:#A9A7B3">NOT A MEDICAL DEVICE</span>
+    </div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#F1F0F5"></span></div>
+</div>
+</sc-if>
+<sc-if value="{{ isWelcome }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#EFEDE8;color:#17161C;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#17161C"><span>21:40</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#0B0A0E"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_5_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 8px;min-height:48px"><span style="display:flex;align-items:flex-end;gap:8px;flex:none"><img src="logo-kit/svg/epley-wordmark-ink.svg" alt="epley" style="height:28px;display:block"><span style="font-size:17px;line-height:1;font-weight:700;color:#55535E;padding-bottom:2px">coach</span></span></div>
+    <div style="background:#FFFFFF;border-radius:32px;padding:16px 24px 24px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;justify-content:center"><canvas ref="{{ figRef }}" role="img" aria-label="Figure: seated, head turned 45° toward the right ear, phone on the right cheek" style="width:208px;height:208px;display:block;flex:none"></canvas></div>
+      <span style="font-size:34px;line-height:1.02;font-weight:800;letter-spacing:-.03em;text-wrap:balance">The Epley manoeuvre, one position at a time.</span>
+    </div>
+    <div style="background:#FFFFFF;border-radius:28px;padding:8px 16px;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:16px;min-height:48px"><span style="width:40px;height:40px;flex:none;border-radius:14px;background:#EFEDE8;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:22px">health_and_safety</span></span><span style="flex:1;font-size:17px;line-height:1.3;font-weight:700">A safety check before every run</span></div>
+      <div style="display:flex;align-items:center;gap:16px;min-height:48px"><span style="width:40px;height:40px;flex:none;border-radius:14px;background:#EFEDE8;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:22px">hearing</span></span><span style="flex:1;font-size:17px;line-height:1.3;font-weight:700">Six questions find the ear</span></div>
+      <div style="display:flex;align-items:center;gap:16px;min-height:48px"><span style="width:40px;height:40px;flex:none;border-radius:14px;background:#EFEDE8;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:22px">screen_rotation_alt</span></span><span style="flex:1;font-size:17px;line-height:1.3;font-weight:700">Your phone checks each angle</span></div>
+    </div>
+    <div style="flex:1"></div>
+    <span style="font-size:14px;line-height:1.4;font-weight:600;color:#55535E;text-align:center;padding:0 16px;text-wrap:pretty">Not a medical device. An unregulated prototype. It must never be used on a patient.</span>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:#17161C;color:#FFFFFF;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.home }}">Get started</div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#17161C"></span></div>
+</div>
+</sc-if>
+<sc-if value="{{ isWelcomeNight }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#111015;color:#F1F0F5;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#A9A7B3"><span>03:12</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#000000"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_3_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 8px;min-height:48px"><span style="display:flex;align-items:flex-end;gap:8px;flex:none"><img src="logo-kit/svg/epley-wordmark-bone.svg" alt="epley" style="height:28px;display:block"><span style="font-size:17px;line-height:1;font-weight:700;color:#A9A7B3;padding-bottom:2px">coach</span></span></div>
+    <div style="background:#1D1C23;border-radius:32px;padding:16px 24px 24px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;justify-content:center"><canvas ref="{{ figRef }}" role="img" aria-label="Figure: seated, head turned 45° toward the right ear, phone on the right cheek" style="width:208px;height:208px;display:block;flex:none"></canvas></div>
+      <span style="font-size:34px;line-height:1.02;font-weight:800;letter-spacing:-.03em;text-wrap:balance">The Epley manoeuvre, one position at a time.</span>
+    </div>
+    <div style="background:#1D1C23;border-radius:28px;padding:8px 16px;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:16px;min-height:48px"><span style="width:40px;height:40px;flex:none;border-radius:14px;background:#2A2931;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:22px">health_and_safety</span></span><span style="flex:1;font-size:17px;line-height:1.3;font-weight:700">A safety check before every run</span></div>
+      <div style="display:flex;align-items:center;gap:16px;min-height:48px"><span style="width:40px;height:40px;flex:none;border-radius:14px;background:#2A2931;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:22px">hearing</span></span><span style="flex:1;font-size:17px;line-height:1.3;font-weight:700">Six questions find the ear</span></div>
+      <div style="display:flex;align-items:center;gap:16px;min-height:48px"><span style="width:40px;height:40px;flex:none;border-radius:14px;background:#2A2931;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:22px">screen_rotation_alt</span></span><span style="flex:1;font-size:17px;line-height:1.3;font-weight:700">Your phone checks each angle</span></div>
+    </div>
+    <div style="flex:1"></div>
+    <span style="font-size:14px;line-height:1.4;font-weight:600;color:#A9A7B3;text-align:center;padding:0 16px;text-wrap:pretty">Not a medical device. An unregulated prototype. It must never be used on a patient.</span>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:#C9BCFF;color:#17161C;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.home }}">Get started</div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#F1F0F5"></span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isHorizontal }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#EFEDE8;color:#17161C;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#17161C"><span>21:43</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#0B0A0E"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_5_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="flex:1;background:#FFFFFF;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 0 0 2px #17161C inset">
+      <span style="align-self:flex-start;display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:999px;box-shadow:0 0 0 2px #17161C inset;font-size:16px;font-weight:700;white-space:nowrap"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:20px">block</span>Not treated here</span>
+      <div style="flex:1"></div>
+      <span style="font-size:44px;line-height:1;font-weight:800;letter-spacing:-.035em;text-wrap:balance">This app can’t treat this type</span>
+      <span style="font-size:17px;line-height:1.45;font-weight:500;text-wrap:pretty">Your answers point to the horizontal canal. The Epley manoeuvre does not treat it, so this app will not guide one. Ask your doctor to show you the right manoeuvre.</span>
+    </div>
+    <div style="background:#FFFFFF;border-radius:28px;padding:8px 16px 8px 8px;display:flex;align-items:center;gap:16px;min-height:64px;box-sizing:border-box;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.undo }}"><span style="width:48px;height:48px;flex:none;border-radius:16px;background:#EFEDE8;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;">arrow_back</span></span><span style="flex:1;font-size:17px;font-weight:700">Change my last answer</span></div>
+    <div style="border-radius:24px;padding:16px;display:flex;align-items:flex-start;gap:12px;box-shadow:0 0 0 1.5px #D4D2DC inset"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;flex:none;color:#55535E">info</span><span style="flex:1;font-size:16px;line-height:1.4;font-weight:600;text-wrap:pretty">These questions agree with a specialist about 71% of the time. They are a guide, not a diagnosis.</span></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:#17161C;color:#FFFFFF;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.home }}">Back to home</div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#17161C"></span></div>
+</div>
+</sc-if>
+<sc-if value="{{ isHorizontalNight }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#111015;color:#F1F0F5;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#A9A7B3"><span>03:15</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#000000"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_3_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="flex:1;background:#1D1C23;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 0 0 2px #F1F0F5 inset">
+      <span style="align-self:flex-start;display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:999px;box-shadow:0 0 0 2px #F1F0F5 inset;font-size:16px;font-weight:700;white-space:nowrap"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:20px">block</span>Not treated here</span>
+      <div style="flex:1"></div>
+      <span style="font-size:44px;line-height:1;font-weight:800;letter-spacing:-.035em;text-wrap:balance">This app can’t treat this type</span>
+      <span style="font-size:17px;line-height:1.45;font-weight:500;color:#D8D6E0;text-wrap:pretty">Your answers point to the horizontal canal. The Epley manoeuvre does not treat it, so this app will not guide one. Ask your doctor to show you the right manoeuvre.</span>
+    </div>
+    <div style="background:#1D1C23;border-radius:28px;padding:8px 16px 8px 8px;display:flex;align-items:center;gap:16px;min-height:64px;box-sizing:border-box;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.undo }}"><span style="width:48px;height:48px;flex:none;border-radius:16px;background:#2A2931;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;">arrow_back</span></span><span style="flex:1;font-size:17px;font-weight:700">Change my last answer</span></div>
+    <div style="border-radius:24px;padding:16px;display:flex;align-items:flex-start;gap:12px;box-shadow:0 0 0 1.5px #34333C inset"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;flex:none;color:#A9A7B3">info</span><span style="flex:1;font-size:16px;line-height:1.4;font-weight:600;text-wrap:pretty">These questions agree with a specialist about 71% of the time. They are a guide, not a diagnosis.</span></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:#C9BCFF;color:#17161C;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.home }}">Back to home</div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#F1F0F5"></span></div>
+</div>
+</sc-if>
+<sc-if value="{{ isNotbppv }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#FFC4B8;color:#17161C;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#17161C"><span>21:43</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#0B0A0E"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_5_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="flex:1;display:flex;flex-direction:column;gap:24px;padding:16px 8px 0">
+      <span style="align-self:flex-start;display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:999px;background:#17161C;color:#FFC4B8;font-size:16px;font-weight:700;white-space:nowrap"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:20px;font-variation-settings:'FILL' 1">warning</span>Stop</span>
+      <span style="font-size:56px;line-height:.95;font-weight:800;letter-spacing:-.045em;text-wrap:balance">This doesn’t sound like BPPV</span>
+      <span style="font-size:19px;line-height:1.45;font-weight:600;text-wrap:pretty">Don’t do the manoeuvre now. See a doctor. Get emergency help straight away if you also have weakness or numbness, trouble speaking or seeing, a sudden severe headache, or you can’t walk steadily.</span>
+    </div>
+    <div style="background:rgba(255,255,255,.6);border-radius:28px;padding:8px 16px 8px 8px;display:flex;align-items:center;gap:16px;min-height:64px;box-sizing:border-box;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.undo }}"><span style="width:48px;height:48px;flex:none;border-radius:16px;background:rgba(255,255,255,.7);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;">arrow_back</span></span><span style="flex:1;font-size:17px;font-weight:700">Change my last answer</span></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:transparent;color:#17161C;font-size:20px;font-weight:700;box-shadow:0 0 0 2px #17161C inset;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.call }}"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px">call</span>Call emergency</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:#17161C;color:#FFFFFF;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.home }}">Back to home</div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#17161C"></span></div>
+</div>
+</sc-if>
+<sc-if value="{{ isNotbppvNight }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ rootRef }}" style="width:390px;height:{{ frameH }}px;border-radius:{{ screenR }}px;overflow:hidden;background:#111015;color:#F1F0F5;display:flex;flex-direction:column">
+  <div style="height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px;visibility:{{ chromeVis }};font-size:15px;font-weight:600;position:relative;color:#A9A7B3"><span>03:15</span><span style="position:absolute;left:50%;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#000000"></span><span style="display:flex;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">signal_cellular_alt</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">battery_3_bar</span></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:8px 16px 16px">
+    <div style="flex:1;background:#33211D;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:24px;box-shadow:0 0 0 2px #F5AE9F inset">
+      <span style="align-self:flex-start;display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:999px;background:#F5AE9F;color:#17161C;font-size:16px;font-weight:700;white-space:nowrap"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:20px;font-variation-settings:'FILL' 1">warning</span>Stop</span>
+      <span style="font-size:48px;line-height:.95;font-weight:800;letter-spacing:-.045em;text-wrap:balance">This doesn’t sound like BPPV</span>
+      <span style="font-size:18px;line-height:1.45;font-weight:600;color:#D8D6E0;text-wrap:pretty">Don’t do the manoeuvre now. See a doctor. Get emergency help straight away if you also have weakness or numbness, trouble speaking or seeing, a sudden severe headache, or you can’t walk steadily.</span>
+    </div>
+    <div style="background:#1D1C23;border-radius:28px;padding:8px 16px 8px 8px;display:flex;align-items:center;gap:16px;min-height:64px;box-sizing:border-box;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.undo }}"><span style="width:48px;height:48px;flex:none;border-radius:16px;background:#2A2931;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;">arrow_back</span></span><span style="flex:1;font-size:17px;font-weight:700">Change my last answer</span></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:transparent;color:#F5AE9F;font-size:20px;font-weight:700;box-shadow:0 0 0 2px #F5AE9F inset;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.call }}"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-size:28px">call</span>Call emergency</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border-radius:32px;background:#F5AE9F;color:#17161C;font-size:20px;font-weight:700;cursor:pointer;transition:transform 160ms cubic-bezier(0.2,0,0,1)" style-active="transform:scale(0.97)" onClick="{{ nav.home }}">Back to home</div>
+  </div>
+  <div style="height:32px;flex:none;display:flex;align-items:center;justify-content:center;visibility:{{ chromeVis }}"><span style="width:120px;height:5px;border-radius:3px;background:#F1F0F5"></span></div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:414,&quot;height&quot;:868},&quot;screen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;splash&quot;,&quot;welcome&quot;,&quot;home&quot;,&quot;safety&quot;,&quot;emergency&quot;,&quot;triage&quot;,&quot;triage4&quot;,&quot;result&quot;,&quot;horizontal&quot;,&quot;notbppv&quot;,&quot;find&quot;,&quot;hold&quot;,&quot;done&quot;,&quot;history&quot;,&quot;side&quot;,&quot;splash-night&quot;,&quot;welcome-night&quot;,&quot;home-night&quot;,&quot;safety-night&quot;,&quot;emergency-night&quot;,&quot;triage-night&quot;,&quot;triage4-night&quot;,&quot;result-night&quot;,&quot;horizontal-night&quot;,&quot;notbppv-night&quot;,&quot;find-night&quot;,&quot;hold-night&quot;,&quot;done-night&quot;,&quot;history-night&quot;,&quot;side-night&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;ear&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;R&quot;,&quot;L&quot;],&quot;default&quot;:&quot;R&quot;,&quot;tsType&quot;:&quot;'R' | 'L'&quot;},&quot;pos&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[1,2,3,4,5],&quot;default&quot;:4,&quot;tsType&quot;:&quot;1 | 2 | 3 | 4 | 5&quot;},&quot;deviceW&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:390,&quot;min&quot;:320,&quot;max&quot;:600,&quot;unit&quot;:&quot;dp&quot;,&quot;tsType&quot;:&quot;number&quot;},&quot;deviceH&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:844,&quot;min&quot;:568,&quot;max&quot;:1200,&quot;unit&quot;:&quot;dp&quot;,&quot;tsType&quot;:&quot;number&quot;},&quot;bare&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;animate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;reducedMotion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;live&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{value?: number, count?: number}&quot;},&quot;tq&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{n: number, canUndo?: boolean}&quot;},&quot;onNav&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(target: string) =&gt; void&quot;}}">
+const QS = {
+  1: { kind: 'yn', text: 'Does it feel like the room, or you, is spinning or whirling?', sub: 'For people a doctor has already diagnosed with BPPV. BPPV often comes back in a different ear, so this is asked every time.' },
+  2: { kind: 'yn', text: 'Do you get dizzy mainly when you move your head?' },
+  3: { kind: 'yn', text: 'Does each spell of dizziness last less than 3 minutes?' },
+  4: { kind: 'choice', text: 'Which brings the dizziness on more?', options: [{ label: 'Lying down, or getting out of bed' }, { label: 'Turning my head or body while lying down' }] },
+  5: { kind: 'choice', text: 'Which way makes it worse?', options: [{ label: 'Turning my head to the right', icon: 'arrow_forward' }, { label: 'Turning my head to the left', icon: 'arrow_back' }] },
+  6: { kind: 'choice', text: 'When turning your head brings it on, how long does it last?', options: [{ label: 'Less than 1 minute' }, { label: 'More than 1 minute' }] },
+};
+// Positions, authored for a RIGHT ear; LEFT mirrors every side word (see mirror()).
+// Target ranges are illustrative for the design; the app's own thresholds are the source of truth.
+const POS = {
+  1: { start: 12, title: 'Turn your head toward your right ear', sub: 'Stay sitting up. Turn about 45°.', dir: 'Keep turning right', short: 'head turned right', metric: 'turn', min: 0, max: 90, aim: [30, 60], hold: 3, end: { turn: 44, tip: 0 }, fig: 'seated, head turned 45° toward the right ear' },
+  2: { start: 0, title: 'Lie back', sub: 'Keep your head turned. Let it hang just past the pillow.', dir: 'Tip your head back', short: 'lying back', metric: 'tip', min: -90, max: 90, aim: [-35, -15], hold: 45, end: { turn: 45, tip: -26 }, fig: 'lying back, head hanging 25° below horizontal, still turned right' },
+  3: { start: 20, title: 'Turn your head to the left', sub: 'Slowly, about 90°. Keep it hanging back.', dir: 'Keep turning left', short: 'head turned left', metric: 'turn', min: 0, max: 180, aim: [75, 105], hold: 45, end: { turn: 92, tip: -25 }, fig: 'lying back, head turned 90° to the left, still hanging back' },
+  4: { start: 96, title: 'Roll onto your left side', sub: 'Keep your head turned, nose to the bed.', dir: 'Keep rolling left', short: 'left side', metric: 'turn', min: 0, max: 180, aim: [120, 150], hold: 45, end: { turn: 131, tip: -27 }, fig: 'rolled onto the left shoulder, face angled 45° toward the floor' },
+  5: { start: -30, title: 'Sit up slowly', sub: 'Face forward. Keep your chin level.', dir: 'Lift your chin a little', short: 'sitting up', metric: 'tip', min: -90, max: 90, aim: [-10, 10], hold: 5, end: { turn: 0, tip: -2 }, fig: 'sitting up, facing forward, head level' },
+};
+const mirror = (t, ear) => ear !== 'L' ? t : t.replace(/\b(right|left|Right|Left)\b/g, w => ({ right: 'left', left: 'right', Right: 'Left', Left: 'Right' })[w]);
+const deg = v => (v < 0 ? '−' : '') + Math.abs(Math.round(v)) + '°';
+const EMPH = 'cubic-bezier(0.05,0.7,0.1,1)', STD = 'cubic-bezier(0.2,0,0,1)';
+class Component extends DCLogic {
+  state = { figPlay: true };
+  rootEl = null;
+  rootRef = el => { this.rootEl = el; };
+  markRef = el => { this.markEl = el; };
+  loadRef = el => { this.loadEl = el; };
+  figRef = el => { if (el === this._el) return; if (this._h) { this._h.dispose(); this._h = null; } this._el = el; if (el) this.attachFig(el); };
+  reduced() { return (this.props.reducedMotion ?? false) || matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  figOpts() { const sc = this.props.screen ?? 'home', b = sc.replace('-night', ''), theme = sc.endsWith('-night') ? 'night' : 'light', ear = this.props.ear ?? 'R';
+    const pn = Number(this.props.pos ?? 4); const m = { find: { step: pn, playing: this.state.figPlay }, hold: { step: pn, playing: false }, result: { step: 1, playing: false }, welcome: { step: 1, playing: true } }[b] || { step: 1, playing: false };
+    return { ear: b === 'result' || b === 'find' || b === 'hold' ? ear : 'R', theme, ...m, playing: m.playing && !this.reduced() }; }
+  attachFig(el) { import(new URL('./figure/epley-figure-app.js', document.baseURI).href).then(m => m.getFigure()).then(api => { if (this._el !== el) return; this._h = api.attach(el, this.figOpts()); }).catch(e => console.error('figure', e)); }
+  componentDidMount() { this.intro(); }
+  getSnapshotBeforeUpdate(prev) { return prev.screen !== this.props.screen && this.rootEl ? getComputedStyle(this.rootEl).backgroundColor : null; }
+  componentDidUpdate(prev, ps, oldBg) {
+    this._h && this._h.set(this.figOpts());
+    if ((prev.screen === this.props.screen && (prev.tq?.n ?? 0) === (this.props.tq?.n ?? 0) && prev.ear === this.props.ear && prev.pos === this.props.pos) || !this.props.animate || !this.rootEl) return;
+    const root = this.rootEl, body = root.children[1], red = this.reduced();
+    if (oldBg && !red) root.animate([{ backgroundColor: oldBg }, { backgroundColor: getComputedStyle(root).backgroundColor }], { duration: 360, easing: STD });
+    if (!body) return;
+    if (red) body.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: 'linear' });
+    else [...body.children].forEach((c, i) => c.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 280, delay: Math.min(i, 5) * 24, easing: EMPH, fill: 'backwards' }));
+    this.intro();
+  }
+  intro() {
+    const sc = (this.props.screen ?? '').replace('-night', '');
+    if (sc !== 'splash' || !this.props.animate || this.reduced()) return;
+    this.markEl && this.markEl.animate([{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0 0 0)' }], { duration: 700, easing: EMPH, fill: 'backwards' });
+    this.loadEl && this.loadEl.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: 1000, easing: STD, fill: 'backwards' });
+  }
+  componentWillUnmount() { if (this._h) this._h.dispose(); this._el = null; }
+  renderVals() {
+    const s = this.props.screen ?? 'home', p = this.state.figPlay, live = this.props.live || {};
+    const f = {}; for (const k of ['home','side','find','hold','done','history','safety','emergency','triage','result','splash','welcome','horizontal','notbppv']) { const c = k[0].toUpperCase() + k.slice(1); f['is' + c] = s === k; f['is' + c + 'Night'] = s === k + '-night'; }
+    const pn = Number(this.props.pos ?? 4), P = POS[pn] || POS[4], earP = this.props.ear ?? 'R', night = s.endsWith('-night');
+    const val = live.value ?? P.start, count = live.count ?? Math.ceil(P.hold * 0.4), total = P.hold, bs = total <= 5 ? 1 : 5, nBlocks = Math.ceil(total / bs), el = total - count;
+    const inRange = val >= P.aim[0] && val <= P.aim[1], delta = val < P.aim[0] ? P.aim[0] - val : val - P.aim[1], sgn = val < P.aim[0] ? '+' : '−', span = P.max - P.min, pct = v => ((Math.min(P.max, Math.max(P.min, v)) - P.min) / span * 100).toFixed(1) + '%';
+    const holdMint = s === 'hold', emptyBar = night ? '#34333C' : holdMint ? 'rgba(23,22,28,.18)' : '#D4D2DC', fgBar = night ? '#F1F0F5' : '#17161C';
+    const go = t => () => this.props.onNav && this.props.onNav(t);
+    const nav = {}; for (const k of ['safety','side','emergency','triage','find','home','stop','call','retriage','back','undo','a0','a1']) nav[k] = go(k);
+    const base = s.replace('-night', ''); if (base === 'triage4') { f.isTriage = !night; f.isTriageNight = night; }
+    const tn = this.props.tq?.n ?? (base === 'triage4' ? 4 : 1), q = QS[tn] || QS[1], ear = this.props.ear ?? 'R', side = ear === 'L' ? 'left' : 'right';
+    const barFg = night ? '#F1F0F5' : '#17161C', barEmpty = night ? '#34333C' : '#D4D2DC';
+    // Responsive rule: design width 390 dp. s = clamp(deviceW / 390, 0.85, 1.25) scales EVERYTHING (type, spacing, radii, icons, figure).
+    // Height in design dp = deviceH / s; the extra goes to the flex:1 regions of each screen.
+    const dW = Number(this.props.deviceW ?? 390), dH = Number(this.props.deviceH ?? 844), bare = !!this.props.bare;
+    const sc = Math.min(1.25, Math.max(0.85, dW / 390)), frameH = Math.round(dH / sc * 100) / 100;
+    const frame = { zoom: String(sc), frameH: String(frameH), bezelW: String(bare ? 390 : 414), bezelH: String(bare ? frameH : frameH + 24), bezelPad: bare ? '0' : '12', bezelR: bare ? '0' : '64', screenR: bare ? '0' : '52', chromeVis: bare ? 'hidden' : 'visible' };
+    return { ...f, ...frame, figRef: this.figRef, rootRef: this.rootRef, markRef: this.markRef, loadRef: this.loadRef, nav,
+      toggleFig: () => this.setState(st => ({ figPlay: !st.figPlay })), figToggleIcon: p ? 'pause' : 'play_arrow', figToggleWord: p ? 'Still' : 'Play', figStillPressed: p ? 'false' : 'true',
+      findRemain: inRange ? 'In range' : sgn + Math.round(delta) + '°', findNow: 'now ' + deg(val), markerLeft: pct(val),
+      posN: String(pn), posTitle: mirror(P.title, earP), posSub: mirror(P.sub, earP), posDir: mirror(P.dir, earP), posShort: mirror(P.short, earP), posAim: P.metric === 'tip' ? deg(P.aim[1]) + ' to ' + deg(P.aim[0]) : P.aim[0] + '–' + P.aim[1] + '°',
+      zoneL: pct(P.aim[0]), zoneW: ((P.aim[1] - P.aim[0]) / span * 100).toFixed(1) + '%',
+      posBars: Array.from({ length: 5 }, (_, i) => i < pn - 1 ? { bg: fgBar, ring: fgBar } : i === pn - 1 ? { bg: 'transparent', ring: fgBar } : { bg: emptyBar, ring: emptyBar }),
+      holdTotal: String(total), holdTurn: deg(P.end.turn), holdTip: deg(P.end.tip), figLabel: 'Figure: ' + mirror(P.fig, earP),
+      doneL1: mirror('Turn head right', earP), doneL3: mirror('Turn head left', earP), doneL4: mirror('Roll onto left side', earP),
+      holdCount: String(count), holdBlocks: Array.from({ length: nBlocks }, (_, i) => { const w = Math.min(1, Math.max(0, (el - i * bs) / bs)); return { w: (w * 100) + '%', ring: night && w === 0 ? '#3F6B5E' : (night ? '#8FDCC4' : '#17161C') }; }),
+      tqN: String(tn), tqText: q.text, tqHasSub: !!q.sub, tqSub: q.sub || '', tqYN: q.kind === 'yn', tqChoice: q.kind === 'choice', tqCanUndo: this.props.tq?.canUndo ?? tn > 1,
+      tqOptions: (q.options || []).map((o, i) => ({ label: o.label, icon: o.icon || '', hasIcon: !!o.icon, on: go('a' + i) })),
+      tqBars: Array.from({ length: 6 }, (_, i) => i < tn - 1 ? { bg: barFg, ring: barFg } : i === tn - 1 ? { bg: 'transparent', ring: barFg } : { bg: barEmpty, ring: barEmpty }),
+      earTitle1: ear === 'L' ? 'Left' : 'Right', earSide: side, firstMoveLabel: 'Figure: seated, head turned 45° toward the ' + side + ' ear' };
+  }
+}
+</script>
+</body>
+</html>

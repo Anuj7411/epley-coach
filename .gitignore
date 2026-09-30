@@ -27,3 +27,7 @@ captures/
 # Logs and captured data from device runs
 *.log
 data/raw/
+
+# Design handoff: generated references, diffs and tool dependencies are rebuilt, never committed
+design_handoff_epley_coach_v2/tools/node_modules/
+design_handoff_epley_coach_v2/reference/

@@ -316,8 +316,6 @@ fun CalibrateScreen(
     onBack: () -> Unit,
 ) {
     val c = Ds
-    val viewport = LocalViewportHeight.current
-    val figure = (viewport * 0.30f).coerceIn(140.dp, 230.dp)
     DsScreen(
         top = { SetupProgressHeader(stepLabel, step, total, onBack) },
         bottom = {
@@ -334,17 +332,8 @@ fun CalibrateScreen(
             color = c.ink,
             modifier = Modifier.padding(start = Space.s).enter(0),
         )
-        // The reference pose, with no target on it: this is the position everything else is
-        // measured against, so there is nothing yet to be off by.
         Box(Modifier.enter(1)) {
             DsCard(radius = Radius.hero) {
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    HeadAngleFigure(
-                        side = figure,
-                        targetDegrees = null,
-                        showHead = mode.tracksTheHead,
-                    )
-                }
                 Text(mode.instruction, style = DsType.body, color = c.ink)
             }
         }
@@ -386,8 +375,6 @@ fun DirectionScreen(
 ) {
     val c = Ds
     val word = side.word
-    val viewport = LocalViewportHeight.current
-    val figure = (viewport * 0.30f).coerceIn(140.dp, 230.dp)
     DsScreen(
         top = { SetupProgressHeader(stepLabel, step, total, onBack) },
         bottom = {
@@ -417,12 +404,15 @@ fun DirectionScreen(
         )
         Box(Modifier.enter(2)) {
             DsCard(radius = Radius.hero) {
+                // The design's own figure: its first position is exactly this move.
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    HeadAngleFigure(
-                        side = figure,
-                        targetDegrees = 45,
-                        mirrored = side == Side.LEFT,
-                        showHead = !practice,
+                    FigureView(
+                        step = 1,
+                        ear = if (side == Side.LEFT) 'L' else 'R',
+                        night = c.night,
+                        playing = true,
+                        size = 208,
+                        description = "Figure: head turned 45° toward the ${side.word} ear",
                     )
                 }
             }

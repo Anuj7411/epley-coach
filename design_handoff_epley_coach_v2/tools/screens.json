@@ -1,0 +1,160 @@
+{
+  "devices": [
+    {
+      "name": "small-360x800",
+      "w": 360,
+      "h": 800,
+      "density": 3
+    },
+    {
+      "name": "base-390x844",
+      "w": 390,
+      "h": 844,
+      "density": 3
+    },
+    {
+      "name": "pixel-412x915",
+      "w": 412,
+      "h": 915,
+      "density": 2.625
+    },
+    {
+      "name": "large-480x1040",
+      "w": 480,
+      "h": 1040,
+      "density": 3
+    },
+    {
+      "name": "phone-432x960",
+      "w": 432,
+      "h": 960,
+      "density": 2.5
+    }
+  ],
+  "screens": [
+    {
+      "id": "splash",
+      "q": "screen=splash"
+    },
+    {
+      "id": "welcome",
+      "q": "screen=welcome"
+    },
+    {
+      "id": "home",
+      "q": "screen=home"
+    },
+    {
+      "id": "safety",
+      "q": "screen=safety"
+    },
+    {
+      "id": "emergency",
+      "q": "screen=emergency"
+    },
+    {
+      "id": "q1",
+      "q": "screen=triage&q=1"
+    },
+    {
+      "id": "q2",
+      "q": "screen=triage&q=2"
+    },
+    {
+      "id": "q3",
+      "q": "screen=triage&q=3"
+    },
+    {
+      "id": "q4",
+      "q": "screen=triage&q=4"
+    },
+    {
+      "id": "q5",
+      "q": "screen=triage&q=5"
+    },
+    {
+      "id": "q6",
+      "q": "screen=triage&q=6"
+    },
+    {
+      "id": "result-right",
+      "q": "screen=result&ear=R"
+    },
+    {
+      "id": "result-left",
+      "q": "screen=result&ear=L"
+    },
+    {
+      "id": "horizontal",
+      "q": "screen=horizontal"
+    },
+    {
+      "id": "notbppv",
+      "q": "screen=notbppv"
+    },
+    {
+      "id": "find-p1",
+      "q": "screen=find&pos=1&ear=R"
+    },
+    {
+      "id": "find-p2",
+      "q": "screen=find&pos=2&ear=R"
+    },
+    {
+      "id": "find-p3",
+      "q": "screen=find&pos=3&ear=R"
+    },
+    {
+      "id": "find-p4",
+      "q": "screen=find&pos=4&ear=R"
+    },
+    {
+      "id": "find-p5",
+      "q": "screen=find&pos=5&ear=R"
+    },
+    {
+      "id": "find-p4-left",
+      "q": "screen=find&pos=4&ear=L"
+    },
+    {
+      "id": "hold-p1",
+      "q": "screen=hold&pos=1&ear=R"
+    },
+    {
+      "id": "hold-p2",
+      "q": "screen=hold&pos=2&ear=R"
+    },
+    {
+      "id": "hold-p3",
+      "q": "screen=hold&pos=3&ear=R"
+    },
+    {
+      "id": "hold-p4",
+      "q": "screen=hold&pos=4&ear=R"
+    },
+    {
+      "id": "hold-p5",
+      "q": "screen=hold&pos=5&ear=R"
+    },
+    {
+      "id": "done-right",
+      "q": "screen=done&ear=R"
+    },
+    {
+      "id": "done-left",
+      "q": "screen=done&ear=L"
+    },
+    {
+      "id": "history",
+      "q": "screen=history"
+    },
+    {
+      "id": "practice",
+      "q": "screen=side"
+    }
+  ],
+  "themes": [
+    "day",
+    "night"
+  ]
+}

@@ -51,196 +51,164 @@ import java.util.Locale
  * export (and the paywall in front of it) stays reachable in one tap from Home.
  */
 
-/** Day: "Ready when you are." Night: the handoff's quieter line, for someone woken by an attack. */
-private fun greeting(night: Boolean) = if (night) "Take it slow.\nSit up first." else "Ready when you are."
+/** Day and night headlines (README §4.3). Night is for someone woken by an attack. */
+private fun greeting(night: Boolean) = if (night) "Take it slow.\nSit up first." else "Ready when\nyou are."
 
+/** Today's date as the header shows it: "Tuesday 30 September". */
+fun todayLabel(): String = SimpleDateFormat("EEEE d MMMM", Locale.getDefault()).format(Date())
+
+/** Home (README §4.3). No logo: the space goes to the one action. Flex region: the Start card. */
 @Composable
 fun HomeScreenV2(
     onStart: () -> Unit,
     onPractice: () -> Unit,
     onInstrument: () -> Unit,
     onRuns: () -> Unit,
+    date: String = todayLabel(),
 ) {
     val c = Ds
-    val today = remember_today()
-    // Proportional, not fixed: the hero takes a share of whatever height this handset has, so it
-    // fills a tall screen without overflowing a short one. Bounded both ways so the proportion
-    // can never produce something unusable.
-    val viewport = LocalViewportHeight.current
-    val heroHeight = (viewport * 0.40f).coerceIn(200.dp, 360.dp)
-    val tileHeight = (viewport * 0.235f).coerceIn(124.dp, 210.dp)
-    DsScreen(
-        top = {
-            Row(
-                Modifier.fillMaxWidth().padding(vertical = Space.s),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(today, style = DsType.label, color = c.muted, modifier = Modifier.weight(1f))
-                DsIconCircle(Icons.Rounded.Settings, "Your runs and settings", onRuns)
-            }
-        },
-    ) {
-        Text(
-            greeting(c.night),
-            style = DsType.display,
-            color = c.ink,
-            modifier = Modifier.padding(start = Space.s, bottom = Space.s).enter(0),
-        )
-
-        // The one thing this screen is for, given the space that implies.
-        Box(Modifier.padding(top = Space.s).enter(1)) {
-            DsCard(
-                fill = c.lilac,
-                tint = c.lilacTint,
-                outline = c.lilac,
-                radius = Radius.hero,
-                minHeight = heroHeight,
-                onClick = onStart,
-            ) {
-                DsChip(
-                    "Safety check first",
-                    Icons.Rounded.CheckCircle,
-                    if (c.night) ChipStyle.Outlined else ChipStyle.OnPastel,
-                    c.lilac,
-                )
-                Spacer(Modifier.weight(1f))
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            "Start\ntreatment",
-                            style = DsType.cardTitle,
-                            color = if (c.night) c.ink else Color(0xFF17161C),
-                        )
-                        Text(
-                            "5 positions · about 6 min",
-                            style = DsType.label,
-                            color = if (c.night) c.muted else Color(0xCC17161C),
-                        )
-                    }
-                    Box(
-                        Modifier
-                            .size(64.dp)
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(if (c.night) c.lilac else Color(0xFF17161C)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.ArrowForward,
-                            contentDescription = null,
-                            tint = if (c.night) Color(0xFF17161C) else Color.White,
-                            modifier = Modifier.size(28.dp),
-                        )
-                    }
-                }
-            }
-        }
-
+    val n = c.night
+    val ink = Color(0xFF17161C)
+    DScreen(bg = c.ground, bottom = if (n) 16.dp else 0.dp) {
+        // Header: date and the settings circle (which leads to Your runs and the export).
         Row(
-            Modifier.fillMaxWidth().padding(top = Space.s).enter(2),
-            horizontalArrangement = Arrangement.spacedBy(Space.s),
+            Modifier.padding(horizontal = 8.dp).enter(0),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            SideTile(
-                modifier = Modifier.weight(1f),
-                minHeight = tileHeight,
-                line1 = "Practise",
-                line2 = "in hand",
-                onClick = onPractice,
-            ) { HandGlyph(if (c.night) c.butter else Color(0xFFE0A800)) }
-            SideTile(
-                modifier = Modifier.weight(1f),
-                minHeight = tileHeight,
-                line1 = "Check",
-                line2 = "sensors",
-                onClick = onInstrument,
-            ) { SignalGlyphV2(c.muted) }
+            Txt(date, style = type(16f, 600), color = c.muted, maxLines = 1)
+            Box(
+                Modifier.size(48.dp).pressable(onClick = onRuns).box(if (n) c.surface else Color.White, 24.dp),
+                contentAlignment = Alignment.Center,
+            ) { Sym("settings", 24f, c.ink) }
+        }
+        Box(Modifier.padding(start = 8.dp, end = 8.dp, top = 16.dp, bottom = 24.dp).enter(1)) {
+            Txt(greeting(n), style = type(44f, 800, lineHeight = 1f, letterSpacing = -0.035f), color = c.ink)
         }
 
-        // Required in-app (§1.1). It keeps its own card and sits above the fold.
-        Box(Modifier.padding(top = Space.s).enter(3)) {
-            DsWarning(
-                caption = "NOT A MEDICAL DEVICE",
-                body = "An unregulated prototype. It must never be used on a patient.",
+        // The Start card takes whatever height is left (min 232).
+        Column(
+            Modifier
+                .flex()
+                .heightIn(min = 232.dp)
+                .enter(2)
+                .pressable(onClick = onStart)
+                // No ring at night: the design file types its ring inside the onClick attribute,
+                // so the rendered design has none. Matching what the design renders.
+                .box(if (n) c.lilacTint else c.lilac, 32.dp)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+            Row(
+                Modifier
+                    .box(if (n) Color.Transparent else Color.White.copy(alpha = 0.55f), 999.dp, ring = if (n) c.lilac else null)
+                    .padding(start = if (n) 8.dp else 12.dp, end = 12.dp, top = if (n) 6.dp else 8.dp, bottom = if (n) 6.dp else 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Sym("health_and_safety", 20f, if (n) c.lilac else ink, weight = if (n) 700 else 600)
+                Txt(
+                    "Safety check first",
+                    style = type(16f, if (n) 700 else 600),
+                    color = if (n) c.lilac else ink,
+                    maxLines = 1,
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Txt(
+                        "Start\ntreatment",
+                        style = type(34f, 800, lineHeight = 1f, letterSpacing = -0.03f),
+                        color = if (n) c.ink else ink,
+                    )
+                    Txt(
+                        "5 positions · about 6 min",
+                        style = type(16f, 600),
+                        color = if (n) c.soft else ink,
+                        maxLines = 1,
+                    )
+                }
+                Box(
+                    Modifier.size(64.dp).box(if (n) c.lilac else ink, 32.dp),
+                    contentAlignment = Alignment.Center,
+                ) { Sym("arrow_forward", 32f, if (n) ink else Color.White) }
+            }
+        }
+
+        Row(Modifier.enter(3), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            HomeTile(
+                "Practise\nin hand", "back_hand",
+                fill = if (n) c.surface else c.butter,
+                iconColour = if (n) c.butter else ink,
+                onClick = onPractice,
+                modifier = Modifier.weight(1f),
+            )
+            HomeTile(
+                "Check\nsensors", "sensors",
+                fill = if (n) c.surface else Color.White,
+                iconColour = if (n) c.muted else ink,
+                onClick = onInstrument,
+                modifier = Modifier.weight(1f),
             )
         }
+
+        // Required in-app (§1.1).
+        Row(
+            Modifier
+                .enter(4)
+                .box(if (n) c.coralTint else c.coral, 28.dp, ring = if (n) c.coral else null)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Box(
+                Modifier.size(48.dp).box(if (n) c.coral else Color.White.copy(alpha = 0.6f), 16.dp),
+                contentAlignment = Alignment.Center,
+            ) { Sym("warning", 24f, ink) }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Txt(
+                    "NOT A MEDICAL DEVICE",
+                    style = type(14f, 800, letterSpacing = 0.06f),
+                    color = if (n) c.coral else ink,
+                )
+                Txt(
+                    "An unregulated prototype. It must never be used on a patient.",
+                    style = type(16f, 600, lineHeight = 1.35f, wrap = Wrap.Pretty),
+                    color = if (n) c.ink else ink,
+                )
+            }
+        }
     }
 }
 
 @Composable
-private fun remember_today(): String {
-    val format = SimpleDateFormat("EEEE d MMMM", Locale.getDefault())
-    return format.format(Date())
-}
-
-@Composable
-private fun SideTile(
-    modifier: Modifier,
-    minHeight: Dp,
-    line1: String,
-    line2: String,
+private fun HomeTile(
+    label: String,
+    icon: String,
+    fill: Color,
+    iconColour: Color,
     onClick: () -> Unit,
-    glyph: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val c = Ds
     Column(
         modifier
+            .heightIn(min = 136.dp)
             .pressable(onClick = onClick)
-            .clip(RoundedCornerShape(Radius.card))
-            .background(c.surface)
-            .heightIn(min = minHeight)
-            .padding(Space.l),
-        verticalArrangement = Arrangement.spacedBy(Space.m),
+            .box(fill, 28.dp)
+            .padding(24.dp),
+        verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        glyph()
-        Spacer(Modifier.weight(1f))
-        Column {
-            Text(line1, style = DsType.cardTitle, color = c.ink)
-            Text(line2, style = DsType.cardTitle, color = c.ink)
-        }
+        Sym(icon, 28f, iconColour)
+        Spacer(Modifier.height(24.dp))
+        Txt(label, style = type(20f, 700, lineHeight = 1.1f, letterSpacing = -0.01f), color = Ds.ink)
     }
 }
 
-/** A raised hand. Drawn, because the extended icon set is not a dependency. */
-@Composable
-private fun HandGlyph(colour: Color) {
-    Canvas(Modifier.size(28.dp)) {
-        val w = size.width
-        val h = size.height
-        val finger = w * 0.12f
-        listOf(0.30f, 0.19f, 0.21f, 0.31f).forEachIndexed { i, top ->
-            val x = w * (0.31f + i * 0.145f)
-            drawLine(colour, Offset(x, h * top), Offset(x, h * 0.62f), finger, StrokeCap.Round)
-        }
-        drawLine(colour, Offset(w * 0.20f, h * 0.50f), Offset(w * 0.31f, h * 0.66f), finger, StrokeCap.Round)
-        drawRoundRect(
-            color = colour,
-            topLeft = Offset(w * 0.25f, h * 0.55f),
-            size = androidx.compose.ui.geometry.Size(w * 0.52f, h * 0.33f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(finger, finger),
-        )
-    }
-}
-
-/** Concentric arcs around a dot: something read off the air. */
-@Composable
-private fun SignalGlyphV2(colour: Color) {
-    Canvas(Modifier.size(26.dp)) {
-        val weight = 2.4.dp.toPx()
-        val middle = Offset(size.width / 2f, size.height / 2f)
-        drawCircle(colour, radius = size.minDimension * 0.11f, center = middle)
-        listOf(0.28f, 0.44f).forEach { fraction ->
-            val radius = size.minDimension * fraction
-            val box = Offset(middle.x - radius, middle.y - radius)
-            val extent = androidx.compose.ui.geometry.Size(radius * 2f, radius * 2f)
-            drawArc(colour, -58f, 116f, false, box, extent, style = Stroke(weight, cap = StrokeCap.Round))
-            drawArc(colour, 122f, 116f, false, box, extent, style = Stroke(weight, cap = StrokeCap.Round))
-        }
-    }
-}
-
-/**
- * Your runs (§4.11). Grouped by month, a mint check or coral cross per row, and the lilac
- * "Share with your doctor" card — which is the export, and therefore the paywall's front door.
- */
 @Composable
 fun RunsScreenV2(
     episodes: List<Episode>,

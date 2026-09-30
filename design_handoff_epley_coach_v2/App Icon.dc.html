@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&amp;display=swap" rel="stylesheet">
+<style>html,body{margin:0;background:#EFEDE8}body{font-family:'Bricolage Grotesque',sans-serif;color:#17161C;-webkit-font-smoothing:antialiased}a{color:#17161C}a:hover{color:#55535E}</style>
+</helmet>
+<main style="max-width:1200px;margin:0 auto;padding:64px 32px 96px;display:flex;flex-direction:column;gap:64px">
+  <header style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:48px;align-items:end">
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <span style="font-size:14px;font-weight:700;color:#55535E">App icon · v2</span>
+      <h1 style="margin:0;font-size:64px;line-height:.95;font-weight:800;letter-spacing:-.04em;text-wrap:balance">The “e” and its rail.</h1>
+    </div>
+    <p style="margin:0;font-size:18px;line-height:1.5;font-weight:500;color:#55535E;max-width:520px;text-wrap:pretty">The spiral is gone. The icon is the first letter of the Rail wordmark, cut from the same path, with its tail running out into the level line. It is one open letterform, so nothing in it reads as rotation.</p>
+  </header>
+
+  <section data-screen-label="Hero" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px">
+    <div style="background:#FFFFFF;border-radius:32px;padding:48px;display:flex;align-items:center;justify-content:center;min-height:360px"><img src="logo-kit/svg/app-icon-lilac.svg" alt="App icon, day" style="width:240px;height:240px;border-radius:56px;display:block"></div>
+    <div style="background:#111015;border-radius:32px;padding:48px;display:flex;align-items:center;justify-content:center;min-height:360px"><img src="logo-kit/svg/app-icon-lilac.svg" alt="App icon on a dark home screen" style="width:240px;height:240px;border-radius:120px;display:block"></div>
+  </section>
+
+  <section data-screen-label="Masks" style="display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:24px;font-weight:800;letter-spacing:-.02em">Launcher masks</span><span style="font-size:16px;line-height:1.5;font-weight:500;color:#55535E">Adaptive icon, 108 dp. The glyph sits inside the 66 dp safe zone, so every mask keeps it whole.</span></div>
+    <div style="background:#FFFFFF;border-radius:32px;padding:40px;display:flex;flex-wrap:wrap;gap:48px;justify-content:space-around">
+      <figure style="margin:0;display:flex;flex-direction:column;align-items:center;gap:16px"><img src="logo-kit/svg/app-icon-lilac.svg" alt="Circle mask" style="width:128px;height:128px;border-radius:64px;display:block"><figcaption style="font-size:16px;font-weight:600;color:#55535E">Circle</figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;align-items:center;gap:16px"><img src="logo-kit/svg/app-icon-lilac.svg" alt="Squircle mask" style="width:128px;height:128px;border-radius:44px;display:block"><figcaption style="font-size:16px;font-weight:600;color:#55535E">Squircle</figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;align-items:center;gap:16px"><img src="logo-kit/svg/app-icon-lilac.svg" alt="Rounded square mask" style="width:128px;height:128px;border-radius:28px;display:block"><figcaption style="font-size:16px;font-weight:600;color:#55535E">Rounded square</figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;align-items:center;gap:16px"><img src="logo-kit/svg/app-icon-lilac.svg" alt="Teardrop mask" style="width:128px;height:128px;border-radius:64px 64px 64px 16px;display:block"><figcaption style="font-size:16px;font-weight:600;color:#55535E">Teardrop</figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;align-items:center;gap:16px"><div style="width:128px;height:128px;border-radius:64px;background:#DCE3F5;display:flex;align-items:center;justify-content:center;overflow:hidden"><img src="logo-kit/svg/app-icon-monochrome.svg" alt="Themed icon" style="width:128px;height:128px;display:block;opacity:.72"></div><figcaption style="font-size:16px;font-weight:600;color:#55535E">Themed (Android 13+)</figcaption></figure>
+    </div>
+  </section>
+
+  <section data-screen-label="Sizes" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:8px">
+    <div style="background:#FFFFFF;border-radius:32px;padding:32px;display:flex;flex-direction:column;gap:24px">
+      <span style="font-size:24px;font-weight:800;letter-spacing:-.02em">At size</span>
+      <div style="display:flex;align-items:flex-end;gap:32px;flex-wrap:wrap">
+        <figure style="margin:0;display:flex;flex-direction:column;align-items:center;gap:12px"><img src="logo-kit/png/app-icon-192.png" alt="" style="width:96px;height:96px;display:block"><figcaption style="font-size:14px;font-weight:600;color:#55535E">96</figcaption></figure>
+        <figure style="margin:0;display:flex;flex-direction:column;align-items:center;gap:12px"><img src="logo-kit/png/app-icon-48.png" alt="" style="width:48px;height:48px;display:block"><figcaption style="font-size:14px;font-weight:600;color:#55535E">48</figcaption></figure>
+        <figure style="margin:0;display:flex;flex-direction:column;align-items:center;gap:12px"><img src="logo-kit/png/favicon-32.png" alt="" style="width:32px;height:32px;display:block"><figcaption style="font-size:14px;font-weight:600;color:#55535E">32</figcaption></figure>
+        <figure style="margin:0;display:flex;flex-direction:column;align-items:center;gap:12px"><img src="logo-kit/png/favicon-16.png" alt="" style="width:16px;height:16px;display:block;image-rendering:pixelated"><figcaption style="font-size:14px;font-weight:600;color:#55535E">16</figcaption></figure>
+      </div>
+      <span style="font-size:16px;line-height:1.5;font-weight:500;color:#55535E;text-wrap:pretty">Favicons draw the glyph larger in the tile so the counter of the “e” stays open at 16 px.</span>
+    </div>
+    <div style="background:#FFFFFF;border-radius:32px;padding:32px;display:flex;flex-direction:column;gap:24px">
+      <span style="font-size:24px;font-weight:800;letter-spacing:-.02em">Construction</span>
+      <div style="display:flex;justify-content:center"><div style="width:216px;height:216px;border-radius:24px;background:#C9BCFF;position:relative;overflow:hidden"><img src="logo-kit/svg/app-icon-foreground.svg" alt="" style="position:absolute;inset:0;width:216px;height:216px"><span style="position:absolute;left:42px;top:42px;width:132px;height:132px;border-radius:66px;box-shadow:0 0 0 1.5px rgba(23,22,28,.35) inset"></span><span style="position:absolute;left:36px;top:36px;width:144px;height:144px;box-shadow:0 0 0 1px rgba(23,22,28,.18) inset"></span></div></div>
+      <span style="font-size:16px;line-height:1.5;font-weight:500;color:#55535E;text-wrap:pretty">Circle: 66 dp safe zone. Square: 72 dp visible area. Glyph 50 dp wide, stroke 6.9 dp, butt ends, the wordmark’s exact geometry.</span>
+    </div>
+  </section>
+
+  <section data-screen-label="Splash" style="display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:24px;font-weight:800;letter-spacing:-.02em">System splash</span><span style="font-size:16px;line-height:1.5;font-weight:500;color:#55535E;text-wrap:pretty">Android 12+ shows this before the app’s own loading screen. Static icon, no animation, so the handover into the wordmark reveal is seamless.</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:48px;justify-content:center">
+      <div style="width:240px;height:520px;border-radius:40px;background:#C9BCFF;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 8px #0B0A0E"><img src="logo-kit/svg/splash-icon-ink.svg" alt="Splash, day" style="width:160px;height:160px;display:block"></div>
+      <div style="width:240px;height:520px;border-radius:40px;background:#111015;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 8px #0B0A0E"><img src="logo-kit/svg/splash-icon-bone.svg" alt="Splash, night" style="width:160px;height:160px;display:block"></div>
+    </div>
+  </section>
+</main>
+</x-dc>
+</body>
+</html>

@@ -100,7 +100,22 @@ android {
     sourceSets["test"].kotlin.srcDir("src/test/kotlin")
 
     testOptions {
-        unitTests.all { it.useJUnitPlatform() }
+        unitTests.all {
+            it.useJUnitPlatform()
+            // Screenshot tests (README ★P3) write their PNGs straight to disk for tools/compare.mjs.
+            it.systemProperty("roborazzi.test.record", "true")
+            it.systemProperty("parity.device", System.getProperty("parity.device") ?: "")
+            it.systemProperty("parity.only", System.getProperty("parity.only") ?: "")
+            it.maxHeapSize = "3g"
+            // Robolectric reaches into FileDescriptor internals; JDK 24 no longer exports them.
+            it.jvmArgs(
+                "--add-exports=java.base/jdk.internal.access=ALL-UNNAMED",
+                "--add-opens=java.base/java.io=ALL-UNNAMED",
+                "--add-opens=java.base/java.lang=ALL-UNNAMED",
+            )
+        }
+        // Fonts, assets and the held figure frames have to be visible to Robolectric.
+        unitTests.isIncludeAndroidResources = true
     }
 }
 
@@ -119,6 +134,9 @@ dependencies {
     // The platform attributes alone cannot do this: postSplashScreenTheme is an androidx
     // attribute, and keeping the splash up while the figure model loads needs the API.
     implementation("androidx.core:core-splashscreen:1.0.1")
+    // The 3D figure runs the design's own three.js renderer from app assets, offline, through
+    // WebViewAssetLoader (README §7). Never a remodel.
+    implementation("androidx.webkit:webkit:1.14.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 
@@ -135,5 +153,14 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test:2.4.20")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:2.4.20")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.11.4")
+    // Pixel parity with the design (README ★P3): Robolectric native graphics + Roborazzi, JUnit 4
+    // tests run next to the JUnit 5 ones through the vintage engine.
+    testImplementation("junit:junit:4.13.2")
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.11.4")
+    testImplementation("org.robolectric:robolectric:4.17")
+    testImplementation("io.github.takahirom.roborazzi:roborazzi:1.76.0")
+    testImplementation("io.github.takahirom.roborazzi:roborazzi-compose:1.76.0")
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
