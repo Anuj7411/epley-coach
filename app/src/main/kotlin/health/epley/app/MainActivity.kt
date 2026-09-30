@@ -177,7 +177,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             // Night when the system is dark, or between 21:00 and 06:00. Read once, so the
             // colours cannot change under someone lying with their head hanging back.
-            val night = remember { isNightNow(resources.configuration.isNightModeActive) }
+            // uiMode, not Configuration.isNightModeActive — that getter is API 30 and minSdk
+            // here is 24, so it would throw on anything older.
+            val systemDark = resources.configuration.uiMode and
+                android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
+                android.content.res.Configuration.UI_MODE_NIGHT_YES
+            val night = remember { isNightNow(systemDark) }
             EpleyTheme {
                 EpleyDesign(night = night) {
                     Surface(modifier = Modifier.fillMaxSize(), color = Ds.ground) {

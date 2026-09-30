@@ -205,7 +205,6 @@ private fun HardStop(
     note: String?,
     onCall: () -> Unit,
     onHome: () -> Unit,
-    extra: (@Composable ColumnScopeShim.() -> Unit)? = null,
 ) {
     val c = Ds
     DsScreen(
@@ -262,9 +261,6 @@ private fun HardStop(
         }
     }
 }
-
-/** Marker type so [HardStop]'s optional slot compiles without pulling in ColumnScope. */
-interface ColumnScopeShim
 
 /**
  * The muted note used by screens not yet moved to the v2 system. Replaced by [DsNote] as each

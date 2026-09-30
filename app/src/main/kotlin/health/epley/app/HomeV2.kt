@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
@@ -276,7 +277,7 @@ fun RunsScreenV2(
     DsScreen(
         top = {
             Row(Modifier.fillMaxWidth().padding(vertical = Space.s), verticalAlignment = Alignment.CenterVertically) {
-                DsIconCircle(Icons.Rounded.ArrowForward, "Back", onBack)
+                DsIconCircle(Icons.Rounded.ArrowBack, "Back", onBack)
             }
         },
         bottom = {
