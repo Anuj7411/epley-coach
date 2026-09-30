@@ -59,6 +59,21 @@ class EpisodeLogTest {
     }
 
     @Test
+    fun `duration and held angles are recorded, and six-field files still load`() {
+        // The doctor's PDF promises angles and hold times; they have to survive the file.
+        val run = Episode(
+            9L, Side.RIGHT, completed = true, feeling = null, practice = false, positionsCompleted = 5,
+            durationMillis = 372_000L,
+            heldAngles = listOf(44.0 to 0.0, 45.0 to -26.0, -44.5 to -25.0),
+        )
+        assertEquals(listOf(run), EpisodeLog.decode(EpisodeLog.encode(listOf(run))))
+        assertEquals(
+            listOf(Episode(9L, Side.LEFT, completed = false, feeling = null, practice = false, positionsCompleted = 2)),
+            EpisodeLog.decode("9,LEFT,false,,false,2"),
+        )
+    }
+
+    @Test
     fun `an episode survives being written and read back`() {
         val original = listOf(
             episode(1_000L, Feeling.SAME, Side.LEFT),

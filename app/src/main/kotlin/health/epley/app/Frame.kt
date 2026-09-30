@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,7 +34,17 @@ import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
@@ -42,6 +53,8 @@ import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.constrainHeight
+import androidx.compose.ui.unit.constrainWidth
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
@@ -356,18 +369,213 @@ fun Txt(
     modifier: Modifier = Modifier,
     maxLines: Int = Int.MAX_VALUE,
 ) {
-    val size = style.fontSize
-    val line = style.lineHeight
-    val trim = if (size.isSp && line.isSp) ((size.value * 1.2f - line.value) / 2f).coerceAtLeast(0f) else 0f
-    Text(
-        text,
-        style = style,
-        color = color,
-        maxLines = maxLines,
-        modifier = if (trim == 0f) modifier else modifier.layout { measurable, constraints ->
-            val cut = trim.sp.roundToPx()
-            val p = measurable.measure(constraints)
-            layout(p.width, (p.height - 2 * cut).coerceAtLeast(0)) { p.place(0, -cut) }
-        },
-    )
+    val mode = when (style.lineBreak) {
+        LineBreak.Heading -> WrapMode.Balance
+        LineBreak.Paragraph -> WrapMode.Pretty
+        else -> WrapMode.Greedy
+    }
+    CssLines(text, style, color, mode, modifier, maxLines)
+}
+
+/**
+ * Text laid out as CSS lays it out, line by line.
+ *
+ * Breaks: greedy, or Chrome's balance / pretty (cssWrap below), computed from real measurements at
+ * the current width and font scale — larger text still wraps correctly.
+ *
+ * Lines: each drawn at Chrome's exact baseline, `top + (line-height − 1.2 em) / 2 + 0.93 em` for
+ * this font (ascent 0.93, descent 0.27, no line gap). Android snaps every line box to whole pixels
+ * (a 27.55 dp line is 76 px, not 76.3), so paragraphs drifted about a pixel a line from the design;
+ * placing each line independently removes the accumulation. The block is lines × line-height tall,
+ * so tight headings no longer need their half-leading trimmed separately.
+ *
+ * A plain layout rather than BoxWithConstraints, so a flex parent can still ask its intrinsic height.
+ */
+@Composable
+private fun CssLines(
+    text: String,
+    style: TextStyle,
+    color: Color,
+    mode: WrapMode,
+    modifier: Modifier,
+    maxLines: Int,
+) {
+    val measurer = rememberTextMeasurer()
+    val plain = remember(style) { style.copy(lineBreak = LineBreak.Simple, hyphens = Hyphens.None, textAlign = TextAlign.Unspecified) }
+    val holder = remember(text, plain, mode, maxLines) { LinesHolder() }
+    val center = style.textAlign == TextAlign.Center
+    Layout(
+        content = {},
+        modifier = modifier
+            .semantics { this.text = AnnotatedString(text) }
+            .drawBehind {
+                val lines = holder.lines ?: return@drawBehind
+                for (i in lines.indices) {
+                    val r = lines[i]
+                    val x = (if (center) (size.width - r.size.width) / 2f else 0f)
+                    drawText(r, color = color, topLeft = Offset(x, holder.baselines[i] - r.firstBaseline))
+                }
+            },
+    ) { _, c ->
+        val w = c.maxWidth
+        val broken = if (maxLines == 1 || w == Constraints.Infinity) {
+            text.lines()
+        } else {
+            holder.byWidth.getOrPut(w) { cssWrap(text, w, mode, measurer, plain).lines() }
+        }.take(maxLines)
+        val layouts = broken.map { measurer.measure(it, plain, softWrap = false, maxLines = 1) }
+        val em = plain.fontSize.toPx()
+        val lh = if (plain.lineHeight.isSp) plain.lineHeight.toPx() else em * 1.2f
+        holder.lines = layouts
+        holder.baselines = FloatArray(layouts.size) { i -> i * lh + (lh - 1.2f * em) / 2f + 0.93f * em }
+        val widest = layouts.maxOfOrNull { it.size.width } ?: 0
+        val width = if (center && w != Constraints.Infinity) w else widest
+        layout(c.constrainWidth(width), c.constrainHeight(kotlin.math.round(layouts.size * lh).toInt())) {}
+    }
+}
+
+private class LinesHolder {
+    val byWidth = HashMap<Int, List<String>>()
+    var lines: List<TextLayoutResult>? = null
+    var baselines = FloatArray(0)
+}
+
+private enum class WrapMode { Greedy, Balance, Pretty }
+
+/** Breaks each paragraph (split on explicit newlines) as Chrome would, as explicit newlines. */
+private fun cssWrap(text: String, width: Int, mode: WrapMode, m: TextMeasurer, style: TextStyle): String =
+    text.split('\n').joinToString("\n") { wrapParagraph(it, width, mode, m, style) }
+
+private fun wrapParagraph(p: String, w: Int, mode: WrapMode, m: TextMeasurer, style: TextStyle): String {
+    val words = p.split(' ').filter { it.isNotEmpty() }
+    if (words.size < 2) return p
+    val cache = HashMap<Long, Int>()
+    // Width of words [i, j) set on one line, measured exactly as the Text will lay it out.
+    fun width(i: Int, j: Int): Int = cache.getOrPut((i.toLong() shl 32) or j.toLong()) {
+        m.measure(words.subList(i, j).joinToString(" "), style, softWrap = false, maxLines = 1).size.width
+    }
+    fun greedy(limit: Int): List<Int> {
+        val starts = mutableListOf(0)
+        var i = 0
+        while (i < words.size) {
+            var j = i + 1
+            while (j < words.size && width(i, j + 1) <= limit) j++
+            i = j
+            if (i < words.size) starts += i
+        }
+        return starts
+    }
+    var starts = greedy(w)
+    if (starts.size < 2) return p
+    when (mode) {
+        WrapMode.Greedy -> Unit
+        // Chrome: the same number of lines, broken to minimise the squared slack of every line,
+        // the last included — the most even set, not the narrowest width. Measured against the
+        // references: "This doesn't / sound / like BPPV", where bisecting the width gave
+        // "sound like / BPPV". Up to six lines.
+        WrapMode.Balance -> if (starts.size <= 6) {
+            evenBreaks(starts.size, w, words.size, ::width)?.let { starts = it }
+        }
+        // Chrome: when the last line would be a single orphaned word, re-break the last four
+        // lines, minimising the squared slack of the non-last lines, with at least two words on
+        // the last. Measured against the references: "...show you the / right manoeuvre." is
+        // re-broken; "...so this is asked / every time." (two words, just as short) is not.
+        WrapMode.Pretty -> if (starts.last() == words.size - 1) {
+            prettyTail(starts, w, words.size, ::width)?.let { starts = it }
+        }
+    }
+    val ends = starts.drop(1) + words.size
+    return starts.indices.joinToString("\n") { k -> words.subList(starts[k], ends[k]).joinToString(" ") }
+}
+
+/** Exactly [lines] lines over all [n] words, minimising the sum of squared slack of every line. */
+private fun evenBreaks(lines: Int, w: Int, n: Int, width: (Int, Int) -> Int): List<Int>? {
+    val inf = Long.MAX_VALUE / 4
+    val best = Array(lines + 1) { LongArray(n + 1) { inf } }
+    val prev = Array(lines + 1) { IntArray(n + 1) { -1 } }
+    best[0][0] = 0
+    for (l in 1..lines) {
+        for (i in 0 until n) {
+            if (best[l - 1][i] >= inf) continue
+            for (j in i + 1..n) {
+                val lw = width(i, j)
+                if (lw > w) break
+                val slack = (w - lw).toLong()
+                val score = best[l - 1][i] + slack * slack
+                if (score < best[l][j]) { best[l][j] = score; prev[l][j] = i }
+            }
+        }
+    }
+    if (best[lines][n] >= inf) return null
+    val starts = ArrayList<Int>()
+    var at = n
+    for (l in lines downTo 1) { at = prev[l][at]; starts += at }
+    return starts.reversed()
+}
+
+private fun prettyTail(starts: List<Int>, w: Int, n: Int, width: (Int, Int) -> Int): List<Int>? {
+    val k = minOf(4, starts.size)
+    val from = starts[starts.size - k]
+    val inf = Long.MAX_VALUE / 4
+    // best[l][i]: least score for words [from, i) in l full lines; prev for the path back.
+    val best = Array(k) { LongArray(n + 1) { inf } }
+    val prev = Array(k) { IntArray(n + 1) { -1 } }
+    best[0][from] = 0
+    for (l in 1 until k) {
+        for (i in from until n) {
+            if (best[l - 1][i] >= inf) continue
+            for (j in i + 1..n) {
+                val lw = width(i, j)
+                if (lw > w) break
+                val slack = (w - lw).toLong()
+                val score = best[l - 1][i] + slack * slack
+                if (score < best[l][j]) { best[l][j] = score; prev[l][j] = i }
+            }
+        }
+    }
+    var bestEnd = -1
+    var bestScore = inf
+    for (i in from until n) {
+        val lastWidth = width(i, n)
+        if (best[k - 1][i] < bestScore && lastWidth <= w && n - i >= 2) {
+            bestScore = best[k - 1][i]; bestEnd = i
+        }
+    }
+    if (bestEnd < 0) return null
+    val tail = ArrayList<Int>()
+    var at = bestEnd
+    for (l in k - 1 downTo 1) { tail += at; at = prev[l][at] }
+    return starts.subList(0, starts.size - k) + from + tail.reversed()
+}
+
+/** The design's ink, used as a literal wherever a pastel ground keeps its dark text at night too. */
+val Ink = Color(0xFF17161C)
+
+/**
+ * The design's 64 dp pill button: `display:flex; justify-content:center; gap:8px;
+ * min-height:64px; border-radius:32px; font: 20px/700`, optional leading icon (28 px, inheriting
+ * the button's weight 700).
+ */
+@Composable
+fun PillButton(
+    label: String,
+    onClick: () -> Unit,
+    fill: Color,
+    content: Color,
+    modifier: Modifier = Modifier,
+    icon: String? = null,
+    ring: Color? = null,
+    enabled: Boolean = true,
+) {
+    androidx.compose.foundation.layout.Row(
+        modifier
+            .heightIn(min = 64.dp)
+            .pressable(enabled = enabled, onClick = onClick)
+            .box(fill, 32.dp, ring = ring),
+        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (icon != null) Sym(icon, 28f, content, weight = 700)
+        Txt(label, type(20f, 700), content)
+    }
 }

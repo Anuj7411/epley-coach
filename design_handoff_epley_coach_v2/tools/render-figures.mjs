@@ -14,8 +14,10 @@ const server = http.createServer((q, r) => handler(q, r, { public: assets, clean
 await new Promise(r => server.listen(4175, r));
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 
-// Which sizes need which steps: Find and Hold show all five; Welcome and the ear result show 1.
-const jobs = [[248, [1, 2, 3, 4, 5]], [144, [1, 2, 3, 4, 5]], [208, [1]], [136, [1]]];
+// Which sizes need which steps: Find and Hold show all five; Welcome and the ear result show 1;
+// Calibrate shows position 5's end pose (seated, facing forward, head level) at 208.
+const only = process.argv.includes('--calibrate');
+const jobs = only ? [[208, [5]]] : [[248, [1, 2, 3, 4, 5]], [144, [1, 2, 3, 4, 5]], [208, [1, 5]], [136, [1]]];
 for (const [size, steps] of jobs) {
   const ctx = await browser.newContext({ viewport: { width: size, height: size }, deviceScaleFactor: 3 });
   const page = await ctx.newPage();

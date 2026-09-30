@@ -40,13 +40,15 @@ sealed interface SafetyOutcome {
 object Safety {
 
     /** Question 1: "Do you have any of these right now?" */
+    // The design's wording, verbatim (handoff README §1.2): one short line each, so a frightened
+    // person can scan six rows rather than read six sentences.
     val emergencySigns = listOf(
-        "Weakness or numbness in your face, arm or leg",
-        "Trouble speaking, or understanding speech",
-        "Double vision, or loss of vision",
-        "Can't walk or stand, or keep falling to one side",
-        "A sudden, severe headache",
-        "Sudden hearing loss in one ear",
+        "Weakness or numbness",
+        "Trouble speaking",
+        "Double vision",
+        "Can’t walk",
+        "Sudden severe headache",
+        "Sudden hearing loss",
     )
 
     /** Question 2: "Do any of these apply to you?" */

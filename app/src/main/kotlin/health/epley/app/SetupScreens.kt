@@ -82,11 +82,12 @@ private fun SetupProgressHeader(caption: String, step: Int, total: Int, onBack: 
 // ---------------------------------------------------------------------------------------------
 
 /**
- * The only screen in the app where anyone picks an ear.
+ * The only screen in the app where anyone picks an ear (§4.12).
  *
  * Nothing is measured here and nothing is treated, so the pick costs nothing if it is wrong.
  * Everywhere else the ear comes from the six questions, because a person choosing their own side
- * resolved 42.9% of the time against 72.4% in the trial this app follows.
+ * resolved 42.9% of the time against 72.4% in the trial this app follows. It starts with nothing
+ * selected: a pre-ticked side is the habit the rest of the app exists to break.
  */
 @Composable
 fun PracticeSideScreen(
@@ -94,135 +95,116 @@ fun PracticeSideScreen(
     onTakeQuestions: () -> Unit,
     onBack: () -> Unit,
 ) {
-    val c = Ds
-    val viewport = LocalViewportHeight.current
     var chosen by remember { mutableStateOf<Side?>(null) }
-    val tile = (viewport * 0.50f).coerceIn(230.dp, 400.dp)
+    PracticeSideView(chosen, onChoose = { chosen = it }, onTakeQuestions, onStart = { chosen?.let(onSide) }, onBack)
+}
 
-    DsScreen(
-        top = { SetupHeader("Practice mode", onBack) },
-        bottom = {
-            DsButton(
-                label = "Start practice",
-                onClick = { chosen?.let(onSide) },
-                enabled = chosen != null,
-                trailing = Icons.AutoMirrored.Rounded.ArrowForward,
-            )
-        },
-    ) {
-        Text(
-            "Which side\nto rehearse?",
-            style = DsType.title,
-            color = c.ink,
-            modifier = Modifier.padding(start = Space.s).enter(0),
-        )
-        Text(
-            "Nothing is measured. Walk through the moves with the phone in your hand before you " +
-                "try them lying down.",
-            style = DsType.body,
-            color = c.muted,
-            modifier = Modifier.padding(start = Space.s, bottom = Space.s).enter(1),
-        )
+/** Flex region: the spacer above Start practice. */
+@Composable
+fun PracticeSideView(
+    chosen: Side?,
+    onChoose: (Side) -> Unit,
+    onTakeQuestions: () -> Unit,
+    onStart: () -> Unit,
+    onBack: () -> Unit,
+) {
+    val c = Ds
+    val n = c.night
+    DScreen(bg = c.ground) {
         Row(
-            Modifier.fillMaxWidth().enter(2),
-            horizontalArrangement = Arrangement.spacedBy(Space.m),
+            Modifier.padding(end = 8.dp).enter(0),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            SideTileV2("L", "Left side", chosen == Side.LEFT, tile, Modifier.weight(1f)) {
-                chosen = Side.LEFT
+            Box(Modifier.size(48.dp).pressable(onClick = onBack).box(c.surface, 24.dp), contentAlignment = Alignment.Center) {
+                Sym("arrow_back", 24f, c.ink)
             }
-            SideTileV2("R", "Right side", chosen == Side.RIGHT, tile, Modifier.weight(1f)) {
-                chosen = Side.RIGHT
-            }
+            Txt("Practice mode", type(16f, 600), c.muted)
         }
-        Box(Modifier.enter(3)) {
-            DsCard(padding = Space.l, onClick = onTakeQuestions) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Space.m),
-                ) {
-                    Box(
-                        Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(Radius.tile))
-                            .background(c.surface2),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text("?", style = DsType.cardTitle, color = c.ink)
-                    }
-                    Text(
-                        "Not sure which ear? Take the 6 questions",
-                        style = DsType.rowTitle,
-                        color = c.ink,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Icon(
-                        Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = c.muted,
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
+        Column(
+            Modifier.padding(horizontal = 8.dp, vertical = 24.dp).enter(1),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Txt("Which side to rehearse?", type(34f, 800, lineHeight = 1.05f, letterSpacing = -0.03f, wrap = Wrap.Balance), c.ink)
+            Txt(
+                "Nothing is measured. Walk through the moves with the phone in your hand before you try them lying down.",
+                type(17f, 500, lineHeight = 1.45f, wrap = Wrap.Pretty),
+                c.muted,
+            )
+        }
+        Row(Modifier.enter(2), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SideChoice("L", "Left side", chosen == Side.LEFT, Modifier.weight(1f)) { onChoose(Side.LEFT) }
+            SideChoice("R", "Right side", chosen == Side.RIGHT, Modifier.weight(1f)) { onChoose(Side.RIGHT) }
+        }
+        Row(
+            Modifier.enter(3).heightIn(min = 80.dp).pressable(onClick = onTakeQuestions).box(c.surface, 28.dp).padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Box(Modifier.size(48.dp).box(if (n) c.surface2 else c.ground, 16.dp), contentAlignment = Alignment.Center) {
+                Sym("help", 24f, c.ink)
             }
+            Txt("Not sure which ear? Take the 6 questions", type(17f, 700), c.ink, modifier = Modifier.weight(1f))
+            Sym("chevron_right", 24f, c.muted)
+        }
+        Spacer(Modifier.flex())
+        // Start practice: text left, arrow right (padding 0 24 0 32). Muted until a side is picked.
+        val ready = chosen != null
+        Row(
+            Modifier
+                .heightIn(min = 64.dp)
+                .pressable(enabled = ready, onClick = onStart)
+                .box(if (!ready) c.surface2 else if (n) c.lilac else Ink, 32.dp)
+                .padding(start = 32.dp, end = 24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            val fg = if (!ready) c.muted else if (n) Ink else Color.White
+            Txt("Start practice", type(20f, 700), fg)
+            Sym("arrow_forward", 28f, fg, weight = 700)
         }
     }
 }
 
 /** L / R: the letter large enough to read at arm's length, the word underneath for certainty. */
 @Composable
-private fun SideTileV2(
-    letter: String,
-    label: String,
-    selected: Boolean,
-    minHeight: androidx.compose.ui.unit.Dp,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
+private fun SideChoice(letter: String, label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val c = Ds
-    val shape = RoundedCornerShape(Radius.card)
+    val n = c.night
     Column(
         modifier
-            .heightIn(min = minHeight)
+            .heightIn(min = 280.dp)
             .pressable(onClick = onClick)
-            .clip(shape)
-            .background(if (selected) (if (c.night) c.lilacTint else c.lilac) else c.surface)
-            .then(if (selected) Modifier.border(3.dp, if (c.night) c.lilac else c.ink, shape) else Modifier)
-            .padding(Space.l),
+            .box(
+                if (!selected) c.surface else if (n) c.lilacTint else c.lilac,
+                32.dp,
+                ring = if (!selected) null else if (n) c.lilac else Ink,
+                ringWidth = 3.dp,
+            )
+            .padding(24.dp),
+        verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s)) {
-            RadioMark(selected)
-            if (selected) {
-                Text(
-                    "Selected",
-                    style = DsType.rowTitle,
-                    color = if (c.night) c.ink else Color(0xFF17161C),
-                )
+        if (selected) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Sym("radio_button_checked", 28f, if (n) c.lilac else Ink, fill = true, weight = 700)
+                Txt("Selected", type(16f, 700), if (n) c.lilac else Ink, maxLines = 1)
             }
+        } else {
+            Sym("radio_button_unchecked", 28f, c.muted)
         }
-        Spacer(Modifier.weight(1f))
-        Text(
-            letter,
-            style = DsType.count(72.sp),
-            color = if (selected && !c.night) Color(0xFF17161C) else c.ink,
-        )
-        Spacer(Modifier.height(Space.m))
-        Text(
-            label,
-            style = DsType.cardTitle,
-            color = if (selected && !c.night) Color(0xFF17161C) else c.ink,
-        )
-    }
-}
-
-@Composable
-private fun RadioMark(selected: Boolean) {
-    val c = Ds
-    val edge = if (c.night) c.ink else Color(0xFF17161C)
-    Box(
-        Modifier.size(28.dp).clip(RoundedCornerShape(50)).border(2.5.dp, edge, RoundedCornerShape(50)),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (selected) Box(Modifier.size(14.dp).clip(RoundedCornerShape(50)).background(edge))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Txt(
+                letter,
+                type(112f, 800, lineHeight = 0.8f, letterSpacing = -0.06f),
+                when {
+                    !n -> Ink
+                    selected -> c.lilac
+                    else -> c.muted
+                },
+                maxLines = 1,
+            )
+            Txt(label, type(20f, 700), if (n) c.ink else Ink, maxLines = 1)
+        }
     }
 }
 
@@ -314,6 +296,7 @@ fun CalibrateScreen(
     countdown: Int?,
     onCalibrate: () -> Unit,
     onBack: () -> Unit,
+    ear: Char = 'R',
 ) {
     val c = Ds
     DsScreen(
@@ -334,6 +317,17 @@ fun CalibrateScreen(
         )
         Box(Modifier.enter(1)) {
             DsCard(radius = Radius.hero) {
+                // The reference pose, from the design's own renderer: position 5's end pose is
+                // seated, facing forward, head level, with the phone on the cheek — exactly what
+                // is captured here. In practice the phone is the head, so no head is drawn.
+                if (mode.tracksTheHead) {
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        FigureView(
+                            step = 5, ear = ear, night = c.night, playing = false, size = 208,
+                            description = "Figure: sitting up, facing forward, head level, phone on the cheek",
+                        )
+                    }
+                }
                 Text(mode.instruction, style = DsType.body, color = c.ink)
             }
         }

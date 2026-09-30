@@ -138,6 +138,12 @@ class MainActivity : ComponentActivity() {
     private var setupCountdown by mutableStateOf<Int?>(null)
     private var calibrationMessage by mutableStateOf<String?>(null)
 
+    /** When the current run started, for its duration in the history. */
+    private var runStartedAt = 0L
+
+    /** Head angles at the end of each held position of the current run (turn, tip). */
+    private val heldAngles = mutableListOf<Pair<Double, Double>>()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -226,6 +232,17 @@ class MainActivity : ComponentActivity() {
         val trackerState by tracker.state.collectAsState()
         val practice = run.practice
 
+        // Each held position leaves its measured angles for the doctor's PDF: the pose at the
+        // moment the engine marks the position complete, in the frame it judged it in.
+        LaunchedEffect(run.engineState?.guidance, run.engineState?.stepIndex) {
+            val state = run.engineState ?: return@LaunchedEffect
+            val pose = run.pose ?: return@LaunchedEffect
+            if (state.guidance == Guidance.STEP_COMPLETE && heldAngles.size == state.stepIndex) {
+                val turn = if (run.polarity?.towardAffectedSideIsPositive == false) -pose.headRotationDegrees else pose.headRotationDegrees
+                heldAngles += turn to pose.pitchDegrees
+            }
+        }
+
         // Once the direction is learned there is nothing to confirm; move on by itself.
         LaunchedEffect(run.polarity, screen) {
             if (screen == Screen.DIRECTION && run.polarity != null) screen = Screen.READY
@@ -267,6 +284,7 @@ class MainActivity : ComponentActivity() {
                     maxOf(kotlin.math.abs(it.pitchDegrees + 90.0), kotlin.math.abs(it.headRotationDegrees))
                 },
                 onDone = { feeling -> endRun(completed = true, feeling = feeling) },
+                ear = if (run.side == Side.LEFT) 'L' else 'R',
             )
 
             run.running -> RunScreen(
@@ -359,6 +377,7 @@ class MainActivity : ComponentActivity() {
                     mode = trackerState.mode,
                     message = calibrationMessage,
                     countdown = setupCountdown,
+                    ear = if (run.side == Side.LEFT) 'L' else 'R',
                     onCalibrate = {
                         calibrationMessage = null
                         captureWhenStill(trackerState.mode.spokenSetupPrompt) {
@@ -417,6 +436,8 @@ class MainActivity : ComponentActivity() {
                     mode = trackerState.mode,
                     practice = practice,
                     onStart = {
+                        runStartedAt = System.currentTimeMillis()
+                        heldAngles.clear()
                         startLoggingForRun()
                         runController.start(HeadTracker.STILLNESS_THRESHOLD_DEG_PER_SEC)
                     },
@@ -497,15 +518,17 @@ class MainActivity : ComponentActivity() {
      * A chooser, so sharing only ever happens to a destination they chose. The app itself sends
      * nothing anywhere.
      */
+    /** The doctor's PDF: every treatment run, its duration, and each position's hold and angles. */
     private fun shareHistory() {
-        val format = java.text.SimpleDateFormat("d MMM yyyy, h:mm a", java.util.Locale.getDefault())
-        val report = EpisodeLog.report(episodes) { format.format(java.util.Date(it)) }
+        val file = HistoryPdf.write(this, episodes)
+        val uri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.share", file)
         val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-            type = "text/plain"
+            type = "application/pdf"
             putExtra(android.content.Intent.EXTRA_SUBJECT, "Epley Coach: my history")
-            putExtra(android.content.Intent.EXTRA_TEXT, report)
+            putExtra(android.content.Intent.EXTRA_STREAM, uri)
+            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        startActivity(android.content.Intent.createChooser(intent, "Send history"))
+        startActivity(android.content.Intent.createChooser(intent, "Share with your doctor"))
     }
 
     /** Every run ends in the history, finished or not, so the record is honest about stops too. */
@@ -536,8 +559,12 @@ class MainActivity : ComponentActivity() {
                 feeling = feeling,
                 practice = run.practice,
                 positionsCompleted = run.engineState?.completedSteps ?: 0,
+                durationMillis = if (runStartedAt > 0) System.currentTimeMillis() - runStartedAt else 0,
+                heldAngles = heldAngles.toList(),
             ),
         )
+        runStartedAt = 0L
+        heldAngles.clear()
         guidance.silence()
         runController.stop()
         screen = Screen.HOME

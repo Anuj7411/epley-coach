@@ -42,6 +42,7 @@ import health.epley.core.word
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 
 /*
  * Home and Your runs, design_handoff_epley_coach_v2 §4.3 and §4.11.
@@ -209,102 +210,132 @@ private fun HomeTile(
     }
 }
 
+/** One row of Your runs. */
+data class RunRow(val ok: Boolean, val date: String, val detail: String, val duration: String)
+
+/** A heading and its rows: "This week", then one group per month. */
+data class RunGroup(val title: String, val rows: List<RunRow>)
+
+/** Your runs (§4.11): treatment runs only, grouped by week and month, newest first. */
 @Composable
 fun RunsScreenV2(
     episodes: List<Episode>,
     onExport: (() -> Unit)?,
     onBack: () -> Unit,
 ) {
+    RunsView(groupRuns(episodes, System.currentTimeMillis()), onShare = onExport, onBack = onBack)
+}
+
+fun groupRuns(episodes: List<Episode>, now: Long): List<RunGroup> {
+    val runs = EpisodeLog.treatments(episodes)
+    val locale = Locale.getDefault()
+    val month = SimpleDateFormat("MMMM", locale)
+    val monthYear = SimpleDateFormat("MMMM yyyy", locale)
+    val day = SimpleDateFormat("EEE d MMM", locale)
+    val clock = SimpleDateFormat("HH:mm", locale)
+    val cal = java.util.Calendar.getInstance()
+    fun ymd(t: Long): Int { cal.timeInMillis = t; return cal.get(java.util.Calendar.YEAR) * 1000 + cal.get(java.util.Calendar.DAY_OF_YEAR) }
+    fun year(t: Long): Int { cal.timeInMillis = t; return cal.get(java.util.Calendar.YEAR) }
+    fun hour(t: Long): Int { cal.timeInMillis = t; return cal.get(java.util.Calendar.HOUR_OF_DAY) }
+    val week = 7L * 24 * 60 * 60 * 1000
+    return runs.groupBy { e ->
+        when {
+            now - e.epochMillis < week -> "This week"
+            year(e.epochMillis) == year(now) -> month.format(Date(e.epochMillis))
+            else -> monthYear.format(Date(e.epochMillis))
+        }
+    }.map { (title, list) ->
+        RunGroup(title, list.map { e ->
+            val today = ymd(e.epochMillis) == ymd(now)
+            val h = hour(e.epochMillis)
+            RunRow(
+                ok = e.completed,
+                date = if (today) (if (h >= 21 || h < 6) "Tonight, " else "Today, ") + clock.format(Date(e.epochMillis))
+                else day.format(Date(e.epochMillis)),
+                detail = (if (e.side == health.epley.core.Side.LEFT) "Left" else "Right") + " ear · " +
+                    if (e.completed) "all 5 held" else "stopped at ${e.positionsCompleted + 1}",
+                duration = if (e.durationMillis > 0) "${(e.durationMillis / 60_000.0).roundToInt().coerceAtLeast(1)} min" else "",
+            )
+        })
+    }
+}
+
+/** Flex region: the spacer above Share. */
+@Composable
+fun RunsView(groups: List<RunGroup>, onShare: (() -> Unit)?, onBack: () -> Unit) {
     val c = Ds
-    val rows = EpisodeLog.treatments(episodes)
-    val month = SimpleDateFormat("MMMM", Locale.getDefault())
-    val day = SimpleDateFormat("EEE d MMM", Locale.getDefault())
-    DsScreen(
-        top = {
-            Row(Modifier.fillMaxWidth().padding(vertical = Space.s), verticalAlignment = Alignment.CenterVertically) {
-                DsIconCircle(Icons.AutoMirrored.Rounded.ArrowBack, "Back", onBack)
+    val n = c.night
+    DScreen(bg = c.ground) {
+        Row(Modifier.enter(0), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Box(
+                Modifier.size(48.dp).pressable(onClick = onBack).box(c.surface, 24.dp),
+                contentAlignment = Alignment.Center,
+            ) { Sym("arrow_back", 24f, c.ink) }
+        }
+        Txt(
+            "Your runs",
+            type(44f, 800, lineHeight = 1f, letterSpacing = -0.035f),
+            c.ink,
+            modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 24.dp, bottom = 16.dp).enter(1),
+        )
+        if (groups.isEmpty()) {
+            // §14: the empty state is a sentence in a card, no illustration.
+            Box(Modifier.enter(2).box(c.surface, 28.dp).padding(24.dp)) {
+                Txt("No runs yet.", type(17f, 600), c.muted)
             }
-        },
-        bottom = {
-            if (onExport != null) {
-                DsCard(fill = c.lilac, tint = c.lilacTint, outline = c.lilac, onClick = onExport) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                "Share with your doctor",
-                                style = DsType.cardTitle,
-                                color = if (c.night) c.ink else Color(0xFF17161C),
-                            )
-                            Text(
-                                "Every run, as plain text",
-                                style = DsType.label,
-                                color = if (c.night) c.muted else Color(0xCC17161C),
-                            )
-                        }
+        }
+        groups.forEachIndexed { gi, g ->
+            Txt(
+                g.title, type(16f, 600), c.muted,
+                modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = if (gi == 0) 8.dp else 16.dp).enter(2 + gi),
+            )
+            Column(Modifier.enter(2 + gi).box(c.surface, 28.dp).padding(horizontal = 16.dp, vertical = 8.dp)) {
+                g.rows.forEachIndexed { i, r ->
+                    if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(if (n) c.surface2 else c.ground))
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 72.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
                         Box(
-                            Modifier.size(48.dp).clip(RoundedCornerShape(999.dp))
-                                .background(if (c.night) c.lilac else Color(0xFF17161C)),
+                            Modifier.size(48.dp).box(
+                                when {
+                                    n && r.ok -> c.mintTint
+                                    n -> c.coralTint
+                                    r.ok -> c.mint
+                                    else -> c.coral
+                                },
+                                16.dp,
+                            ),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Icon(
-                                Icons.Rounded.Share,
-                                contentDescription = null,
-                                tint = if (c.night) Color(0xFF17161C) else Color.White,
-                                modifier = Modifier.size(24.dp),
-                            )
+                            Sym(if (r.ok) "check" else "close", 24f, if (!n) Ink else if (r.ok) c.mint else c.coral)
                         }
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Txt(r.date, type(17f, 700), c.ink, maxLines = 1)
+                            Txt(r.detail, type(16f, 600), c.muted, maxLines = 1)
+                        }
+                        if (r.duration.isNotEmpty()) Txt(r.duration, type(16f, 600, tnum = true), c.muted, maxLines = 1)
                     }
                 }
             }
-        },
-    ) {
-        Text("Your runs", style = DsType.title, color = c.ink, modifier = Modifier.padding(start = Space.s).enter(0))
-        if (rows.isEmpty()) {
-            DsCard(modifier = Modifier.enter(1)) {
-                Text("No runs yet.", style = DsType.body, color = c.muted)
-            }
-            return@DsScreen
         }
-        var lastMonth = ""
-        rows.forEachIndexed { index, episode ->
-            val thisMonth = month.format(Date(episode.epochMillis))
-            if (thisMonth != lastMonth) {
-                lastMonth = thisMonth
-                Text(
-                    thisMonth,
-                    style = DsType.label,
-                    color = c.muted,
-                    modifier = Modifier.padding(start = Space.s, top = Space.m).enter(minOf(index, 4)),
-                )
-            }
-            val completed = episode.completed
-            DsCard(modifier = Modifier.enter(minOf(index, 4)), padding = Space.l) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    DsIconTile(
-                        if (completed) Icons.Rounded.CheckCircle else Icons.Rounded.Close,
-                        fill = if (c.night) (if (completed) c.mintTint else c.coralTint) else (if (completed) c.mint else c.coral),
-                        tint = if (c.night) (if (completed) c.mint else c.coral) else Color(0xFF17161C),
-                    )
-                    Spacer(Modifier.width(Space.m))
-                    Column(Modifier.weight(1f)) {
-                        Text(day.format(Date(episode.epochMillis)), style = DsType.rowTitle, color = c.ink)
-                        Text(
-                            buildString {
-                                append(episode.side.word.replaceFirstChar { it.uppercase() })
-                                append(" ear · ")
-                                append(
-                                    when {
-                                        !completed -> "stopped at ${episode.positionsCompleted}"
-                                        episode.feeling == Feeling.BETTER -> "all 5 held, felt better"
-                                        episode.feeling == Feeling.WORSE -> "all 5 held, felt worse"
-                                        else -> "all 5 held"
-                                    },
-                                )
-                            },
-                            style = DsType.label,
-                            color = c.muted,
-                        )
-                    }
+        Spacer(Modifier.flex())
+        if (onShare != null) {
+            Row(
+                Modifier
+                    .pressable(onClick = onShare)
+                    .box(if (n) c.lilacTint else c.lilac, 28.dp, ring = if (n) c.lilac else null)
+                    .padding(start = 24.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Txt("Share with your doctor", type(20f, 800, letterSpacing = -0.01f), if (n) c.ink else Ink)
+                    Txt("PDF of angles and hold times", type(16f, 600), if (n) c.soft else Ink)
+                }
+                Box(Modifier.size(56.dp).box(if (n) c.lilac else Ink, 28.dp), contentAlignment = Alignment.Center) {
+                    Sym("ios_share", 24f, if (n) Ink else Color.White)
                 }
             }
         }

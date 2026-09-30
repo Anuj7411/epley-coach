@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,12 +37,13 @@ import health.epley.core.Safety
 import health.epley.core.SafetyOutcome
 
 /**
- * The check before every run, in the v2 system (handoff §4.4, §4.5).
+ * The check before every run (handoff §4.4, §4.5). Unskippable, never behind the paywall.
  *
- * Unskippable and never behind the paywall. Two questions rather than the handoff's one, because
- * the app's second question carries the trial's exclusion criteria — never diagnosed, a neck or
- * back problem, a recent head injury, an attack unlike the diagnosed ones — and dropping it to
- * match a mockup would remove a clinical gate. Both are styled identically to the handoff's.
+ * Question 1 is the design's screen exactly. Question 2 carries the trial's exclusion criteria —
+ * never diagnosed, a neck or back problem, a recent head injury, an attack unlike the diagnosed
+ * ones — and uses the identical layout: dropping it to match the design would remove a clinical
+ * gate. "No" on both goes straight to the questions, as the design does; there is no "passed"
+ * screen in between.
  */
 @Composable
 fun SafetyScreen(
@@ -51,214 +53,166 @@ fun SafetyScreen(
     var emergency by remember { mutableStateOf<Boolean?>(null) }
     var notToTreat by remember { mutableStateOf<Boolean?>(null) }
     val context = LocalContext.current
-    val c = Ds
 
     when (val outcome = Safety.assess(emergency, notToTreat)) {
         is SafetyOutcome.Incomplete -> {
             val first = outcome.nextQuestion == 1
-            DsScreen(
-                top = {
-                    Row(
-                        Modifier.fillMaxWidth().padding(vertical = Space.s),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Space.m),
-                    ) {
-                        DsChip("Safety check", Icons.Rounded.Warning, ChipStyle.Outlined, c.coral)
-                        Text(
-                            if (first) "Before every run" else "One more",
-                            style = DsType.label,
-                            color = c.muted,
-                        )
-                    }
-                },
-                bottom = {
-                    DsButton(
-                        label = if (first) "Yes, one or more" else "Yes, one applies",
-                        onClick = { if (first) emergency = true else notToTreat = true },
-                        fill = c.coral,
-                        contentColor = Color(0xFF17161C),
-                    )
-                    DsButton(
-                        label = if (first) "No, none of these" else "No, none apply",
-                        onClick = { if (first) emergency = false else notToTreat = false },
-                    )
-                },
-            ) {
-                Text(
-                    if (first) "Do you have any of these right now?" else "Do any of these apply to you?",
-                    style = DsType.title,
-                    color = c.ink,
-                    modifier = Modifier.padding(start = Space.s).enter(0),
-                )
-                Text(
-                    "This step can't be skipped.",
-                    style = DsType.body,
-                    color = c.muted,
-                    modifier = Modifier.padding(start = Space.s, bottom = Space.s).enter(1),
-                )
-                FlagCard(
-                    items = if (first) Safety.emergencySigns else Safety.reasonsNotToTreat,
-                    modifier = Modifier.enter(2),
-                )
-            }
+            SafetyQuestion(
+                caption = if (first) "Before every run" else "One more",
+                question = if (first) "Do you have any of these right now?" else "Do any of these apply to you?",
+                items = if (first) Safety.emergencySigns else Safety.reasonsNotToTreat,
+                yes = if (first) "Yes, one or more" else "Yes, one applies",
+                no = if (first) "No, none of these" else "No, none apply",
+                onYes = { if (first) emergency = true else notToTreat = true },
+                onNo = { if (first) emergency = false else notToTreat = false },
+            )
         }
 
-        // Hard stop. The only way on is out of the app; "Back to home" exists so nobody is
-        // trapped, and it never leads to the manoeuvre.
-        SafetyOutcome.Emergency -> HardStop(
-            chip = "Red flag",
-            headline = "Stop. Get emergency help now.",
-            body = "These can be signs of a stroke, not BPPV. Do not start the treatment. Call " +
-                "your emergency number, or ask someone to call for you.",
-            note = "Note the time your symptoms started. Doctors will ask.",
+        // Hard stop: one action. Back still leaves (MainActivity), so nobody is trapped, and it
+        // never leads to the manoeuvre.
+        SafetyOutcome.Emergency -> EmergencyStop(
             onCall = { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:112"))) },
-            onHome = { onFinished(outcome) },
         )
 
-        SafetyOutcome.SeeDoctor -> DsScreen(
-            bottom = { DsButton("Back to home", { onFinished(outcome) }) },
-        ) {
-            Spacer(Modifier.height(Space.l))
-            Box(Modifier.enter(0)) {
-                DsIconTile(
-                    Icons.Rounded.Warning,
-                    size = 64.dp,
-                    iconSize = 34.dp,
-                    fill = if (c.night) c.coralTint else c.coral,
-                    tint = if (c.night) c.coral else Color(0xFF17161C),
-                )
-            }
-            Text(
-                "See a doctor before using this",
-                style = DsType.title,
-                color = c.ink,
-                modifier = Modifier.padding(start = Space.s).enter(1),
-            )
-            Text(
-                "The head positions aren't safe to do on your own in this situation. A doctor can " +
-                    "check what's causing the dizziness and show you what to do.",
-                style = DsType.body,
-                color = c.muted,
-                modifier = Modifier.padding(start = Space.s).enter(2),
-            )
-        }
+        SafetyOutcome.SeeDoctor -> SeeDoctorStop(onHome = { onFinished(outcome) })
 
-        SafetyOutcome.Clear -> DsScreen(
-            bottom = { DsButton("Continue", { onFinished(outcome) }) },
-        ) {
-            Spacer(Modifier.height(Space.l))
-            Box(Modifier.enter(0)) {
-                DsIconTile(
-                    Icons.Rounded.Check,
-                    size = 64.dp,
-                    iconSize = 34.dp,
-                    fill = if (c.night) c.mintTint else c.mint,
-                    tint = if (c.night) c.mint else Color(0xFF17161C),
-                )
-            }
-            Text(
-                "Safety check passed",
-                style = DsType.title,
-                color = c.ink,
-                modifier = Modifier.padding(start = Space.s).enter(1),
-            )
-            Text(
-                "If any of those signs appear during the manoeuvre, stop and get help.",
-                style = DsType.body,
-                color = c.muted,
-                modifier = Modifier.padding(start = Space.s).enter(2),
-            )
-        }
+        SafetyOutcome.Clear -> LaunchedEffect(Unit) { onFinished(outcome) }
     }
 }
 
-/**
- * The flags in one card, 52dp rows with hairlines between.
- *
- * A grouped list rather than bullets in a paragraph: each row is its own object, which is how
- * someone skims a list they are frightened of rather than reading it as prose.
- */
+/** One safety question: chip, headline, the flags in one card, Yes (coral) above No. */
 @Composable
-private fun FlagCard(items: List<String>, modifier: Modifier = Modifier) {
-    DsCard(modifier = modifier, padding = Space.s) {
-        items.forEachIndexed { index, item ->
-            Row(
-                Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(horizontal = Space.m, vertical = Space.s),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(item, style = DsType.rowTitle, color = Ds.ink)
-            }
-            if (index != items.lastIndex) DsDivider(start = Space.m)
-        }
-    }
-}
-
-/**
- * The hard-stop family: coral floods the screen on day, and becomes a coral-outlined tint card on
- * night so a dark room is never filled with a bright field.
- */
-@Composable
-private fun HardStop(
-    chip: String,
-    headline: String,
-    body: String,
-    note: String?,
-    onCall: () -> Unit,
-    onHome: () -> Unit,
+fun SafetyQuestion(
+    caption: String,
+    question: String,
+    items: List<String>,
+    yes: String,
+    no: String,
+    onYes: () -> Unit,
+    onNo: () -> Unit,
 ) {
     val c = Ds
-    DsScreen(
-        background = if (c.night) c.ground else c.coral,
-        bottom = {
-            DsButton(
-                label = "Call emergency",
-                onClick = onCall,
-                fill = if (c.night) c.coral else Color(0xFF17161C),
-                contentColor = if (c.night) Color(0xFF17161C) else Color.White,
-                leading = Icons.Rounded.Call,
-            )
-            DsButton(
-                label = "Back to home",
-                onClick = onHome,
-                fill = if (c.night) c.surface else Color(0x33FFFFFF),
-                contentColor = c.ink,
-            )
-        },
-    ) {
-        val content: @Composable () -> Unit = {
-            Column(verticalArrangement = Arrangement.spacedBy(Space.l)) {
-                Box(Modifier.enter(0)) {
-                    DsChip(chip, Icons.Rounded.Warning, ChipStyle.Filled)
-                }
-                Text(
-                    headline,
-                    style = DsType.result,
-                    color = c.ink,
-                    modifier = Modifier.enter(1),
-                )
-                Text(body, style = DsType.body, color = c.ink, modifier = Modifier.enter(2))
-                if (note != null) {
-                    Box(Modifier.enter(3)) {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(Space.m),
-                        ) {
-                            Box(
-                                Modifier.size(4.dp, 4.dp).clip(RoundedCornerShape(2.dp))
-                                    .background(c.ink).padding(top = Space.s),
-                            )
-                            Text(note, style = DsType.label, color = c.ink)
-                        }
-                    }
+    val n = c.night
+    DScreen(bg = c.ground) {
+        Row(
+            Modifier.padding(horizontal = 8.dp).enter(0),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                Modifier
+                    .box(if (n) Color.Transparent else c.coral, 999.dp, ring = if (n) c.coral else null)
+                    .padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Sym("health_and_safety", 20f, if (n) c.coral else Ink, weight = 700)
+                Txt("Safety check", type(16f, 700), if (n) c.coral else Ink, maxLines = 1)
+            }
+            Txt(caption, type(16f, 600), c.muted, maxLines = 1)
+        }
+        Column(
+            Modifier.padding(start = 8.dp, end = 8.dp, top = 24.dp, bottom = 16.dp).enter(1),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Txt(question, type(34f, 800, lineHeight = 1.05f, letterSpacing = -0.03f, wrap = Wrap.Balance), c.ink)
+            Txt("This step can’t be skipped.", type(17f, 500, lineHeight = 1.45f, wrap = Wrap.Pretty), c.muted)
+        }
+        Column(Modifier.enter(2).box(c.surface, 28.dp).padding(horizontal = 24.dp, vertical = 4.dp)) {
+            items.forEachIndexed { i, item ->
+                if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(if (n) c.surface2 else c.ground))
+                Box(Modifier.fillMaxWidth().heightIn(min = 52.dp), contentAlignment = Alignment.CenterStart) {
+                    Txt(item, type(17f, 600), c.ink)
                 }
             }
         }
-        Spacer(Modifier.height(Space.l))
-        if (c.night) {
-            DsCard(fill = c.coralTint, tint = c.coralTint, outline = c.coral) { content() }
-        } else {
-            content()
+        Spacer(Modifier.flex())
+        PillButton(yes, onYes, fill = c.coral, content = Ink)
+        PillButton(no, onNo, fill = if (n) c.lilac else Ink, content = if (n) Ink else Color.White)
+    }
+}
+
+/** The emergency hard stop (§4.5): coral floods the day screen; night is a coral-ringed card. */
+@Composable
+fun EmergencyStop(onCall: () -> Unit) {
+    val c = Ds
+    val n = c.night
+    DScreen(bg = if (n) c.ground else c.coral) {
+        Column(
+            Modifier
+                .flex()
+                .then(
+                    if (n) Modifier.box(c.coralTint, 32.dp, ring = c.coral).padding(24.dp)
+                    else Modifier.padding(start = 8.dp, end = 8.dp, top = 24.dp),
+                )
+                .enter(0),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+            Row(
+                Modifier
+                    .box(if (n) c.coral else Ink, 999.dp)
+                    .padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Sym("warning", 20f, if (n) Ink else c.coral, fill = true, weight = 700)
+                Txt("Red flag", type(16f, 700), if (n) Ink else c.coral, maxLines = 1)
+            }
+            Txt(
+                "Stop. Get emergency help now.",
+                type(if (n) 56f else 64f, 800, lineHeight = 0.95f, letterSpacing = -0.045f, wrap = Wrap.Balance),
+                c.ink,
+            )
+            Txt(
+                "Do not start the treatment.",
+                type(20f, 600, lineHeight = 1.4f, wrap = Wrap.Pretty),
+                if (n) c.soft else Ink,
+            )
         }
+        PillButton(
+            "Call emergency", onCall,
+            fill = if (n) c.coral else Ink, content = if (n) Ink else Color.White, icon = "call",
+        )
+    }
+}
+
+/** Question 2 answered yes: the app's own stop, in the same family as "Can't treat". */
+@Composable
+private fun SeeDoctorStop(onHome: () -> Unit) {
+    val c = Ds
+    val n = c.night
+    DScreen(bg = c.ground) {
+        Column(
+            Modifier
+                .flex()
+                .enter(0)
+                .box(c.surface, 32.dp, ring = c.ink)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+            Row(
+                Modifier
+                    .box(Color.Transparent, 999.dp, ring = c.ink)
+                    .padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Sym("stethoscope", 20f, c.ink, weight = 700)
+                Txt("See a doctor", type(16f, 700), c.ink, maxLines = 1)
+            }
+            Txt(
+                "See a doctor before using this",
+                type(44f, 800, lineHeight = 1f, letterSpacing = -0.035f, wrap = Wrap.Balance),
+                c.ink,
+            )
+            Txt(
+                "The head positions aren’t safe to do on your own in this situation. A doctor " +
+                    "can check what’s causing the dizziness and show you what to do.",
+                type(19f, 600, lineHeight = 1.4f, wrap = Wrap.Pretty),
+                if (n) c.soft else Ink,
+            )
+        }
+        PillButton("Back to home", onHome, fill = if (n) c.lilac else Ink, content = if (n) Ink else Color.White)
     }
 }
 

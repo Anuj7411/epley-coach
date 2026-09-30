@@ -112,6 +112,40 @@ fun ParityScreen(id: String, night: Boolean) {
             onStart = {}, onPractice = {}, onInstrument = {}, onRuns = {},
             date = if (night) "Wednesday 1 October" else "Tuesday 30 September",
         )
+        "safety" -> SafetyScreen(onFinished = {}, onCancel = {})
+        "emergency" -> EmergencyStop(onCall = {})
+        "q1", "q2", "q3", "q4", "q5", "q6" -> {
+            val n = id.drop(1).toInt()
+            TriageQuestion(n, onUndo = if (n > 1) ({}) else null, onAnswer = {})
+        }
+        "result-right" -> EarResult(health.epley.core.Side.RIGHT, onStart = {})
+        "result-left" -> EarResult(health.epley.core.Side.LEFT, onStart = {})
+        "horizontal" -> HorizontalResult(onUndo = {}, onHome = {})
+        "notbppv" -> NotBppvResult(onUndo = {}, onCall = {}, onHome = {})
+        "find-p1", "find-p2", "find-p3", "find-p4", "find-p5" ->
+            FindView(sampleFind(id.last().digitToInt(), 'R'), figurePlaying = true, onToggleFigure = {}, onStop = {})
+        "find-p4-left" -> FindView(sampleFind(4, 'L'), figurePlaying = true, onToggleFigure = {}, onStop = {})
+        "hold-p1", "hold-p2", "hold-p3", "hold-p4", "hold-p5" -> HoldView(sampleHold(id.last().digitToInt(), 'R'), onStop = {})
+        "done-right" -> DoneView(ear = 'R', showAfterCare = true, onFinish = {})
+        "done-left" -> DoneView(ear = 'L', showAfterCare = true, onFinish = {})
+        "history" -> RunsView(
+            if (night) listOf(
+                RunGroup("This week", listOf(
+                    RunRow(true, "Tonight, 03:19", "Right ear · all 5 held", "6 min"),
+                    RunRow(true, "Tue 22 Sep", "Right ear · all 5 held", "6 min"),
+                    RunRow(false, "Mon 21 Sep", "Right ear · stopped at 2", "1 min"),
+                )),
+                RunGroup("July", listOf(RunRow(true, "Sat 4 Jul", "Left ear · all 5 held", "7 min"))),
+            ) else listOf(
+                RunGroup("September", listOf(
+                    RunRow(true, "Tue 22 Sep", "Right ear · all 5 held", "6 min"),
+                    RunRow(false, "Mon 21 Sep", "Right ear · stopped at 2", "1 min"),
+                )),
+                RunGroup("July", listOf(RunRow(true, "Sat 4 Jul", "Left ear · all 5 held", "7 min"))),
+            ),
+            onShare = {}, onBack = {},
+        )
+        "practice" -> PracticeSideView(health.epley.core.Side.RIGHT, onChoose = {}, onTakeQuestions = {}, onStart = {}, onBack = {})
         else -> Unit
     }
 }

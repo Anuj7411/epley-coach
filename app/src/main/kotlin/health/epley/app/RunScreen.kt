@@ -1,50 +1,25 @@
 package health.epley.app
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Warning
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import health.epley.core.CuePlanner
 import health.epley.core.Guidance
 import health.epley.core.HeadAngles
 import health.epley.core.Phrasing
+import health.epley.core.Side
 import kotlin.math.abs
-import kotlin.math.roundToInt
+import kotlin.math.ceil
 
 /**
- * The guided run, in the v2 system (handoff §4.8 Find, §4.9 Hold).
+ * The guided run (handoff §4.8 Find, §4.9 Hold), fed by the live engine.
  *
- * Two states that look nothing alike. **Finding** is butter: the instruction, one big signed
- * remaining angle, the direction in words, and a meter with the tolerance band drawn on it.
- * **Holding** floods mint and gives the screen to the countdown, because once you are in position
- * the only thing that matters is how long is left.
- *
- * Corrections come from [Phrasing], the same source the voice reads, so the screen and the
- * speaker can never give different instructions.
- *
- * Nothing here animates except the hold blocks and the marker. WCAG 2.3.3 exists because moving
- * interfaces make vestibular patients dizzy, and they are the whole audience.
+ * The screens are the design's (RunViews); what they show comes from the engine: its targets and
+ * tolerances, not the design's placeholder ranges (README §4b says to use the app's thresholds).
+ * The direction line is the engine's correction, from [Phrasing] — the same source the voice
+ * reads, so the screen and the speaker can never give different instructions.
  */
 @Composable
 fun RunScreen(
@@ -52,279 +27,106 @@ fun RunScreen(
     onRepeat: () -> Unit,
     onStop: () -> Unit,
 ) {
-    val c = Ds
     val engineState = run.engineState
     val step = engineState?.step
     val guidance = engineState?.guidance ?: Guidance.SEEKING
     val polarity = run.polarity
     val holding = guidance == Guidance.HOLDING || guidance == Guidance.STEP_COMPLETE
-    val position = (engineState?.stepIndex ?: 0) + 1
+    val position = ((engineState?.stepIndex ?: 0) + 1).coerceIn(1, 5)
+    val ear = if (run.side == Side.LEFT) 'L' else 'R'
+    val copy = PositionCopies.getValue(position)
 
-    val phrases = if (engineState?.correction != null && step != null && polarity != null) {
-        Phrasing.corrections(
-            engineState.correction!!, polarity, run.side,
-            toleranceDegrees = step.toleranceDegrees,
-            seated = step.target.pitchDegrees < CuePlanner.SEATED_BELOW_PITCH,
-            practice = run.practice,
-        )
-    } else {
-        emptyList()
-    }
-
-    // Live values in the same frame the engine judges them in.
+    // Live values in the frame the engine judges them in.
     val pose = run.pose
     val liveTurn = pose?.let { p ->
         if (polarity?.towardAffectedSideIsPositive == false) -p.headRotationDegrees else p.headRotationDegrees
     }
     val livePitch = pose?.pitchDegrees
 
-    // Positions 1, 3 and 4 are led by the turn; 2 and 5 by the tilt (handoff §4b). The other axis
-    // is still shown, smaller — the engine gates on both, so hiding one would guide badly.
-    val turnLed = position == 1 || position == 3 || position == 4
-
-    DsScreen(
-        background = if (holding && !c.night) c.mint else c.ground,
-        top = {
-            Column(
-                Modifier.fillMaxWidth().padding(vertical = Space.s),
-                verticalArrangement = Arrangement.spacedBy(Space.s),
-            ) {
-                DsProgressSegments(total = 5, current = position)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.m)) {
-                    Text(
-                        "Position $position of 5" + if (run.practice) " · practice" else "",
-                        style = DsType.label,
-                        color = if (holding && !c.night) Color(0xCC17161C) else c.muted,
-                    )
-                    Spacer(Modifier.weight(1f))
-                    if (holding) {
-                        DsChip("Holding", Icons.Rounded.Check, ChipStyle.Filled)
-                    } else {
-                        DsChip("Finding position", Icons.Rounded.Warning, ChipStyle.Outlined, c.butter)
-                    }
-                }
-            }
-        },
-        bottom = {
-            DsButton(
-                label = "Say it again",
-                onClick = onRepeat,
-                fill = if (holding && !c.night) Color(0x33FFFFFF) else c.surface,
-                contentColor = if (holding && !c.night) Color(0xFF17161C) else c.ink,
-                leading = Icons.Rounded.Refresh,
-            )
-            DsStopButton(onStop)
-        },
-    ) {
-        if (holding) {
-            HoldBody(run, liveTurn, livePitch, engineState?.heldSeconds ?: 0.0, engineState?.holdSecondsRequired ?: 0)
-        } else {
-            FindBody(run, step, phrases, liveTurn, livePitch, turnLed)
-        }
-    }
-}
-
-/** Finding: the instruction on butter, then one big signed angle and a meter. */
-@Composable
-private fun FindBody(
-    run: RunUiState,
-    step: health.epley.core.ManeuverStep?,
-    phrases: List<health.epley.core.CorrectionPhrase>,
-    liveTurn: Double?,
-    livePitch: Double?,
-    turnLed: Boolean,
-) {
-    val c = Ds
-    if (step == null) {
-        Text("Getting ready", style = DsType.title, color = c.ink)
+    if (holding) {
+        val required = engineState?.holdSecondsRequired ?: 0
+        val held = (engineState?.heldSeconds ?: 0.0).coerceAtMost(required.toDouble())
+        HoldView(
+            HoldModel(
+                position = position,
+                ear = ear,
+                short = mirrorFor(ear, copy.short),
+                count = ceil(required - held).toInt().coerceAtLeast(0),
+                total = required,
+                blocks = holdBlocks(required, held.toFloat()),
+                turn = liveTurn?.let(::deg) ?: "--",
+                tip = livePitch?.let(::deg) ?: "--",
+            ),
+            onStop = onStop,
+        )
         return
     }
-    DsCard(
-        modifier = Modifier.enter(0),
-        fill = c.butter,
-        tint = c.butterTint,
-        outline = c.butter,
-    ) {
-        Text(
-            step.title,
-            style = DsType.cardTitle,
-            color = if (c.night) c.ink else Color(0xFF17161C),
+
+    var figurePlaying by remember(position) { mutableStateOf(true) }
+
+    if (step == null) {
+        FindView(
+            FindModel(position, ear, mirrorFor(ear, copy.title), mirrorFor(ear, copy.sub), mirrorFor(ear, copy.dir),
+                "--", "now --", "--", 0f, 0f, 0.5f),
+            figurePlaying, { figurePlaying = !figurePlaying }, onStop,
         )
-        Text(
-            step.instruction(run.side, run.practice),
-            style = DsType.body,
-            color = if (c.night) c.soft else Color(0xCC17161C),
-        )
+        return
     }
 
-    if (run.mountMoved) {
-        Box(Modifier.enter(1)) {
-            DsWarning(
-                caption = "THE PHONE MOVED",
-                body = "It turned faster than a head can. Recalibrate before trusting the reading.",
-            )
-        }
-    }
-
+    // Positions 1, 3 and 4 are led by the turn; 2 and 5 by the tip (§4b).
+    val turnLed = position == 1 || position == 3 || position == 4
     val target = if (turnLed) step.target.headRotationDegrees else step.target.pitchDegrees
-    val live = if (turnLed) liveTurn else livePitch
-    val label = if (turnLed) "Turn" else "Tip"
     val tolerance = step.toleranceDegrees
-    // Wrap-safe, exactly as the engine judges it: a reading a whole turn out must not draw on
-    // target while the app is saying move.
+    val live = if (turnLed) liveTurn else livePitch
+    // Wrap-safe, exactly as the engine judges it: a reading a whole turn out must not show in
+    // range while the voice is saying move.
     val offset = live?.let { if (turnLed) HeadAngles.shortestDegrees(it - target) else it - target }
-    val remaining = offset?.let { if (abs(it) <= tolerance) 0.0 else it - (if (it > 0) tolerance else -tolerance) }
-    val direction = phrases.firstOrNull { it.text.startsWith(label, ignoreCase = true) }
-        ?: phrases.firstOrNull()
+    val beyond = offset?.let { if (abs(it) <= tolerance) 0.0 else it - (if (it > 0) tolerance else -tolerance) }
 
-    DsCard(modifier = Modifier.enter(2)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                when {
-                    remaining == null -> "--"
-                    remaining == 0.0 -> "In range"
-                    else -> (if (remaining > 0) "+" else "") + (-remaining).roundToInt().toString() + "°"
-                },
-                style = DsType.live,
-                color = if (remaining == 0.0) c.mint else c.ink,
-            )
-            Spacer(Modifier.width(Space.m))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    direction?.let { Phrasing.onScreen(it) } ?: "Hold still",
-                    style = DsType.rowTitle,
-                    color = c.ink,
-                )
-                Text(
-                    buildString {
-                        append("now ")
-                        append(live?.roundToInt()?.toString() ?: "--")
-                        append("° · aim ")
-                        append((target - tolerance).roundToInt())
-                        append("–")
-                        append((target + tolerance).roundToInt())
-                        append("°")
-                    },
-                    style = DsType.label,
-                    color = c.muted,
-                )
-            }
-        }
-        val span = if (turnLed) 90.0 else 80.0
-        val low = target - span
-        val high = target + span
-        DsRangeMeter(
-            value = live?.let { (((if (turnLed) target + (offset ?: 0.0) else it) - low) / (high - low)).toFloat() } ?: 0.5f,
-            zoneStart = (((target - tolerance) - low) / (high - low)).toFloat(),
-            zoneEnd = (((target + tolerance) - low) / (high - low)).toFloat(),
+    val phrases = if (engineState.correction != null && polarity != null) {
+        Phrasing.corrections(
+            engineState.correction!!, polarity, run.side,
+            toleranceDegrees = tolerance,
+            seated = step.target.pitchDegrees < CuePlanner.SEATED_BELOW_PITCH,
+            practice = run.practice,
         )
-    }
-
-    // The engine gates on both axes, so the second one is always visible even when not leading.
-    val otherLive = if (turnLed) livePitch else liveTurn
-    val otherTarget = if (turnLed) step.target.pitchDegrees else step.target.headRotationDegrees
-    val otherLabel = if (turnLed) "Tip" else "Turn"
-    Box(Modifier.enter(3)) {
-        DsCard(padding = Space.l) {
-            AxisRow(otherLabel, otherLive, otherTarget, tolerance)
-        }
-    }
-}
-
-/** Holding: the count owns the screen. */
-@Composable
-private fun HoldBody(
-    run: RunUiState,
-    liveTurn: Double?,
-    livePitch: Double?,
-    heldSeconds: Double,
-    required: Int,
-) {
-    val c = Ds
-    val remaining = (required - heldSeconds).coerceAtLeast(0.0)
-    val onMint = !c.night
-    val ink = if (onMint) Color(0xFF17161C) else c.ink
-    val body: @Composable () -> Unit = {
-        Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
-            Text("Stay still.", style = DsType.title, color = ink, modifier = Modifier.enter(0))
-            Text(
-                remaining.roundToInt().toString(),
-                style = DsType.count((LocalViewportHeight.current.value * 0.26f).coerceIn(120f, 232f).sp),
-                color = if (onMint) Color(0xFF17161C) else c.mint,
-                modifier = Modifier.enter(1),
-            )
-            Text(
-                "seconds left of $required",
-                style = DsType.cardTitle,
-                color = if (onMint) Color(0xCC17161C) else c.muted,
-                modifier = Modifier.enter(2),
-            )
-            Spacer(Modifier.height(Space.s))
-            Box(Modifier.enter(3)) {
-                DsHoldBlocks(
-                    totalSeconds = required,
-                    elapsedSeconds = heldSeconds.toFloat(),
-                    fill = if (onMint) Color(0xFF17161C) else c.mint,
-                    empty = if (onMint) Color(0x2217161C) else c.mintTint,
-                )
-            }
-            Spacer(Modifier.height(Space.s))
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(Radius.note))
-                    .background(if (onMint) Color(0x66FFFFFF) else c.mintTint)
-                    .padding(Space.l)
-                    .enter(4),
-                verticalArrangement = Arrangement.spacedBy(Space.s),
-            ) {
-                HeldReading("Turn", liveTurn, ink)
-                HeldReading("Tip", livePitch, ink)
-            }
-        }
-    }
-    Spacer(Modifier.height(Space.s))
-    if (c.night) {
-        DsCard(fill = c.mintTint, tint = c.mintTint, outline = c.mint, radius = Radius.hero) { body() }
     } else {
-        body()
+        emptyList()
     }
-}
+    val direction = phrases.firstOrNull()?.let { Phrasing.onScreen(it) } ?: mirrorFor(ear, copy.dir)
 
-@Composable
-private fun HeldReading(label: String, value: Double?, ink: Color) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Rounded.Check, contentDescription = null, tint = ink, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(Space.s))
-        Text(label, style = DsType.label, color = ink, modifier = Modifier.weight(1f))
-        Text(
-            value?.let { it.roundToInt().toString() + "°" } ?: "--",
-            style = DsType.cardTitle,
-            color = ink,
-        )
-    }
-}
+    val lo = target - tolerance
+    val hi = target + tolerance
+    val span = if (turnLed) 90.0 else 80.0
+    val low = target - span
+    val high = target + span
+    fun frac(x: Double) = ((x.coerceIn(low, high) - low) / (high - low)).toFloat()
 
-/** The axis that is not leading this position: label, live value, and whether it is in range. */
-@Composable
-private fun AxisRow(label: String, live: Double?, target: Double, tolerance: Double) {
-    val c = Ds
-    val off = live?.let { abs(HeadAngles.shortestDegrees(it - target)) }
-    val inRange = off != null && off <= tolerance
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            if (inRange) Icons.Rounded.Check else Icons.Rounded.Warning,
-            contentDescription = null,
-            tint = if (inRange) c.mint else c.butter,
-            modifier = Modifier.size(20.dp),
-        )
-        Spacer(Modifier.width(Space.s))
-        Text(label, style = DsType.label, color = c.muted, modifier = Modifier.weight(1f))
-        Text(
-            (live?.roundToInt()?.toString() ?: "--") + "° · aim " +
-                (target - tolerance).roundToInt() + "–" + (target + tolerance).roundToInt() + "°",
-            style = DsType.label,
-            color = c.ink,
-        )
-    }
+    FindView(
+        FindModel(
+            position = position,
+            ear = ear,
+            title = mirrorFor(ear, copy.title),
+            // In practice the phone is the head, so the engine's own practice wording is kept.
+            sub = if (run.practice) step.instruction(run.side, true) else mirrorFor(ear, copy.sub),
+            direction = direction,
+            remaining = when {
+                beyond == null -> "--"
+                beyond == 0.0 -> "In range"
+                beyond < 0 -> "+" + abs(beyond).toInt().coerceAtLeast(1) + "°"
+                else -> "−" + abs(beyond).toInt().coerceAtLeast(1) + "°"
+            },
+            now = "now " + (live?.let(::deg) ?: "--"),
+            aim = if (turnLed) "${lo.toInt()}–${hi.toInt()}°" else deg(hi) + " to " + deg(lo),
+            zoneStart = frac(lo),
+            zoneWidth = frac(hi) - frac(lo),
+            marker = live?.let { frac(if (turnLed) target + (offset ?: 0.0) else it) } ?: 0.5f,
+        ),
+        figurePlaying = figurePlaying,
+        onToggleFigure = { figurePlaying = !figurePlaying },
+        onStop = onStop,
+        warning = if (run.mountMoved) {
+            { DsWarning(caption = "THE PHONE MOVED", body = "It turned faster than a head can. Recalibrate before trusting the reading.") }
+        } else null,
+    )
 }
