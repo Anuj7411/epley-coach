@@ -522,7 +522,7 @@ fun DsWarning(caption: String, body: String) {
         Row(horizontalArrangement = Arrangement.spacedBy(Space.m), verticalAlignment = Alignment.CenterVertically) {
             DsIconTile(Icons.Rounded.Warning, fill = if (Ds.night) Ds.coral else Color(0x99FFFFFF), tint = Color(0xFF17161C))
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(caption, style = DsType.caps, color = Ds.ink)
+                Text(caption, style = DsType.caps, color = if (Ds.night) Ds.coral else Ds.ink)
                 Text(body, style = DsType.label, color = Ds.ink)
             }
         }

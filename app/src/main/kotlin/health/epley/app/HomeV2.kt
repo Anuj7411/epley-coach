@@ -88,7 +88,12 @@ fun HomeScreenV2(
                 radius = Radius.hero,
                 onClick = onStart,
             ) {
-                DsChip("Safety check first", Icons.Rounded.CheckCircle, ChipStyle.OnPastel)
+                DsChip(
+                    "Safety check first",
+                    Icons.Rounded.CheckCircle,
+                    if (c.night) ChipStyle.Outlined else ChipStyle.OnPastel,
+                    c.lilac,
+                )
                 Spacer(Modifier.height(Space.xxl))
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -127,20 +132,16 @@ fun HomeScreenV2(
         ) {
             SideTile(
                 modifier = Modifier.weight(1f),
-                label = "Practise\nin hand",
-                fill = c.butter,
-                tint = c.butterTint,
-                outline = c.butter,
+                line1 = "Practise",
+                line2 = "in hand",
                 onClick = onPractice,
-            ) { PhoneGlyphV2(if (c.night) c.butter else Color(0xFF17161C)) }
+            ) { HandGlyph(if (c.night) c.butter else Color(0xFFE0A800)) }
             SideTile(
                 modifier = Modifier.weight(1f),
-                label = "Check\nsensors",
-                fill = c.surface,
-                tint = c.surface,
-                outline = null,
+                line1 = "Check",
+                line2 = "sensors",
                 onClick = onInstrument,
-            ) { SignalGlyphV2(c.ink) }
+            ) { SignalGlyphV2(c.muted) }
         }
 
         // Required in-app (§1.1). It keeps its own card and sits above the fold.
@@ -162,30 +163,46 @@ private fun remember_today(): String {
 @Composable
 private fun SideTile(
     modifier: Modifier,
-    label: String,
-    fill: Color,
-    tint: Color,
-    outline: Color?,
+    line1: String,
+    line2: String,
     onClick: () -> Unit,
     glyph: @Composable () -> Unit,
 ) {
     val c = Ds
-    val shape = RoundedCornerShape(Radius.card)
     Column(
         modifier
             .pressable(onClick = onClick)
-            .clip(shape)
-            .background(if (c.night) tint else fill)
-            .then(if (c.night && outline != null) Modifier.border(2.dp, outline, shape) else Modifier)
+            .clip(RoundedCornerShape(Radius.card))
+            .background(c.surface)
             .heightIn(min = 112.dp)
             .padding(Space.l),
         verticalArrangement = Arrangement.spacedBy(Space.m),
     ) {
         glyph()
-        Text(
-            label,
-            style = DsType.cardTitle,
-            color = if (c.night) c.ink else Color(0xFF17161C),
+        Column {
+            Text(line1, style = DsType.cardTitle, color = c.ink)
+            Text(line2, style = DsType.cardTitle, color = c.ink)
+        }
+    }
+}
+
+/** A raised hand. Drawn, because the extended icon set is not a dependency. */
+@Composable
+private fun HandGlyph(colour: Color) {
+    Canvas(Modifier.size(28.dp)) {
+        val w = size.width
+        val h = size.height
+        val finger = w * 0.12f
+        listOf(0.30f, 0.19f, 0.21f, 0.31f).forEachIndexed { i, top ->
+            val x = w * (0.31f + i * 0.145f)
+            drawLine(colour, Offset(x, h * top), Offset(x, h * 0.62f), finger, StrokeCap.Round)
+        }
+        drawLine(colour, Offset(w * 0.20f, h * 0.50f), Offset(w * 0.31f, h * 0.66f), finger, StrokeCap.Round)
+        drawRoundRect(
+            color = colour,
+            topLeft = Offset(w * 0.25f, h * 0.55f),
+            size = androidx.compose.ui.geometry.Size(w * 0.52f, h * 0.33f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(finger, finger),
         )
     }
 }

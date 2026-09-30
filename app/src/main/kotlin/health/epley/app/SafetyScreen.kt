@@ -7,18 +7,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.rounded.Call
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,25 +29,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import health.epley.core.Safety
 import health.epley.core.SafetyOutcome
 
 /**
- * The safety check before every run: two questions, two taps, never paywalled.
+ * The check before every run, in the v2 system (handoff §4.4, §4.5).
  *
- * ## The one thing this screen must get right
- *
- * The two answers must not look alike. On the first build they were the same grey button, one
- * above the other, which meant a dizzy person could send themselves past a stroke check by muscle
- * memory. The dangerous answer is now an outlined coral pill and the safe one a filled cream one:
- * different shape, different weight, different colour, in that order of importance. A person who
- * cannot read the words still cannot confuse them.
- *
- * The logic and the item lists live in [Safety], where they are tested. This screen only asks.
+ * Unskippable and never behind the paywall. Two questions rather than the handoff's one, because
+ * the app's second question carries the trial's exclusion criteria — never diagnosed, a neck or
+ * back problem, a recent head injury, an attack unlike the diagnosed ones — and dropping it to
+ * match a mockup would remove a clinical gate. Both are styled identically to the handoff's.
  */
 @Composable
 fun SafetyScreen(
@@ -57,186 +51,247 @@ fun SafetyScreen(
     var emergency by remember { mutableStateOf<Boolean?>(null) }
     var notToTreat by remember { mutableStateOf<Boolean?>(null) }
     val context = LocalContext.current
+    val c = Ds
 
     when (val outcome = Safety.assess(emergency, notToTreat)) {
         is SafetyOutcome.Incomplete -> {
             val first = outcome.nextQuestion == 1
-            FlowFrame(
-                stepLabel = if (first) "Safety check 1 of 2" else "Safety check 2 of 2",
-                progress = if (first) 0.08f else 0.14f,
-                onBack = onCancel,
+            DsScreen(
+                top = {
+                    Row(
+                        Modifier.fillMaxWidth().padding(vertical = Space.s),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Space.m),
+                    ) {
+                        DsChip("Safety check", Icons.Rounded.Warning, ChipStyle.Outlined, c.coral)
+                        Text(
+                            if (first) "Before every run" else "One more",
+                            style = DsType.label,
+                            color = c.muted,
+                        )
+                    }
+                },
                 bottom = {
-                    DangerOutlineButton(
-                        label = if (first) "Yes, I have one of these" else "Yes, one applies",
+                    DsButton(
+                        label = if (first) "Yes, one or more" else "Yes, one applies",
                         onClick = { if (first) emergency = true else notToTreat = true },
+                        fill = c.coral,
+                        contentColor = Color(0xFF17161C),
                     )
-                    PrimaryButton(
-                        if (first) "No, none of these" else "No, none apply",
-                        { if (first) emergency = false else notToTreat = false },
+                    DsButton(
+                        label = if (first) "No, none of these" else "No, none apply",
+                        onClick = { if (first) emergency = false else notToTreat = false },
                     )
                 },
             ) {
-                Title(if (first) "Do you have any of these right now?" else "Do any of these apply to you?")
-                WarningList(if (first) Safety.emergencySigns else Safety.reasonsNotToTreat, urgent = first)
+                Text(
+                    if (first) "Do you have any of these right now?" else "Do any of these apply to you?",
+                    style = DsType.title,
+                    color = c.ink,
+                    modifier = Modifier.padding(start = Space.s).enter(0),
+                )
+                Text(
+                    "This step can't be skipped.",
+                    style = DsType.body,
+                    color = c.muted,
+                    modifier = Modifier.padding(start = Space.s, bottom = Space.s).enter(1),
+                )
+                FlagCard(
+                    items = if (first) Safety.emergencySigns else Safety.reasonsNotToTreat,
+                    modifier = Modifier.enter(2),
+                )
             }
         }
 
-        SafetyOutcome.Emergency -> FlowFrame(
-            stepLabel = "Safety check",
-            progress = null,
-            onBack = null,
-            bottom = {
-                Button(
-                    // Opens the dialer with the number filled in; the person still presses call.
-                    // No permission is needed and nothing is dialled without them.
-                    onClick = { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:112"))) },
-                    shape = RoundedCornerShape(percent = 50),
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Palette.Urgent, contentColor = Palette.Ground),
-                ) {
-                    Text(
-                        "Call 112",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontFamily = AppType.Sans,
-                    )
-                }
-                SecondaryButton("Back to home", { onFinished(outcome) })
-            },
-        ) {
-            HeroTile(Icons.Filled.Warning, filled = true)
-            Text(
-                "Stop. Get emergency help now.",
-                color = Palette.Ink,
-                fontSize = AppType.DisplaySize,
-                lineHeight = AppType.DisplayLine,
-                fontWeight = FontWeight.ExtraBold,
-                fontFamily = AppType.Sans,
-            )
-            Text(
-                "These can be signs of a stroke, not BPPV. Don't do the head positions. Call your " +
-                    "emergency number, or ask someone to call for you.",
-                color = Palette.InkBody,
-                fontSize = AppType.BodyLargeSize,
-                lineHeight = AppType.BodyLargeLine,
-                fontFamily = AppType.Sans,
-            )
-            Box(Modifier.fillMaxWidth().height(1.dp).background(Palette.Divider))
-            InfoNote("Note the time your symptoms started. Doctors will ask.")
-        }
+        // Hard stop. The only way on is out of the app; "Back to home" exists so nobody is
+        // trapped, and it never leads to the manoeuvre.
+        SafetyOutcome.Emergency -> HardStop(
+            chip = "Red flag",
+            headline = "Stop. Get emergency help now.",
+            body = "These can be signs of a stroke, not BPPV. Do not start the treatment. Call " +
+                "your emergency number, or ask someone to call for you.",
+            note = "Note the time your symptoms started. Doctors will ask.",
+            onCall = { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:112"))) },
+            onHome = { onFinished(outcome) },
+        )
 
-        SafetyOutcome.SeeDoctor -> FlowFrame(
-            stepLabel = "Safety check",
-            progress = null,
-            onBack = null,
-            bottom = { PrimaryButton("Back to home", { onFinished(outcome) }) },
+        SafetyOutcome.SeeDoctor -> DsScreen(
+            bottom = { DsButton("Back to home", { onFinished(outcome) }) },
         ) {
-            HeroTile(Icons.Filled.Warning, filled = false)
+            Spacer(Modifier.height(Space.l))
+            Box(Modifier.enter(0)) {
+                DsIconTile(
+                    Icons.Rounded.Warning,
+                    size = 64.dp,
+                    iconSize = 34.dp,
+                    fill = if (c.night) c.coralTint else c.coral,
+                    tint = if (c.night) c.coral else Color(0xFF17161C),
+                )
+            }
             Text(
                 "See a doctor before using this",
-                color = Palette.Ink,
-                fontSize = AppType.DisplaySize,
-                lineHeight = AppType.DisplayLine,
-                fontWeight = FontWeight.ExtraBold,
-                fontFamily = AppType.Sans,
+                style = DsType.title,
+                color = c.ink,
+                modifier = Modifier.padding(start = Space.s).enter(1),
             )
             Text(
                 "The head positions aren't safe to do on your own in this situation. A doctor can " +
                     "check what's causing the dizziness and show you what to do.",
-                color = Palette.InkBody,
-                fontSize = AppType.BodyLargeSize,
-                lineHeight = AppType.BodyLargeLine,
-                fontFamily = AppType.Sans,
+                style = DsType.body,
+                color = c.muted,
+                modifier = Modifier.padding(start = Space.s).enter(2),
             )
         }
 
-        SafetyOutcome.Clear -> FlowFrame(
-            stepLabel = "Safety check",
-            progress = 1 / 6f,
-            onBack = onCancel,
-            bottom = { PrimaryButton("Continue", { onFinished(outcome) }) },
+        SafetyOutcome.Clear -> DsScreen(
+            bottom = { DsButton("Continue", { onFinished(outcome) }) },
         ) {
-            HeroTile(Icons.Filled.Check, filled = true, colour = Palette.Holding)
-            Title("Safety check passed")
-            Body("If any of those signs appear during the manoeuvre, stop and get help.", secondary = true)
+            Spacer(Modifier.height(Space.l))
+            Box(Modifier.enter(0)) {
+                DsIconTile(
+                    Icons.Rounded.Check,
+                    size = 64.dp,
+                    iconSize = 34.dp,
+                    fill = if (c.night) c.mintTint else c.mint,
+                    tint = if (c.night) c.mint else Color(0xFF17161C),
+                )
+            }
+            Text(
+                "Safety check passed",
+                style = DsType.title,
+                color = c.ink,
+                modifier = Modifier.padding(start = Space.s).enter(1),
+            )
+            Text(
+                "If any of those signs appear during the manoeuvre, stop and get help.",
+                style = DsType.body,
+                color = c.muted,
+                modifier = Modifier.padding(start = Space.s).enter(2),
+            )
         }
     }
 }
 
 /**
- * The six or four items, one per row.
+ * The flags in one card, 52dp rows with hairlines between.
  *
- * A grouped list rather than bullets in a paragraph. Each row is its own object with its own icon,
- * which is how someone skims a list they are frightened of rather than reading it as prose. The
- * previous version wrapped mid-item and hung the remainder at the left margin, which made a
- * six-item list look like nine.
+ * A grouped list rather than bullets in a paragraph: each row is its own object, which is how
+ * someone skims a list they are frightened of rather than reading it as prose.
  */
 @Composable
-private fun WarningList(items: List<String>, urgent: Boolean) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+private fun FlagCard(items: List<String>, modifier: Modifier = Modifier) {
+    DsCard(modifier = modifier, padding = Space.s) {
         items.forEachIndexed { index, item ->
-            val top = if (index == 0) 20.dp else 6.dp
-            val bottom = if (index == items.lastIndex) 20.dp else 6.dp
             Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom))
-                    .background(Palette.Surface)
-                    .heightIn(min = 64.dp)
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(horizontal = Space.m, vertical = Space.s),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (urgent) {
-                    Icon(
-                        Icons.Filled.Warning,
-                        contentDescription = null,
-                        tint = Palette.Urgent,
-                        modifier = Modifier.size(22.dp),
-                    )
-                }
-                Text(
-                    item,
-                    color = Palette.Ink,
-                    fontSize = AppType.BodySize,
-                    lineHeight = AppType.BodyLine,
-                    fontFamily = AppType.Sans,
-                )
+                Text(item, style = DsType.rowTitle, color = Ds.ink)
             }
+            if (index != items.lastIndex) DsDivider(start = Space.m)
         }
     }
 }
 
-/** A quiet aside, never a warning. Icon plus muted text, no box. */
+/**
+ * The hard-stop family: coral floods the screen on day, and becomes a coral-outlined tint card on
+ * night so a dark room is never filled with a bright field.
+ */
+@Composable
+private fun HardStop(
+    chip: String,
+    headline: String,
+    body: String,
+    note: String?,
+    onCall: () -> Unit,
+    onHome: () -> Unit,
+    extra: (@Composable ColumnScopeShim.() -> Unit)? = null,
+) {
+    val c = Ds
+    DsScreen(
+        background = if (c.night) c.ground else c.coral,
+        bottom = {
+            DsButton(
+                label = "Call emergency",
+                onClick = onCall,
+                fill = if (c.night) c.coral else Color(0xFF17161C),
+                contentColor = if (c.night) Color(0xFF17161C) else Color.White,
+                leading = Icons.Rounded.Call,
+            )
+            DsButton(
+                label = "Back to home",
+                onClick = onHome,
+                fill = if (c.night) c.surface else Color(0x33FFFFFF),
+                contentColor = c.ink,
+            )
+        },
+    ) {
+        val content: @Composable () -> Unit = {
+            Column(verticalArrangement = Arrangement.spacedBy(Space.l)) {
+                Box(Modifier.enter(0)) {
+                    DsChip(chip, Icons.Rounded.Warning, ChipStyle.Filled)
+                }
+                Text(
+                    headline,
+                    style = DsType.result,
+                    color = c.ink,
+                    modifier = Modifier.enter(1),
+                )
+                Text(body, style = DsType.body, color = c.ink, modifier = Modifier.enter(2))
+                if (note != null) {
+                    Box(Modifier.enter(3)) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(Space.m),
+                        ) {
+                            Box(
+                                Modifier.size(4.dp, 4.dp).clip(RoundedCornerShape(2.dp))
+                                    .background(c.ink).padding(top = Space.s),
+                            )
+                            Text(note, style = DsType.label, color = c.ink)
+                        }
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(Space.l))
+        if (c.night) {
+            DsCard(fill = c.coralTint, tint = c.coralTint, outline = c.coral) { content() }
+        } else {
+            content()
+        }
+    }
+}
+
+/** Marker type so [HardStop]'s optional slot compiles without pulling in ColumnScope. */
+interface ColumnScopeShim
+
+/**
+ * The muted note used by screens not yet moved to the v2 system. Replaced by [DsNote] as each
+ * screen is converted.
+ */
 @Composable
 fun InfoNote(text: String) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Icon(Icons.Filled.Info, contentDescription = null, tint = Palette.InkMuted, modifier = Modifier.size(20.dp))
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Palette.Surface)
+            .padding(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(
+            Icons.Rounded.Warning,
+            contentDescription = null,
+            tint = Palette.InkFaint,
+            modifier = Modifier.size(20.dp),
+        )
         Text(
             text,
             color = Palette.InkMuted,
             fontSize = AppType.ReadingFloor,
-            lineHeight = 23.sp,
+            lineHeight = AppType.LabelLine,
             fontFamily = AppType.Sans,
-        )
-    }
-}
-
-/** A 72dp icon tile, so an outcome screen states its nature before a word is read. */
-@Composable
-private fun HeroTile(icon: androidx.compose.ui.graphics.vector.ImageVector, filled: Boolean, colour: androidx.compose.ui.graphics.Color = Palette.Urgent) {
-    Box(
-        Modifier
-            .size(72.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(if (filled) colour else Palette.Surface),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = if (filled) Palette.Ground else colour,
-            modifier = Modifier.size(40.dp),
         )
     }
 }
