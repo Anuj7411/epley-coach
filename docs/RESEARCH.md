@@ -35,7 +35,7 @@ the model clinicians themselves designed and tested.**
 | Evidence | Source |
 |---|---|
 | AAO-HNS guideline: posterior canal BPPV **should** be treated with a repositioning manoeuvre; vestibular rehabilitation may be offered self-administered or with a clinician | [AAO-HNS 2017 CPG](https://aao-hnsfjournals.onlinelibrary.wiley.com/doi/10.1177/0194599816689667) |
-| JAMA Neurology 2023 RCT, 585 patients, four Korean medical centres: **previously diagnosed** patients self-treated recurrences at home. Web questionnaire + video: **72.4%** resolution. Video using the previous diagnosis: **42.9%** | [Choi et al., JAMA Neurol 2023](https://pmc.ncbi.nlm.nih.gov/articles/PMC10011937/) |
+| JAMA Neurology 2023 RCT, 585 patients, four Korean medical centres: **previously diagnosed** patients self-treated recurrences at home. Web questionnaire + video: **72.4%** resolution. Video using the previous diagnosis: **42.9%** | [Kim et al., JAMA Neurol 2023](https://pmc.ncbi.nlm.nih.gov/articles/PMC10011937/) (doi 10.1001/jamaneurol.2022.4944) |
 | Home repositioning after office treatment: 8.3% more effective, recurrence reduced 9% | Secondary source only, cited in [Medscape guideline summary](https://emedicine.medscape.com/article/884261-guidelines) — **not verified against the primary paper** |
 
 **Implication:** the user is a diagnosed patient. The app is what happens *after* the doctor, not
@@ -139,7 +139,13 @@ The fix is published. Six questions ([JAMA 2023](https://pmc.ncbi.nlm.nih.gov/ar
 
 Questions 1–3 screen out non-BPPV causes. Questions 4–6 identify the canal and side.
 
-Honest limits to state alongside it: the questionnaire's accuracy in the authors' earlier study
+Source of the questionnaire itself: Kim HJ, Song JM, Zhong L, Yang X, Kim JS. *Questionnaire-based
+diagnosis of benign paroxysmal positional vertigo.* Neurology 2020, doi 10.1212/WNL.0000000000008876.
+578 patients, checked against positional tests: sensitivity **87.0%**, specificity **89.8%** for
+BPPV itself. The **71.2%** (121 of 170) is narrower — agreement on the *canal type and affected side*
+among those who answered questions 4–6. Neither paper is open access.
+
+Honest limits to state alongside it: the questionnaire's accuracy on canal and side in the authors' earlier study
 was **71.2%**, and this app only guides the **posterior canal** Epley — if the answers point to
 the horizontal canal, the app must say the Epley is the wrong manoeuvre rather than run it.
 

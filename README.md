@@ -156,7 +156,8 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## Sources
 
-- [Choi et al., *JAMA Neurology* 2023 — self-treatment of recurrent BPPV, n=585](https://pmc.ncbi.nlm.nih.gov/articles/PMC10011937/)
+- [Kim et al., *JAMA Neurology* 2023 — self-treatment of recurrent BPPV, n=585](https://pmc.ncbi.nlm.nih.gov/articles/PMC10011937/)
+- [Kim et al., *Neurology* 2020 — the six-question questionnaire, n=578](https://doi.org/10.1212/WNL.0000000000008876)
 - [Kim et al., *Neurology* 2020 — questionnaire-based diagnosis of BPPV](https://www.neurology.org/doi/10.1212/WNL.0000000000008876)
 - [Subtype questionnaire reliability in older patients](https://pmc.ncbi.nlm.nih.gov/articles/PMC10318130/)
 - [Kwon et al., *Scientific Reports* 2023 — IMU-guided repositioning](https://pmc.ncbi.nlm.nih.gov/articles/PMC9950366/)
