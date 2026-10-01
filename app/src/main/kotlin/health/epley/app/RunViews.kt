@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -53,6 +54,19 @@ data class FindModel(
     val practice: Boolean = false,
     /** The phone turned faster than a head can: the instruction card becomes a warning (§16 I). */
     val moved: Boolean = false,
+    /** The other angle — the one this position is not led by — so both can be seen at once. */
+    val second: AxisModel? = null,
+)
+
+/** One angle on its own scale: where it is now, where it has to be, and whether it is there. */
+data class AxisModel(
+    val label: String,
+    val now: String,
+    val aim: String,
+    val zoneStart: Float,
+    val zoneWidth: Float,
+    val marker: Float,
+    val inRange: Boolean,
 )
 
 /** What Hold shows. */
@@ -197,29 +211,60 @@ fun FindView(
                 }
             }
             RangeMeter(m.zoneStart, m.zoneWidth, m.marker)
+            m.second?.let { SecondAxis(it) }
         }
         Spacer(Modifier.flex())
         PillButton(if (m.practice) "Stop practice" else "Stop", onStop, fill = c.coral, content = Ink, icon = "close")
     }
 }
 
+/**
+ * The angle the position is not led by, on its own smaller scale, so a run can be watched on both
+ * at once: the label and its reading, then the same zone-and-marker meter at 8 dp.
+ */
+@Composable
+private fun SecondAxis(a: AxisModel) {
+    val c = Ds
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            // Colour and icon cross-fade as the angle enters or leaves its range (M5).
+            val reduced = LocalReducedMotion.current
+            val tint by androidx.compose.animation.animateColorAsState(
+                if (a.inRange) c.mint else c.muted,
+                if (reduced) snap() else tween(Motion.TOGGLE, easing = StandardEase), label = "axis",
+            )
+            Sym(if (a.inRange) "check" else "radio_button_unchecked", 20f, tint, weight = 700)
+            Txt(a.label, type(16f, 700), c.ink, maxLines = 1)
+            Spacer(Modifier.weight(1f))
+            Txt("${a.now} · aim ${a.aim}", type(16f, 600, tnum = true), c.muted, maxLines = 1)
+        }
+        RangeMeter(a.zoneStart, a.zoneWidth, a.marker, track = 8.dp, markerHeight = 16.dp)
+    }
+}
+
 /** 12 dp track, the in-range zone, and a 4 × 24 dp marker centred on the value. */
 @Composable
-private fun RangeMeter(zoneStart: Float, zoneWidth: Float, marker: Float) {
+private fun RangeMeter(zoneStart: Float, zoneWidth: Float, marker: Float, track: Dp = 12.dp, markerHeight: Dp = 24.dp) {
     val c = Ds
     val n = c.night
     // M7: the marker follows each new reading over 240 ms; the numeral beside it swaps instantly.
     val reduced = LocalReducedMotion.current
-    val at by animateFloatAsState(marker, if (reduced) snap() else tween(Motion.MARKER, easing = StandardEase), label = "marker")
-    BoxWithConstraints(Modifier.fillMaxWidth().height(12.dp)) {
+    // A critically damped spring rather than a fixed tween: it follows a reading that keeps moving
+    // without restarting each time, and it never overshoots (no bounce).
+    val at by animateFloatAsState(
+        marker,
+        if (reduced) snap() else androidx.compose.animation.core.spring(dampingRatio = 1f, stiffness = 300f),
+        label = "marker",
+    )
+    BoxWithConstraints(Modifier.fillMaxWidth().height(track)) {
         val w = maxWidth
-        Box(Modifier.fillMaxWidth().fillMaxHeight().box(if (n) c.surface2 else c.ground, 6.dp))
+        Box(Modifier.fillMaxWidth().fillMaxHeight().box(if (n) c.surface2 else c.ground, track / 2))
         Box(
             Modifier
                 .offset(x = w * zoneStart)
                 .width(w * zoneWidth)
                 .fillMaxHeight()
-                .box(if (n) c.zone else c.mint, 6.dp),
+                .box(if (n) c.zone else c.mint, track / 2),
         )
         // 24 dp tall across a 12 dp track: requiredSize lets it overflow, centred, which is the
         // design's top: -6px. A plain size() was clamped to the track and cut the marker in half.
@@ -227,7 +272,7 @@ private fun RangeMeter(zoneStart: Float, zoneWidth: Float, marker: Float) {
             Modifier
                 // Lambda offset: the marker moves every frame of its glide without recomposing.
                 .offset { androidx.compose.ui.unit.IntOffset(((w * at - 2.dp).roundToPx()), 0) }
-                .requiredSize(4.dp, 24.dp)
+                .requiredSize(4.dp, markerHeight)
                 .box(c.ink, 2.dp),
         )
     }
@@ -313,7 +358,9 @@ fun HoldView(m: HoldModel, onStop: () -> Unit) {
         }
         val blocks: @Composable () -> Unit = {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                m.blocks.forEach { f ->
+                m.blocks.forEach { target ->
+                    // Each block fills continuously between readings (M9), not in 0.1 s steps.
+                    val f by animateFloatAsState(target, tween(120, easing = androidx.compose.animation.core.LinearEasing), label = "block")
                     val ring = when {
                         n && f == 0f -> c.mintDim
                         n -> c.mint

@@ -182,11 +182,15 @@ fun ProgressBars(total: Int, current: Int, empty: Color = Ds.line) {
     val fg = c.ink
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         for (i in 1..total) {
-            val (bg, ring) = when {
+            val (bgTarget, ringTarget) = when {
                 i < current -> fg to fg
                 i == current -> Color.Transparent to fg
                 else -> empty to empty
             }
+            // Segments step by cross-fading their colours (M3, M5); they never slide.
+            val spec = androidx.compose.animation.core.tween<Color>(Motion.TOGGLE)
+            val bg by androidx.compose.animation.animateColorAsState(bgTarget, spec, label = "seg")
+            val ring by androidx.compose.animation.animateColorAsState(ringTarget, spec, label = "ring")
             Box(Modifier.weight(1f).height(8.dp).box(bg, 4.dp, ring = ring))
         }
     }

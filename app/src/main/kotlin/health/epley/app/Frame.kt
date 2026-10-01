@@ -384,7 +384,8 @@ fun DScreen(
     // The frame paints the ground and cross-fades it between screens (M2); a screen only says
     // which colour it wants. Outside a frame (previews), it paints its own.
     val ground = LocalGround.current
-    SideEffect { ground?.target = bg }
+    val active = LocalPageActive.current
+    SideEffect { if (active) ground?.target = bg }
     val bars = WindowInsets.systemBars.asPaddingValues()
     val topZone = max(48.dp.value, bars.calculateTopPadding().value).dp
     val bottomZone = max(32.dp.value, bars.calculateBottomPadding().value).dp

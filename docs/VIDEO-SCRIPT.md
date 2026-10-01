@@ -49,7 +49,7 @@ black for act breaks, logo sting to close.
 | Time | Visual | Voiceover | On-screen |
 |---|---|---|---|
 | 1:12–1:21 | The paywall's free-list ticks in, one line at a time, in confirm cyan. | "Every angle it measures is free. The safety check is free. Every guided run is free, forever." | ✓ safety check ✓ the six questions ✓ unlimited runs |
-| 1:21–1:29 | **Real capture.** Tap unlock, the Test Store dialog, the entitlement granting, the report opening. | "One payment unlocks one thing — your history, as plain text, for the doctor you will see three weeks from now, when nobody remembers the detail." | **$2.49 once. No subscription.** |
+| 1:21–1:29 | **Real capture.** Tap unlock, the Test Store dialog, the entitlement granting, the report opening. | "One payment unlocks one thing — your history, as a PDF for the doctor you will see three weeks from now, when nobody remembers the detail." | **$2.49 once. No subscription.** |
 | 1:29–1:34 | Back to black. Type only. | "A paywall that lets someone proceed unguided is not a business model. It is harm." | **Nothing safety-relevant is ever paid** |
 
 ---
@@ -61,7 +61,7 @@ black for act breaks, logo sting to close.
 
 | Time | Visual | Voiceover | On-screen |
 |---|---|---|---|
-| 1:34–1:41 | A wall of test names rushes past at an angle, then settles on one number. | "The angle mathematics was proven before the phone was ever plugged in. A hundred and eighty-seven tests, not one of which needs a device." | **187 tests** |
+| 1:34–1:41 | A wall of test names rushes past at an angle, then settles on one number. | "The angle mathematics was proven before the phone was ever plugged in. Two hundred and twelve tests, not one of which needs a device." | **212 tests** |
 | 1:41–1:50 | Three lines, appearing and clearing on black. Slowest beat in the film. | "The manoeuvre is recommended by clinical guideline. The questionnaire is validated by trial. That this app improves outcomes is not — and it does not claim to be." | **Claims angle accuracy. Claims nothing else.** |
 | 1:50–1:55 | Glow collapses to the "e" monogram on ground. Hold. Repo URL fades beneath. | "Built by one student, on one laptop, with no developer account." | **Epley Coach**<br>github.com/Anuj7411/epley-coach |
 
@@ -90,7 +90,7 @@ of the four are already recorded; one needs a head.
 | Home screen, slow scroll | recorded |
 | Safety screener → stop screen | can be recorded over adb |
 | Triage questions | can be recorded over adb |
-| Paywall → Test Store purchase → export | can be recorded over adb, after clearing the entitlement |
+| Paywall → Test Store purchase → doctor's PDF | can be recorded over adb, after clearing the entitlement |
 | **Phone at the cheek, live angle, timer locking** | **needs you, a bed and a second pair of hands** |
 
 That last one is the centrepiece and the only thing a screen recorder cannot fake. Film it in
@@ -124,13 +124,13 @@ Read straight through, no music under the first seven seconds.
 >
 > Every angle it measures is free. The safety check is free. Every guided run is free, forever.
 >
-> One payment unlocks one thing — your history, as plain text, for the doctor you will see
+> One payment unlocks one thing — your history, as a PDF for the doctor you will see
 > three weeks from now, when nobody remembers the detail.
 >
 > A paywall that lets someone proceed unguided is not a business model. It is harm.
 >
 > The angle mathematics was proven before the phone was ever plugged in.
-> A hundred and eighty-seven tests, not one of which needs a device.
+> Two hundred and twelve tests, not one of which needs a device.
 >
 > The manoeuvre is recommended by clinical guideline. The questionnaire is validated by trial.
 > That this app improves outcomes is not — and it does not claim to be.

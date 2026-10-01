@@ -180,7 +180,8 @@ class ParityTest(private val device: String, private val theme: String, private 
                 .filter { onlyDevice == "all" || it == onlyDevice }
                 .flatMap { d ->
                     listOf("day", "night").flatMap { t ->
-                        SCREENS.filter { only.isEmpty() || it in only }.map { arrayOf<Any>(d, t, it) }
+                        // Named states outside the design's list (previews of app-only additions) run too.
+                        (if (only.isEmpty()) SCREENS else only).map { arrayOf<Any>(d, t, it) }
                     }
                 }
         }
@@ -248,6 +249,19 @@ fun ParityScreen(id: String, night: Boolean) {
         "practice-find-p2" -> FindView(sampleFind(2, 'R').copy(practice = true), figurePlaying = true, onToggleFigure = {}, onStop = {})
         "practice-hold-p2" -> HoldView(sampleHold(2, 'R').copy(practice = true), onStop = {})
         "practice-done" -> DoneView(ear = 'R', showAfterCare = false, onFinish = {})
+        // App-only: the second angle under the main meter (requested after v2.1; not in the design).
+        "find-p2-second" -> FindView(
+            sampleFind(2, 'R').copy(
+                second = AxisModel("Turn", "now 38°", "26–64°", 0.36f, 0.29f, 0.47f, inRange = true),
+            ),
+            figurePlaying = false, onToggleFigure = {}, onStop = {},
+        )
+        "find-p4-second" -> FindView(
+            sampleFind(4, 'R').copy(
+                second = AxisModel("Tip", "now −2°", "−8° to −46°", 0.38f, 0.24f, 0.62f, inRange = false),
+            ),
+            figurePlaying = false, onToggleFigure = {}, onStop = {},
+        )
         "find-moved" -> FindView(sampleFind(4, 'R').copy(moved = true), figurePlaying = true, onToggleFigure = {}, onStop = {})
         "hold-paused" -> HoldView(sampleHold(4, 'R').copy(paused = true), onStop = {})
         "safety2" -> SafetyQuestion(

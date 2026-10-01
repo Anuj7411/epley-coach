@@ -28,6 +28,21 @@ fun RunScreen(
     onRepeat: () -> Unit,
     onStop: () -> Unit,
 ) {
+    // Find → Hold and each new position fade through (M8 / M11) instead of cutting.
+    val engineState = run.engineState
+    val guidance = engineState?.guidance ?: Guidance.SEEKING
+    val holding = guidance == Guidance.HOLDING || guidance == Guidance.STEP_COMPLETE
+    val position = ((engineState?.stepIndex ?: 0) + 1).coerceIn(1, 5)
+    PageFade(position to holding) { (_, showHold) -> RunPage(run, onRepeat, onStop, showHold) }
+}
+
+@Composable
+private fun RunPage(
+    run: RunUiState,
+    onRepeat: () -> Unit,
+    onStop: () -> Unit,
+    showHold: Boolean,
+) {
     val engineState = run.engineState
     val step = engineState?.step
     val guidance = engineState?.guidance ?: Guidance.SEEKING
@@ -57,7 +72,7 @@ fun RunScreen(
     }
     val signalLost = holding && now - lastReadingAt > 5_000
 
-    if (holding) {
+    if (showHold) {
         val required = engineState?.holdSecondsRequired ?: 0
         val held = (engineState?.heldSeconds ?: 0.0).coerceAtMost(required.toDouble())
         HoldView(
@@ -118,6 +133,24 @@ fun RunScreen(
     val high = target + span
     fun frac(x: Double) = ((x.coerceIn(low, high) - low) / (high - low)).toFloat()
 
+    // The other angle on its own scale, judged the same way the engine judges it.
+    val second = run {
+        val t2 = if (turnLed) step.target.pitchDegrees else step.target.headRotationDegrees
+        val live2 = if (turnLed) livePitch else liveTurn
+        val off2 = live2?.let { if (!turnLed) HeadAngles.shortestDegrees(it - t2) else it - t2 }
+        val span2 = if (turnLed) 80.0 else 90.0
+        fun frac2(x: Double) = ((x.coerceIn(t2 - span2, t2 + span2) - (t2 - span2)) / (2 * span2)).toFloat()
+        AxisModel(
+            label = if (turnLed) "Tip" else "Turn",
+            now = "now " + (live2?.let(::deg) ?: "--"),
+            aim = if (turnLed) deg(t2 + tolerance) + " to " + deg(t2 - tolerance) else "${(t2 - tolerance).toInt()}–${(t2 + tolerance).toInt()}°",
+            zoneStart = frac2(t2 - tolerance),
+            zoneWidth = frac2(t2 + tolerance) - frac2(t2 - tolerance),
+            marker = off2?.let { frac2(t2 + it) } ?: 0.5f,
+            inRange = off2 != null && abs(off2) <= tolerance,
+        )
+    }
+
     FindView(
         FindModel(
             position = position,
@@ -139,6 +172,7 @@ fun RunScreen(
             marker = live?.let { frac(if (turnLed) target + (offset ?: 0.0) else it) } ?: 0.5f,
             practice = run.practice,
             moved = run.mountMoved,
+            second = second,
         ),
         figurePlaying = figurePlaying,
         onToggleFigure = { figurePlaying = !figurePlaying },

@@ -275,206 +275,215 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        when {
-            run.running && run.engineState?.guidance == Guidance.FINISHED -> AfterCareScreen(
-                practice = practice,
-                runsBefore = EpisodeLog.runsThisEpisode(episodes, System.currentTimeMillis()),
-                // The last position returns to the pose the calibration was taken in, where the
-                // true reading is zero. Whatever it actually reads is measured mount drift (FR-17).
-                driftDegrees = run.pose?.let {
-                    maxOf(kotlin.math.abs(it.pitchDegrees + 90.0), kotlin.math.abs(it.headRotationDegrees))
-                },
-                onDone = { feeling -> endRun(completed = true, feeling = feeling) },
-                ear = if (run.side == Side.LEFT) 'L' else 'R',
-            )
-
-            run.running -> RunScreen(
-                run = run,
-                onRepeat = runController::repeatInstruction,
-                onStop = { endRun(completed = false, feeling = null) },
-            )
-
-            else -> when (screen) {
-                Screen.SPLASH -> SplashScreenV2(
-                    onDone = { screen = if (welcomePending) Screen.WELCOME else Screen.HOME },
-                )
-
-                Screen.WELCOME -> WelcomeScreenV2(
-                    onGetStarted = {
-                        welcomePrefs.edit().putBoolean("seen", true).apply()
-                        welcomePending = false
-                        screen = Screen.HOME
+        // Each page fades out under the next instead of cutting; the outgoing one draws from
+        // its own key, so it keeps showing itself while it fades.
+        val pageKey = when {
+            run.running && run.engineState?.guidance == Guidance.FINISHED -> "done"
+            run.running -> "run"
+            else -> screen.name
+        }
+        PageFade(pageKey) { page ->
+            when {
+                page == "done" -> AfterCareScreen(
+                    practice = practice,
+                    runsBefore = EpisodeLog.runsThisEpisode(episodes, System.currentTimeMillis()),
+                    // The last position returns to the pose the calibration was taken in, where the
+                    // true reading is zero. Whatever it actually reads is measured mount drift (FR-17).
+                    driftDegrees = run.pose?.let {
+                        maxOf(kotlin.math.abs(it.pitchDegrees + 90.0), kotlin.math.abs(it.headRotationDegrees))
                     },
-                )
-
-                Screen.HOME -> HomeScreenV2(
-                    onStart = { screen = Screen.SAFETY },
-                    onPractice = { screen = Screen.PRACTICE_SIDE },
-                    onInstrument = { screen = Screen.INSTRUMENT },
-                    onRuns = { screen = Screen.SETTINGS },
-                )
-
-                Screen.SETTINGS -> SettingsScreen(
-                    onRuns = { screen = Screen.RUNS },
-                    onSensors = { screen = Screen.INSTRUMENT },
-                    onBack = { screen = Screen.HOME },
-                )
-
-                Screen.RUNS -> RunsScreenV2(
-                    episodes = episodes,
-                    // The card stays with no runs too (§16 I); the PDF then says there are none.
-                    onExport = { if (entitlements.hasExport) shareHistory() else screen = Screen.PAYWALL },
-                    onBack = { screen = Screen.HOME },
-                )
-
-                Screen.PAYWALL -> PaywallScreen(
-                    entitlements = entitlements,
-                    onDone = {
-                        screen = Screen.HOME
-                        shareHistory()
-                    },
-                    onCancel = { screen = Screen.HOME },
-                )
-
-                Screen.SAFETY -> SafetyScreen(
-                    onFinished = {
-                        runController.confirmSafety(it)
-                        screen = if (it == SafetyOutcome.Clear) Screen.TRIAGE else Screen.HOME
-                    },
-                    onCancel = { screen = Screen.HOME },
-                )
-
-                Screen.TRIAGE -> TriageScreen(
-                    onFinished = {
-                        runController.confirmTriage(it)
-                        screen = if (it is TriageOutcome.PosteriorCanal) Screen.HOLD else Screen.HOME
-                    },
-                    onCancel = { screen = Screen.HOME },
-                )
-
-                Screen.PRACTICE_SIDE -> PracticeSideScreen(
-                    onTakeQuestions = { screen = Screen.SAFETY },
-                    onSide = {
-                        runController.preparePractice(it)
-                        tracker.setMode(MountMode.IN_HAND)
-                        calibrationMessage = null
-                        screen = Screen.CALIBRATE
-                    },
-                    onBack = { screen = Screen.HOME },
-                )
-
-                Screen.HOLD -> HoldScreen(
-                    step = step(3, 1),
-                    total = totalSteps,
-                    onMode = {
-                        tracker.setMode(it)
-                        calibrationMessage = null
-                        screen = Screen.CALIBRATE
-                    },
-                    onBack = { screen = Screen.HOME },
-                )
-
-                Screen.CALIBRATE -> CalibrateScreen(
-                    step = step(4, 2),
-                    total = totalSteps,
-                    stepLabel = label(4, 2),
-                    mode = trackerState.mode,
-                    message = calibrationMessage,
-                    countdown = setupCountdown,
+                    onDone = { feeling -> endRun(completed = true, feeling = feeling) },
                     ear = if (run.side == Side.LEFT) 'L' else 'R',
-                    onCalibrate = {
-                        calibrationMessage = null
-                        captureWhenStill(trackerState.mode.spokenSetupPrompt) {
-                            when (tracker.calibrate()) {
-                                CalibrationResult.OK -> {
-                                    calibrationMessage = null
-                                    guidance.play(Cue.Speak("Set.", interrupt = true))
-                                    screen = Screen.DIRECTION
+                )
+
+                page == "run" -> RunScreen(
+                    run = run,
+                    onRepeat = runController::repeatInstruction,
+                    onStop = { endRun(completed = false, feeling = null) },
+                )
+
+                else -> when (Screen.valueOf(page)) {
+                    Screen.SPLASH -> SplashScreenV2(
+                        onDone = { screen = if (welcomePending) Screen.WELCOME else Screen.HOME },
+                    )
+
+                    Screen.WELCOME -> WelcomeScreenV2(
+                        onGetStarted = {
+                            welcomePrefs.edit().putBoolean("seen", true).apply()
+                            welcomePending = false
+                            screen = Screen.HOME
+                        },
+                    )
+
+                    Screen.HOME -> HomeScreenV2(
+                        onStart = { screen = Screen.SAFETY },
+                        onPractice = { screen = Screen.PRACTICE_SIDE },
+                        onInstrument = { screen = Screen.INSTRUMENT },
+                        onRuns = { screen = Screen.SETTINGS },
+                    )
+
+                    Screen.SETTINGS -> SettingsScreen(
+                        onRuns = { screen = Screen.RUNS },
+                        onSensors = { screen = Screen.INSTRUMENT },
+                        onBack = { screen = Screen.HOME },
+                    )
+
+                    Screen.RUNS -> RunsScreenV2(
+                        episodes = episodes,
+                        // The card stays with no runs too (§16 I); the PDF then says there are none.
+                        onExport = { if (entitlements.hasExport) shareHistory() else screen = Screen.PAYWALL },
+                        onBack = { screen = Screen.HOME },
+                    )
+
+                    Screen.PAYWALL -> PaywallScreen(
+                        entitlements = entitlements,
+                        onDone = {
+                            screen = Screen.HOME
+                            shareHistory()
+                        },
+                        onCancel = { screen = Screen.HOME },
+                    )
+
+                    Screen.SAFETY -> SafetyScreen(
+                        onFinished = {
+                            runController.confirmSafety(it)
+                            screen = if (it == SafetyOutcome.Clear) Screen.TRIAGE else Screen.HOME
+                        },
+                        onCancel = { screen = Screen.HOME },
+                    )
+
+                    Screen.TRIAGE -> TriageScreen(
+                        onFinished = {
+                            runController.confirmTriage(it)
+                            screen = if (it is TriageOutcome.PosteriorCanal) Screen.HOLD else Screen.HOME
+                        },
+                        onCancel = { screen = Screen.HOME },
+                    )
+
+                    Screen.PRACTICE_SIDE -> PracticeSideScreen(
+                        onTakeQuestions = { screen = Screen.SAFETY },
+                        onSide = {
+                            runController.preparePractice(it)
+                            tracker.setMode(MountMode.IN_HAND)
+                            calibrationMessage = null
+                            screen = Screen.CALIBRATE
+                        },
+                        onBack = { screen = Screen.HOME },
+                    )
+
+                    Screen.HOLD -> HoldScreen(
+                        step = step(3, 1),
+                        total = totalSteps,
+                        onMode = {
+                            tracker.setMode(it)
+                            calibrationMessage = null
+                            screen = Screen.CALIBRATE
+                        },
+                        onBack = { screen = Screen.HOME },
+                    )
+
+                    Screen.CALIBRATE -> CalibrateScreen(
+                        step = step(4, 2),
+                        total = totalSteps,
+                        stepLabel = label(4, 2),
+                        mode = trackerState.mode,
+                        message = calibrationMessage,
+                        countdown = setupCountdown,
+                        ear = if (run.side == Side.LEFT) 'L' else 'R',
+                        onCalibrate = {
+                            calibrationMessage = null
+                            captureWhenStill(trackerState.mode.spokenSetupPrompt) {
+                                when (tracker.calibrate()) {
+                                    CalibrationResult.OK -> {
+                                        calibrationMessage = null
+                                        guidance.play(Cue.Speak("Set.", interrupt = true))
+                                        screen = Screen.DIRECTION
+                                    }
+                                    CalibrationResult.NO_SAMPLES -> fail(
+                                        "No sensor reading yet. Wait a second and try again.",
+                                    ) { calibrationMessage = it }
+                                    CalibrationResult.PHONE_TOO_FLAT -> fail(
+                                        "The phone is lying too flat to tell which way you're facing. " +
+                                            "Hold it on its edge, as described, and try again.",
+                                    ) { calibrationMessage = it }
                                 }
-                                CalibrationResult.NO_SAMPLES -> fail(
-                                    "No sensor reading yet. Wait a second and try again.",
-                                ) { calibrationMessage = it }
-                                CalibrationResult.PHONE_TOO_FLAT -> fail(
-                                    "The phone is lying too flat to tell which way you're facing. " +
-                                        "Hold it on its edge, as described, and try again.",
-                                ) { calibrationMessage = it }
                             }
-                        }
-                    },
-                    onBack = { screen = if (practice) Screen.PRACTICE_SIDE else Screen.HOLD },
-                )
+                        },
+                        onBack = { screen = if (practice) Screen.PRACTICE_SIDE else Screen.HOLD },
+                    )
 
-                Screen.DIRECTION -> DirectionScreen(
-                    step = step(5, 3),
-                    total = totalSteps,
-                    stepLabel = label(5, 3),
-                    side = run.side,
-                    practice = practice,
-                    message = run.polarityMessage,
-                    countdown = setupCountdown,
-                    onLearn = {
-                        val word = run.side.word
-                        val prompt = if (practice) {
-                            "Turn the phone toward your $word and hold it there."
-                        } else {
-                            "Turn your head toward your $word, about halfway to your shoulder, and hold it."
-                        }
-                        captureWhenStill(prompt) {
-                            runController.learnPolarity(trackerState)
-                            val failure = runController.state.value.polarityMessage
-                            if (failure != null) {
-                                guidance.play(Cue.Speak(failure, interrupt = true))
+                    Screen.DIRECTION -> DirectionScreen(
+                        step = step(5, 3),
+                        total = totalSteps,
+                        stepLabel = label(5, 3),
+                        side = run.side,
+                        practice = practice,
+                        message = run.polarityMessage,
+                        countdown = setupCountdown,
+                        onLearn = {
+                            val word = run.side.word
+                            val prompt = if (practice) {
+                                "Turn the phone toward your $word and hold it there."
                             } else {
-                                guidance.play(Cue.Speak("Got it.", interrupt = true))
+                                "Turn your head toward your $word, about halfway to your shoulder, and hold it."
                             }
-                        }
-                    },
-                    onBack = { screen = Screen.CALIBRATE },
-                )
+                            captureWhenStill(prompt) {
+                                runController.learnPolarity(trackerState)
+                                val failure = runController.state.value.polarityMessage
+                                if (failure != null) {
+                                    guidance.play(Cue.Speak(failure, interrupt = true))
+                                } else {
+                                    guidance.play(Cue.Speak("Got it.", interrupt = true))
+                                }
+                            }
+                        },
+                        onBack = { screen = Screen.CALIBRATE },
+                    )
 
-                Screen.READY -> ReadyScreen(
-                    step = step(6, 4),
-                    total = totalSteps,
-                    stepLabel = label(6, 4),
-                    side = run.side,
-                    mode = trackerState.mode,
-                    practice = practice,
-                    onStart = {
-                        runStartedAt = System.currentTimeMillis()
-                        heldAngles.clear()
-                        startLoggingForRun()
-                        runController.start(HeadTracker.STILLNESS_THRESHOLD_DEG_PER_SEC)
-                    },
-                    onBack = {
-                        // Without clearing it, the direction is still learned and the screen would
-                        // bounce straight back to Ready, making Back look broken.
-                        runController.clearDirection()
-                        screen = Screen.DIRECTION
-                    },
-                )
+                    Screen.READY -> ReadyScreen(
+                        step = step(6, 4),
+                        total = totalSteps,
+                        stepLabel = label(6, 4),
+                        side = run.side,
+                        mode = trackerState.mode,
+                        practice = practice,
+                        onStart = {
+                            runStartedAt = System.currentTimeMillis()
+                            heldAngles.clear()
+                            startLoggingForRun()
+                            runController.start(HeadTracker.STILLNESS_THRESHOLD_DEG_PER_SEC)
+                        },
+                        onBack = {
+                            // Without clearing it, the direction is still learned and the screen would
+                            // bounce straight back to Ready, making Back look broken.
+                            runController.clearDirection()
+                            screen = Screen.DIRECTION
+                        },
+                    )
 
-                Screen.ACCURACY -> AccuracyCheckScreen(
-                    devicePitchDegrees = trackerState.devicePitchDegrees,
-                    screenFacingUp = trackerState.screenFacingUp,
-                    isStill = trackerState.isStill,
-                    rotationTravelledDegrees = trackerState.rotationTravelledDegrees,
-                    storedOffsetDegrees = tracker.tiltOffsetDegrees,
-                    onSaveOffset = { measured ->
-                        val updated = health.epley.core.TiltOffset.from(tracker.tiltOffsetDegrees, measured)
-                        tracker.tiltOffsetDegrees = updated
-                        deviceCalibration.tiltOffsetDegrees = updated
-                    },
-                    onBack = { screen = Screen.INSTRUMENT },
-                )
+                    Screen.ACCURACY -> AccuracyCheckScreen(
+                        devicePitchDegrees = trackerState.devicePitchDegrees,
+                        screenFacingUp = trackerState.screenFacingUp,
+                        isStill = trackerState.isStill,
+                        rotationTravelledDegrees = trackerState.rotationTravelledDegrees,
+                        storedOffsetDegrees = tracker.tiltOffsetDegrees,
+                        onSaveOffset = { measured ->
+                            val updated = health.epley.core.TiltOffset.from(tracker.tiltOffsetDegrees, measured)
+                            tracker.tiltOffsetDegrees = updated
+                            deviceCalibration.tiltOffsetDegrees = updated
+                        },
+                        onBack = { screen = Screen.INSTRUMENT },
+                    )
 
-                Screen.INSTRUMENT -> CheckSensorsScreen(
-                    tracker = tracker,
-                    onAccuracyCheck = { screen = Screen.ACCURACY },
-                    onBack = { screen = Screen.HOME },
-                    onToggleLogging = ::toggleLogging,
-                    isLogging = logger != null,
-                    logDirectory = getExternalFilesDir(null)?.absolutePath ?: "",
-                )
+                    Screen.INSTRUMENT -> CheckSensorsScreen(
+                        tracker = tracker,
+                        onAccuracyCheck = { screen = Screen.ACCURACY },
+                        onBack = { screen = Screen.HOME },
+                        onToggleLogging = ::toggleLogging,
+                        isLogging = logger != null,
+                        logDirectory = getExternalFilesDir(null)?.absolutePath ?: "",
+                    )
+                }
             }
         }
     }

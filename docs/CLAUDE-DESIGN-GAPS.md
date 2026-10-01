@@ -109,3 +109,14 @@ This is the A4 document that gets shared, not a screen. It lists each run (date,
 ## J. Design-file issues to fix
 - Night Home: the Start card's ring is typed inside its `onClick` attribute, so it never renders. Decide whether the ring should be there.
 - Your runs row data: the app shows real dates. Groups are "This week", then months, with "Tonight, HH:MM" / "Today, HH:MM" for today.
+
+## Added after v2.1, at the owner's request (not in the handoff)
+
+- **Find: the second angle.** Under the main meter, the angle the position is not led by, with its
+  reading, its aim and the same zone-and-marker meter at 8 dp; a mint check when it is in range.
+- **Motion, stronger than §6:** entrance 400 ms / 40 ms stagger / 16 dp rise (was 280 / 24 / 8);
+  press 0.95 with a 12 % dim, 90 ms down and a critically damped spring back, played in full even
+  on a quick tap (was 0.97 / 160 ms); every page change and Find → Hold fades the outgoing screen
+  over 140 ms instead of cutting; the Find marker follows on a critically damped spring (was a
+  240 ms tween); hold blocks fill continuously; progress segments cross-fade. Still no slides, no
+  overshoot, no parallax. Reduced motion is unchanged.

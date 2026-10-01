@@ -62,6 +62,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
+import androidx.compose.animation.togetherWith
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import java.util.Calendar
@@ -237,8 +239,15 @@ val Emphasized = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
 val StandardEase = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 
 object Motion {
-    const val ENTER = 280
-    const val STAGGER = 24
+    // v2.1 polish, on request: a longer, more visible entrance than the handoff's 280 / 24 / 8 dp.
+    const val ENTER = 400
+    const val STAGGER = 40
+    const val RISE = 16
+    /** The press goes down fast and comes back slower, so even a quick tap is seen. */
+    const val PRESS_DOWN = 90
+    const val PRESS_SCALE = 0.95f
+    /** The outgoing screen fades out under the incoming one instead of cutting. */
+    const val EXIT = 140
     const val BG = 360
     const val PRESS = 160
     const val TOGGLE = 200
@@ -265,28 +274,76 @@ fun Modifier.enter(index: Int): Modifier {
             else tween(Motion.ENTER, delayMillis = minOf(index, 5) * Motion.STAGGER, easing = Emphasized),
         )
     }
-    val rise = with(LocalDensity.current) { 8.dp.toPx() }
+    val rise = with(LocalDensity.current) { Motion.RISE.dp.toPx() }
     return graphicsLayer {
         alpha = progress.value
         translationY = if (reduced) 0f else (1f - progress.value) * rise
     }
 }
 
-/** M4: scale to 0.97 while pressed, no ripple flood. Off under reduced motion. */
+/** False while a screen is fading out (PageFade): it must no longer claim the ground colour. */
+val LocalPageActive = androidx.compose.runtime.compositionLocalOf { true }
+
+/**
+ * Screen change: the outgoing screen fades out over 140 ms under the incoming one, whose children
+ * then rise in (M1). Opacity only — no slide, no zoom. Reduced motion: a 150 ms linear cross-fade.
+ */
+@Composable
+fun <K> PageFade(key: K, content: @Composable (K) -> Unit) {
+    val reduced = LocalReducedMotion.current
+    androidx.compose.animation.AnimatedContent(
+        targetState = key,
+        transitionSpec = {
+            val t = if (reduced) Motion.REDUCED else Motion.EXIT
+            (
+                androidx.compose.animation.fadeIn(tween(t, easing = LinearEasing)) togetherWith
+                    androidx.compose.animation.fadeOut(tween(t, easing = LinearEasing))
+                ).apply { targetContentZIndex = 1f }
+                .using(androidx.compose.animation.SizeTransform(clip = false))
+        },
+        label = "page",
+    ) { k ->
+        androidx.compose.runtime.CompositionLocalProvider(LocalPageActive provides (transition.targetState == k)) {
+            content(k)
+        }
+    }
+}
+
+/**
+ * M4: press down to 0.95 with a slight dim, release on a critically damped spring (no bounce).
+ * A tap shorter than the press-down still plays the whole press, so every touch is answered.
+ * No ripple flood. Off under reduced motion.
+ */
 @Composable
 fun Modifier.pressable(enabled: Boolean = true, onClick: () -> Unit): Modifier {
     val source = remember { MutableInteractionSource() }
-    val pressed by source.collectIsPressedAsState()
     val reduced = LocalReducedMotion.current
-    val scale by animateFloatAsState(
-        if (pressed && !reduced) 0.97f else 1f,
-        tween(Motion.PRESS, easing = StandardEase),
-        label = "press",
-    )
+    val press = remember { Animatable(0f) }
+    LaunchedEffect(source, reduced) {
+        if (reduced) return@LaunchedEffect
+        var down: kotlinx.coroutines.Job? = null
+        source.interactions.collect { i ->
+            when (i) {
+                is androidx.compose.foundation.interaction.PressInteraction.Press ->
+                    down = launch { press.animateTo(1f, tween(Motion.PRESS_DOWN, easing = StandardEase)) }
+                is androidx.compose.foundation.interaction.PressInteraction.Release,
+                is androidx.compose.foundation.interaction.PressInteraction.Cancel -> launch {
+                    down?.join()
+                    press.animateTo(0f, androidx.compose.animation.core.spring(dampingRatio = 1f, stiffness = 500f))
+                }
+            }
+        }
+    }
+
     // A light tick with every tap, the way the platform's own controls answer a touch. It goes
     // through the system, so it follows the phone's haptic setting and is silent when that is off.
     val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
-    return graphicsLayer { scaleX = scale; scaleY = scale }
+    return graphicsLayer {
+        // Read inside the layer, so the press animates without recomposing the button.
+        val scale = 1f - (1f - Motion.PRESS_SCALE) * press.value
+        scaleX = scale; scaleY = scale
+        alpha = 1f - 0.12f * press.value
+    }
         .clickable(interactionSource = source, indication = null, enabled = enabled) {
             haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.ContextClick)
             onClick()
