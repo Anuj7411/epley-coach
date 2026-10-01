@@ -91,6 +91,8 @@ class ParityTest(private val device: String, private val theme: String, private 
             "base-390x844" to "w390dp-h844dp-480dpi",
             "small-360x800" to "w360dp-h800dp-480dpi",
             "large-480x1040" to "w480dp-h1040dp-480dpi",
+            // Devpost screenshots: exactly 1179 x 2556, no device frame.
+            "shot-1179x2556" to "w393dp-h852dp-480dpi",
         )
 
         val SCREENS = listOf(
