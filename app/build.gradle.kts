@@ -106,6 +106,7 @@ android {
             it.systemProperty("roborazzi.test.record", "true")
             it.systemProperty("parity.device", System.getProperty("parity.device") ?: "")
             it.systemProperty("parity.only", System.getProperty("parity.only") ?: "")
+            it.systemProperty("parity.pdf", System.getProperty("parity.pdf") ?: "")
             it.maxHeapSize = "3g"
             // Robolectric reaches into FileDescriptor internals; JDK 24 no longer exports them.
             it.jvmArgs(

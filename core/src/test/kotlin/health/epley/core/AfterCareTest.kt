@@ -74,6 +74,18 @@ class EpisodeLogTest {
     }
 
     @Test
+    fun `where a stopped run stopped survives the file`() {
+        // The PDF's "stopped at 12 s" row (v2.1 §16 H) needs the hold and the angles at the stop.
+        val stopped = Episode(
+            9L, Side.RIGHT, completed = false, feeling = null, practice = false, positionsCompleted = 1,
+            durationMillis = 60_000L, heldAngles = listOf(43.0 to 0.0),
+            stop = StopPoint(12, 45.0, -22.0),
+        )
+        val noPose = stopped.copy(heldAngles = emptyList(), positionsCompleted = 0, stop = StopPoint(0, null, null))
+        assertEquals(listOf(stopped, noPose), EpisodeLog.decode(EpisodeLog.encode(listOf(stopped, noPose))))
+    }
+
+    @Test
     fun `an episode survives being written and read back`() {
         val original = listOf(
             episode(1_000L, Feeling.SAME, Side.LEFT),

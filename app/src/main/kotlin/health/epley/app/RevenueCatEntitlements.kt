@@ -44,6 +44,9 @@ class RevenueCatEntitlements(private val activity: Activity, apiKey: String) : E
 
     override val isPlaceholder = false
 
+    /** A Test Store key: RevenueCat's own simulated store, which never charges (§16 G). */
+    override val isSimulated = apiKey.startsWith("test_")
+
     /** The package to buy, from the current offering. Null until it loads, or if none is set up. */
     private var offering: Package? = null
 

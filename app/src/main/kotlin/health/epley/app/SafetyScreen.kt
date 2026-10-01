@@ -52,6 +52,7 @@ fun SafetyScreen(
 ) {
     var emergency by remember { mutableStateOf<Boolean?>(null) }
     var notToTreat by remember { mutableStateOf<Boolean?>(null) }
+    var callFailed by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     when (val outcome = Safety.assess(emergency, notToTreat)) {
@@ -65,13 +66,23 @@ fun SafetyScreen(
                 no = if (first) "No, none of these" else "No, none apply",
                 onYes = { if (first) emergency = true else notToTreat = true },
                 onNo = { if (first) emergency = false else notToTreat = false },
+                tall = !first,
             )
         }
 
         // Hard stop: one action. Back still leaves (MainActivity), so nobody is trapped, and it
         // never leads to the manoeuvre.
         SafetyOutcome.Emergency -> EmergencyStop(
-            onCall = { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:112"))) },
+            onCall = {
+                // No dialler (a tablet, a locked-down phone): say what to do instead (§16 I).
+                callFailed = try {
+                    context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:112")))
+                    false
+                } catch (_: android.content.ActivityNotFoundException) {
+                    true
+                }
+            },
+            callFailed = callFailed,
         )
 
         SafetyOutcome.SeeDoctor -> SeeDoctorStop(onHome = { onFinished(outcome) })
@@ -90,6 +101,7 @@ fun SafetyQuestion(
     no: String,
     onYes: () -> Unit,
     onNo: () -> Unit,
+    tall: Boolean = false,
 ) {
     val c = Ds
     val n = c.night
@@ -112,7 +124,7 @@ fun SafetyQuestion(
             Txt(caption, type(16f, 600), c.muted, maxLines = 1)
         }
         Column(
-            Modifier.padding(start = 8.dp, end = 8.dp, top = 24.dp, bottom = 16.dp).enter(1),
+            Modifier.padding(start = 8.dp, end = 8.dp, top = if (tall) 16.dp else 24.dp, bottom = 16.dp).enter(1),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Txt(question, type(34f, 800, lineHeight = 1.05f, letterSpacing = -0.03f, wrap = Wrap.Balance), c.ink)
@@ -121,10 +133,15 @@ fun SafetyQuestion(
         Column(Modifier.enter(2).box(c.surface, 28.dp).padding(horizontal = 24.dp, vertical = 4.dp)) {
             items.forEachIndexed { i, item ->
                 if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(if (n) c.surface2 else c.ground))
-                // 8 dp either side only matters for the two-line rows of question 2; the
-                // design's single-line rows are still their 52 dp minimum.
-                Box(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(vertical = 8.dp), contentAlignment = Alignment.CenterStart) {
-                    Txt(item, type(17f, 600), c.ink)
+                if (tall) {
+                    // Question 2 (§16 C): rows of 56 with 10 either side, for its two-line flags.
+                    Box(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(vertical = 10.dp), contentAlignment = Alignment.CenterStart) {
+                        Txt(item, type(17f, 600, lineHeight = 1.3f, wrap = Wrap.Pretty), c.ink)
+                    }
+                } else {
+                    Box(Modifier.fillMaxWidth().heightIn(min = 52.dp), contentAlignment = Alignment.CenterStart) {
+                        Txt(item, type(17f, 600), c.ink)
+                    }
                 }
             }
         }
@@ -136,7 +153,7 @@ fun SafetyQuestion(
 
 /** The emergency hard stop (§4.5): coral floods the day screen; night is a coral-ringed card. */
 @Composable
-fun EmergencyStop(onCall: () -> Unit) {
+fun EmergencyStop(onCall: () -> Unit, callFailed: Boolean = false) {
     val c = Ds
     val n = c.night
     DScreen(bg = if (n) c.ground else c.coral) {
@@ -175,12 +192,19 @@ fun EmergencyStop(onCall: () -> Unit) {
             "Call emergency", onCall,
             fill = if (n) c.coral else Ink, content = if (n) Ink else Color.White, icon = "call",
         )
+        if (callFailed) {
+            Txt(
+                "Call your local emergency number now.",
+                type(17f, 700, lineHeight = 1.4f, align = androidx.compose.ui.text.style.TextAlign.Center), c.ink,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            )
+        }
     }
 }
 
 /** Question 2 answered yes: the app's own stop, in the same family as "Can't treat". */
 @Composable
-private fun SeeDoctorStop(onHome: () -> Unit) {
+fun SeeDoctorStop(onHome: () -> Unit) {
     val c = Ds
     val n = c.night
     DScreen(bg = c.ground) {
@@ -190,7 +214,7 @@ private fun SeeDoctorStop(onHome: () -> Unit) {
                 .enter(0)
                 .box(c.surface, 32.dp, ring = c.ink)
                 .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Row(
                 Modifier
@@ -202,6 +226,7 @@ private fun SeeDoctorStop(onHome: () -> Unit) {
                 Sym("stethoscope", 20f, c.ink, weight = 700)
                 Txt("See a doctor", type(16f, 700), c.ink, maxLines = 1)
             }
+            Spacer(Modifier.weight(1f))
             Txt(
                 "See a doctor before using this",
                 type(44f, 800, lineHeight = 1f, letterSpacing = -0.035f, wrap = Wrap.Balance),
@@ -210,7 +235,7 @@ private fun SeeDoctorStop(onHome: () -> Unit) {
             Txt(
                 "The head positions aren’t safe to do on your own in this situation. A doctor " +
                     "can check what’s causing the dizziness and show you what to do.",
-                type(19f, 600, lineHeight = 1.4f, wrap = Wrap.Pretty),
+                type(17f, 500, lineHeight = 1.45f, wrap = Wrap.Pretty),
                 if (n) c.soft else Ink,
             )
         }

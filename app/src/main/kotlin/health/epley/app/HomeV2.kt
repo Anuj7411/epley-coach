@@ -94,9 +94,8 @@ fun HomeScreenV2(
                 .heightIn(min = 232.dp)
                 .enter(2)
                 .pressable(onClick = onStart)
-                // No ring at night: the design file types its ring inside the onClick attribute,
-                // so the rendered design has none. Matching what the design renders.
-                .box(if (n) c.lilacTint else c.lilac, 32.dp)
+                // Night: a 2 dp lilac inset ring (v2.1 §16 J).
+                .box(if (n) c.lilacTint else c.lilac, 32.dp, ring = if (n) c.lilac else null)
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
@@ -276,20 +275,27 @@ fun RunsView(groups: List<RunGroup>, onShare: (() -> Unit)?, onBack: () -> Unit)
             "Your runs",
             type(44f, 800, lineHeight = 1f, letterSpacing = -0.035f),
             c.ink,
-            modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 24.dp, bottom = 16.dp).enter(1),
+            modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 16.dp, bottom = 8.dp).enter(1),
         )
         if (groups.isEmpty()) {
-            // §14: the empty state is a sentence in a card, no illustration.
-            Box(Modifier.enter(2).box(c.surface, 28.dp).padding(24.dp)) {
+            // §14 / §16 I: the empty state is a sentence in a card, no illustration.
+            Row(
+                Modifier.enter(2).heightIn(min = 96.dp).box(c.surface, 28.dp).padding(24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Box(Modifier.size(48.dp).box(if (n) c.surface2 else c.ground, 16.dp), contentAlignment = Alignment.Center) {
+                    Sym("history", 24f, c.muted)
+                }
                 Txt("No runs yet.", type(17f, 600), c.muted)
             }
         }
         groups.forEachIndexed { gi, g ->
             Txt(
                 g.title, type(16f, 600), c.muted,
-                modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = if (gi == 0) 8.dp else 16.dp).enter(2 + gi),
+                modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 8.dp).enter(2 + gi),
             )
-            Column(Modifier.enter(2 + gi).box(c.surface, 28.dp).padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Column(Modifier.enter(2 + gi).box(c.surface, 28.dp).padding(horizontal = 16.dp, vertical = 4.dp)) {
                 g.rows.forEachIndexed { i, r ->
                     if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(if (n) c.surface2 else c.ground))
                     Row(

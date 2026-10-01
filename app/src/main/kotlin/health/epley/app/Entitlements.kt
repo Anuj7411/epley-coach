@@ -27,6 +27,9 @@ interface Entitlements {
     /** True while this is a stand-in rather than a real store, so the UI can say so. */
     val isPlaceholder: Boolean
 
+    /** True when a purchase takes no real money: the stand-in, or RevenueCat's Test Store. */
+    val isSimulated: Boolean get() = isPlaceholder
+
     fun purchase(onResult: (Boolean) -> Unit)
 
     fun restore(onResult: (Boolean) -> Unit)
@@ -45,7 +48,7 @@ class PlaceholderEntitlements(context: Context) : Entitlements {
     override var hasExport by mutableStateOf(prefs.getBoolean(KEY, false))
         private set
 
-    override val priceLabel = "₹199 once"
+    override val priceLabel = "no charge"
 
     override val isPlaceholder = true
 

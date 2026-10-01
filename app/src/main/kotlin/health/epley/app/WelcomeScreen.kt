@@ -63,7 +63,7 @@ import kotlinx.coroutines.delay
  * of 22. Keeping it as geometry means it is sharp at any size and takes its colour from the
  * theme, so one drawing serves ink on day and bone on night.
  */
-private val WordmarkStrokes = listOf(
+internal val WordmarkStrokes = listOf(
     // The "e" and the rail it sits on, which runs the full width of the mark.
     "M48 120H152A52 52 0 1 0 100 172H704",
     "M204 57V230", // p, stem
@@ -72,11 +72,11 @@ private val WordmarkStrokes = listOf(
     "M568 57V120A52 52 0 0 0 672 120M672 57V186A40 40 0 0 1 632 226H608", // y
 )
 
-private const val MarkWidth = 683f
-private const val MarkHeight = 244f
-private const val MarkLeft = 29f
-private const val MarkTop = 1f
-private const val MarkStroke = 22f
+internal const val MarkWidth = 683f
+internal const val MarkHeight = 244f
+internal const val MarkLeft = 29f
+internal const val MarkTop = 1f
+internal const val MarkStroke = 22f
 
 @Composable
 fun RailWordmark(

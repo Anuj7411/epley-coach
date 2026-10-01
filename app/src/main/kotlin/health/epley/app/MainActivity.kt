@@ -265,10 +265,13 @@ class MainActivity : ComponentActivity() {
         fun label(treatment: Int, practiceStep: Int) =
             if (practice) "Practice · step $practiceStep of 4" else "Step $treatment of 6"
 
-        if (!tracker.isSupported) {
+        val needsSensor = run.running || screen in setOf(
+            Screen.HOLD, Screen.CALIBRATE, Screen.DIRECTION, Screen.READY, Screen.INSTRUMENT, Screen.ACCURACY,
+        )
+        if (!tracker.isSupported && needsSensor) {
             // FR-1 / README §14. Every angle comes from this sensor; without it the flow would
-            // measure nothing and claim a completed manoeuvre.
-            SensorUnavailableScreen()
+            // measure nothing and claim a completed manoeuvre. Home, runs and settings still work.
+            SensorUnavailableScreen(onHome = { screen = Screen.HOME })
             return
         }
 
@@ -319,11 +322,8 @@ class MainActivity : ComponentActivity() {
 
                 Screen.RUNS -> RunsScreenV2(
                     episodes = episodes,
-                    onExport = if (EpisodeLog.treatments(episodes).isEmpty()) {
-                        null
-                    } else {
-                        { if (entitlements.hasExport) shareHistory() else screen = Screen.PAYWALL }
-                    },
+                    // The card stays with no runs too (§16 I); the PDF then says there are none.
+                    onExport = { if (entitlements.hasExport) shareHistory() else screen = Screen.PAYWALL },
                     onBack = { screen = Screen.HOME },
                 )
 
@@ -565,6 +565,11 @@ class MainActivity : ComponentActivity() {
                 positionsCompleted = run.engineState?.completedSteps ?: 0,
                 durationMillis = if (runStartedAt > 0) System.currentTimeMillis() - runStartedAt else 0,
                 heldAngles = heldAngles.toList(),
+                stop = if (completed) null else run.engineState?.let { s ->
+                    val pose = run.pose
+                    val turn = pose?.let { if (run.polarity?.towardAffectedSideIsPositive == false) -it.headRotationDegrees else it.headRotationDegrees }
+                    health.epley.core.StopPoint(s.heldSeconds.toInt(), turn, pose?.pitchDegrees)
+                },
             ),
         )
         runStartedAt = 0L

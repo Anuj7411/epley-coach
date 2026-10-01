@@ -75,7 +75,12 @@ data class Episode(
      * engine's frame. What "angles and hold times" in the doctor's PDF refers to.
      */
     val heldAngles: List<Pair<Double, Double>> = emptyList(),
+    /** Where a stopped run stopped: the position after the last completed one. Null if it finished. */
+    val stop: StopPoint? = null,
 )
+
+/** How far into the position a stopped run got, and the head angles when it stopped. */
+data class StopPoint(val heldSeconds: Int, val turn: Double?, val tip: Double?)
 
 /** Reading, writing and summarising the on-device episode history. */
 object EpisodeLog {
@@ -92,7 +97,11 @@ object EpisodeLog {
             e.durationMillis,
             // turn:tip pairs joined by |, so the record stays one comma-separated line.
             e.heldAngles.joinToString("|") { (turn, tip) -> "%.1f:%.1f".format(java.util.Locale.ROOT, turn, tip) },
-        ).joinToString(",")
+        ).let { fields ->
+            val stop = e.stop ?: return@let fields
+            fun a(v: Double?) = v?.let { "%.1f".format(java.util.Locale.ROOT, it) } ?: ""
+            fields + "${stop.heldSeconds}:${a(stop.turn)}:${a(stop.tip)}"
+        }.joinToString(",")
     }
 
     /** Lines that do not parse are skipped: one damaged line must not cost the whole history. */
@@ -100,7 +109,7 @@ object EpisodeLog {
         val parts = line.split(",")
         // Five fields is the format before positionsCompleted existed, six before duration and
         // angles; those files still load.
-        if (parts.size !in 5..8) return@mapNotNull null
+        if (parts.size !in 5..9) return@mapNotNull null
         runCatching {
             Episode(
                 epochMillis = parts[0].toLong(),
@@ -114,6 +123,9 @@ object EpisodeLog {
                     val (turn, tip) = it.split(":")
                     turn.toDouble() to tip.toDouble()
                 } ?: emptyList(),
+                stop = parts.getOrNull(8)?.split(":")?.let { (held, turn, tip) ->
+                    StopPoint(held.toInt(), turn.toDoubleOrNull(), tip.toDoubleOrNull())
+                },
             )
         }.getOrNull()
     }.toList()

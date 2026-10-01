@@ -40,10 +40,28 @@ class ParityTest(private val device: String, private val theme: String, private 
     val rules: RuleChain = RuleChain
         .outerRule(object : TestWatcher() {
             override fun starting(description: Description) {
-                RuntimeEnvironment.setQualifiers(DEVICES.getValue(device))
+                RuntimeEnvironment.setQualifiers(qualifiers())
             }
         })
         .around(compose)
+
+    /**
+     * Scrolling screens (§16: Settings, Check sensors, Accuracy, Paywall) are compared full length:
+     * the window is made as tall as the design's own full-page render, read from its PNG header.
+     */
+    private fun qualifiers(): String {
+        val base = DEVICES.getValue(device)
+        val ref = java.io.File("../design_handoff_epley_coach_v2/reference/$device/$theme/$id.png")
+        if (!ref.exists()) return base
+        val dpi = Regex("""(\d+)dpi""").find(base)!!.groupValues[1].toInt()
+        val heightPx = ref.inputStream().use { input ->
+            val header = ByteArray(24).also { input.read(it) }
+            java.nio.ByteBuffer.wrap(header, 20, 4).int
+        }
+        val heightDp = Math.round(heightPx / (dpi / 160f))
+        val deviceDp = Regex("""h(\d+)dp""").find(base)!!.groupValues[1].toInt()
+        return if (heightDp > deviceDp) base.replace("h${deviceDp}dp", "h${heightDp}dp") else base
+    }
 
     @Test
     fun capture() {
@@ -196,15 +214,11 @@ fun ParityScreen(id: String, night: Boolean) {
         "done-right" -> DoneView(ear = 'R', showAfterCare = true, onFinish = {})
         "done-left" -> DoneView(ear = 'L', showAfterCare = true, onFinish = {})
         "history" -> RunsView(
-            if (night) listOf(
+            // The design dates its sample runs from the moment it was rendered (§16 J); these
+            // match the reference render.
+            listOf(
                 RunGroup("This week", listOf(
-                    RunRow(true, "Tonight, 03:19", "Right ear · all 5 held", "6 min"),
-                    RunRow(true, "Tue 22 Sep", "Right ear · all 5 held", "6 min"),
-                    RunRow(false, "Mon 21 Sep", "Right ear · stopped at 2", "1 min"),
-                )),
-                RunGroup("July", listOf(RunRow(true, "Sat 4 Jul", "Left ear · all 5 held", "7 min"))),
-            ) else listOf(
-                RunGroup("September", listOf(
+                    RunRow(true, "Tonight, 05:03", "Right ear · all 5 held", "6 min"),
                     RunRow(true, "Tue 22 Sep", "Right ear · all 5 held", "6 min"),
                     RunRow(false, "Mon 21 Sep", "Right ear · stopped at 2", "1 min"),
                 )),
@@ -236,6 +250,68 @@ fun ParityScreen(id: String, night: Boolean) {
         "practice-done" -> DoneView(ear = 'R', showAfterCare = false, onFinish = {})
         "find-moved" -> FindView(sampleFind(4, 'R').copy(moved = true), figurePlaying = true, onToggleFigure = {}, onStop = {})
         "hold-paused" -> HoldView(sampleHold(4, 'R').copy(paused = true), onStop = {})
+        "safety2" -> SafetyQuestion(
+            caption = "One more", question = "Do any of these apply to you?",
+            items = health.epley.core.Safety.reasonsNotToTreat, yes = "Yes, one applies", no = "No, none apply",
+            onYes = {}, onNo = {}, tall = true,
+        )
+        "seedoctor" -> SeeDoctorStop(onHome = {})
+        "emergency-callfail" -> EmergencyStop(onCall = {}, callFailed = true)
+        "settings" -> SettingsScreen(onRuns = {}, onSensors = {}, onBack = {})
+        "sensors-uncal", "sensors", "sensors-turnwarn", "sensors-moved" -> {
+            val v = id.removePrefix("sensors").removePrefix("-")
+            val calibrated = v != "uncal"
+            SensorsView(
+                SensorsModel(
+                    rate = if (v == "moved") "84 °/s" else "0.6 °/s",
+                    moving = v == "moved",
+                    mode = health.epley.core.MountMode.CHEEK,
+                    tip = if (calibrated) "−3°" else "--",
+                    turn = if (calibrated) "12°" else "--",
+                    turnWarning = if (v == "turnwarn") "Swung 38° from where it was calibrated." else null,
+                    moved = v == "moved",
+                    calibrated = calibrated,
+                    drift = if (calibrated) "Drift: last 1.2°, worst 2.0° over 3 checks. Tolerance ±7°." else null,
+                    logging = false,
+                    raw = "q  0.012  −0.694  0.031  0.719\npitch −3.1   roll 88.4   yaw 131.0\nrate 4.2 °/s   acc 3   t 21:51:07.412",
+                ),
+            )
+        }
+        "accuracy", "accuracy-after1", "accuracy-turnedover", "accuracy-notturned", "accuracy-pass", "accuracy-moving", "accuracy-fail" -> {
+            val v = id.removePrefix("accuracy").removePrefix("-")
+            val done = v in setOf("pass", "fail", "moving")
+            AccuracyView(
+                AccuracyModel(
+                    live = "+0.42°",
+                    moving = v == "moving" || v == "fail",
+                    reading1 = if (v.isEmpty()) "—" else "+0.42°",
+                    reading2 = if (!done) "—" else if (v == "fail") "−5.88°" else "−0.42°",
+                    stage = when (v) {
+                        "after1" -> AccuracyStage.After1
+                        "turnedover" -> AccuracyStage.TurnedOver
+                        "notturned" -> AccuracyStage.NotTurned
+                        "pass", "moving" -> AccuracyStage.Passed
+                        "fail" -> AccuracyStage.Failed
+                        else -> AccuracyStage.Start
+                    },
+                    sensorError = if (v == "fail") "6.3°" else "0.84°",
+                    surfaceTilt = "1.1°",
+                    correctBy = "−0.84°",
+                    correctEnabled = v == "pass",
+                ),
+            )
+        }
+        "paywall", "paywall-test", "paywall-errcharge", "paywall-errrestore" -> PaywallView(
+            price = "₹299",
+            simulated = id == "paywall-test",
+            error = when (id) {
+                "paywall-errcharge" -> PaywallError.Charge
+                "paywall-errrestore" -> PaywallError.Restore
+                else -> null
+            },
+        )
+        "sensorfail" -> SensorUnavailableScreen()
+        "history-empty" -> RunsView(emptyList(), onShare = {}, onBack = {})
         else -> Unit
     }
 }
