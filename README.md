@@ -1,169 +1,201 @@
+<div align="center">
+
+<img src="docs/app-icon-1024.png" width="120" alt="Epley Coach app icon">
+
 # Epley Coach
 
-**An Android app that measures your head angle while you treat your own vertigo, and refuses to
-count a position until your head is actually in it.**
+**Your phone becomes the angle gauge for the five-minute vertigo treatment, and it won't start the timer until your head is actually in position.**
 
-Built solo for RevenueCat Shipaton 2026, Next Gen track.
+[![Android](https://img.shields.io/badge/Android-API%2024%2B-3DDC84?logo=android&logoColor=white)](#try-it)
+[![Kotlin](https://img.shields.io/badge/Kotlin-pure%20core-7F52FF?logo=kotlin&logoColor=white)](#how-it-works)
+[![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-UI-4285F4?logo=jetpackcompose&logoColor=white)](#how-it-works)
+[![RevenueCat](https://img.shields.io/badge/RevenueCat-in--app%20purchase-F2545B)](#revenuecat-integration)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-212%20passing-brightgreen)](#tests)
+
+Built by a student for **RevenueCat Shipaton 2026**, Next Gen track.
+
+</div>
 
 ---
 
+## Demo
+
+<div align="center">
+
+<a href="https://youtu.be/F9ePwouzgn4">
+  <img src="docs/demo-thumbnail.jpg" width="720" alt="Watch the Epley Coach demo on YouTube">
+</a>
+
+**[Watch the demo on YouTube](https://youtu.be/F9ePwouzgn4)**
+
+</div>
+
+## Screenshots
+
+<table align="center">
+  <tr>
+    <td align="center"><img src="docs/screenshots/01-home.png" width="200" alt="Home screen"><br><sub><b>Home</b>: one action per screen</sub></td>
+    <td align="center"><img src="docs/screenshots/02-safety-check.png" width="200" alt="Safety check"><br><sub><b>Safety check</b>: before every run</sub></td>
+    <td align="center"><img src="docs/screenshots/03-ear-result.png" width="200" alt="Ear result"><br><sub><b>Ear result</b>: from six questions</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/04-guided-position.png" width="200" alt="Guided position"><br><sub><b>Guided position</b>: 3D head, both angles live</sub></td>
+    <td align="center"><img src="docs/screenshots/05-hold.png" width="200" alt="Hold timer"><br><sub><b>Hold</b>: counts only in range and still</sub></td>
+    <td align="center"><img src="docs/screenshots/06-night-mode.png" width="200" alt="Night mode"><br><sub><b>Night mode</b>: for 3 a.m. episodes</sub></td>
+  </tr>
+</table>
+
 ## The problem
 
-BPPV is the most common cause of vertigo. The Epley manoeuvre cures it by rolling displaced
-crystals out of the wrong ear canal: free, drug-free, five minutes. It only works if the head
-angles are right, and two things go wrong when people do it alone.
+BPPV is the most common cause of vertigo. The Epley manoeuvre treats it: five head positions,
+about five minutes, free, no medication. It only works if the head is at the right angles and the
+right ear is treated, and that is where home treatment goes wrong.
 
-| | |
-|---|---|
-| BPPV lifetime prevalence | 2.4% |
-| Of those, receive effective treatment | **8%** |
-| Recurrence | ~15% per year; **50% within about 40 months** |
-| Head-angle error, self-administered from a video | **40–51°** |
-| Head-angle error, specialist-guided | 13.7–24.4° |
-| Self-treating a recurrence from the **previous** diagnosis (RCT, n=585) | **42.9%** resolved |
-| Self-treating it after a **six-question canal triage** (same RCT) | **72.4%** resolved |
-
-The manoeuvre is not the bottleneck. **Treating the right canal** and **holding the right angles**
-are, and each has a trial behind it.
-
-## What this app does
-
-1. **Safety check before every run.** Stroke warning signs, then reasons not to self-treat today.
-   Unskippable, never behind the paywall, cleared after each run because symptoms change.
-2. **Six questions** (Kim et al. 2020, as used in the JAMA Neurology 2023 trial) to work out which
-   canal and which ear. If the answers point to the horizontal canal it **refuses to run the
-   Epley** and names the manoeuvre that trial used instead. If they do not fit BPPV, it stops.
-3. **Guided manoeuvre.** The phone's orientation sensor measures the head through all five
-   positions. Voice leads, vibration confirms, the screen shows a head over its target zone.
-4. **After-care.** Repeat once in an hour if still dizzy (trial protocol); no postural restrictions
-   (AAO-HNS 2017 recommends against them); see a doctor if worse.
-5. **A private log** of every run, so recurrences are visible to the person they keep happening to.
-
-## What makes it different
-
-Checked against the vertigo apps on the store (see `docs/DESIGN.md`): several guide the Epley with
-animations and timers, one logs episodes, one uses motion sensors for a *balance test*.
-
-**None of them measure the head during the manoeuvre, and none identify the canal.** This app does
-both, and refuses the cases it should not treat.
-
-## Measured, on hardware
-
-From a 166-second recording on a Motorola Edge 40 Neo (`docs/RESEARCH.md`, `docs/SPEC.md`):
-
-| | Measured | Requirement |
+| | | Source |
 |---|---|---|
-| Sample rate | 50.0 Hz | ≥ 25 Hz |
-| Worst sample-to-sample jump | 3.08° | < 30° |
-| Drift at rest, 107 s | **0.006°** | < 10° over 90 s |
-| Drift while moving, 264 s | −4.2° | < 10° over 90 s |
-| Sensor glitches, unreliable readings | 0 | 0 |
+| BPPV lifetime prevalence | **2.4%** | von Brevern et al., *J Neurol Neurosurg Psychiatry* 2007 (Germany, population study) |
+| Affected people who received effective treatment | **only 8%** | same study |
+| Led to medical consultation, sick leave or interrupted daily activities | **86%** | same study |
+| Head-angle error, self-administered | **40.0 to 51.5°** | [Kwon et al., *Sci Rep* 2023](https://pmc.ncbi.nlm.nih.gov/articles/PMC9950366/) (pilot, n=19) |
+| Head-angle error, specialist-guided | 13.7 to 24.4° | same study |
+| Recurrence self-treated using the **previous** diagnosis | 42.9% resolved | [*JAMA Neurology* 2023 RCT](https://pmc.ncbi.nlm.nih.gov/articles/PMC10011937/), 585 patients |
+| Recurrence self-treated after the **six-question** questionnaire | **72.4%** resolved | same trial |
 
-Still outstanding: a run on a real head, with volunteers. That one is not claimed until measured.
+In that trial, **56% of the control-group failures had a different type of BPPV than at
+enrolment**. BPPV often comes back somewhere different, so repeating last time's treatment is not
+enough. The manoeuvre is not the bottleneck: treating the right canal and holding the right angles
+are.
 
-Device accuracy is **not** on that list. A bought inclinometer would add traceability and more
-points, but it is not what the 5° claim rests on: reversal measures the sensor's own error with
-no reference instrument at all, folded paper supplies exact 30°, 45° and 60°, and gravity makes
-face-up and face-down exactly 180° apart. The next section is why the device's error does not
-reach the angles the app guides by in the first place.
+## What it does
 
-## Does this depend on the phone being accurate?
+1. **Safety check, every run.** Stroke warning signs first, then reasons not to self-treat today.
+   Positional vertigo can be a stroke, and an app cannot see the eye movements that tell them
+   apart, so any red flag stops the app. It cannot be skipped and is never behind the paywall.
+2. **Six questions to find the ear.** The questionnaire from the 585-patient JAMA Neurology 2023
+   trial works out which canal and which ear. If the answers point to the horizontal canal, the app
+   refuses the Epley and says why. If they do not fit BPPV, it stops.
+3. **Guided positions.** Each position is shown on a 3D head, with head rotation and neck extension
+   both measured live against that position's tolerance band.
+4. **A hold timer that cannot lie.** It advances only while the head is inside the band *and*
+   still. The therapeutic holds are 45 seconds.
+5. **Voice cues and vibration.** By position four you are lying down and cannot watch the screen,
+   so voice and haptics carry every instruction.
+6. **After-care.** AAO-HNS 2017 advice: repeat once in an hour if still dizzy, no postural
+   restrictions, see a doctor if worse.
+7. **History.** A private log of every run on the phone.
+8. **Doctor's PDF.** Every run with its date, ear, duration, and each position's hold time and
+   measured angles, in a document a clinician can read in a few minutes.
 
-No, and that was tested on a phone that is not.
-
-The test device's absolute tilt reads about **8.3° off true** — measured by reversal, with a level
-floor confirmed at 0.35°. Published validation puts good phones within 1–2° of a clinical
-goniometer, so this one is an outlier, and it still works. Here is why.
-
-Every angle the app guides by is measured **relative to a calibration captured on the user's own
-head** at the start of a run. A fixed device error appears in the calibration and in every reading
-afterwards, so it subtracts out. `SensorBiasTest` runs offsets up to 15° about any axis through the
-real code: the resulting head angles move by less than 1e-6 degrees.
-
-That calibration is not an extra chore invented for this — it is needed anyway, because a phone
-held against a cheek sits at whatever angle the user managed. Correcting the device is a free side
-effect of a step the app already requires.
-
-What remains is whether a device's error stays constant as it moves. A constant error cancels
-exactly; one that varies with orientation cancels partly. Two independent measurements on the test
-phone gave −9.23° and −8.32°, about **1° apart**, against per-position tolerance bands of 18.9° to
-31°.
-
-Absolute readings — the instrument screen and the accuracy self-check — do carry the device error,
-which is exactly what the self-check measures. One tap stores a per-device correction. That is an
-engineering tool; no user needs it to be treated correctly.
-
-## Honest limits
-
-- **Orientation-dependent sensor error is only bounded, not eliminated.** Measured at about 1° on
-  the test device; a phone with a badly non-linear accelerometer would do worse.
-- **A phone is not a strapped-on sensor.** The published outcome studies used a dedicated head-worn
-  IMU. Using a phone has never been clinically tested, so this app claims angle accuracy only —
-  never cure rates.
-- **The questionnaire is about 71% accurate** against a specialist. The app says so on screen.
-- **For people already diagnosed.** Positional vertigo can be a stroke, and an app cannot see the
-  eye movements that tell them apart. Hence the safety check and the first-use wording.
-- **NOT A MEDICAL DEVICE — an unregulated prototype, and it must never be used on a patient.**
-  Not merely "this is not a medical device": regulators have rejected that phrasing as a defence,
-  so this README and the app itself both say the stronger thing.
+Designed for someone who is dizzy right now: one action per screen, large high-contrast type, a
+night theme, and calm motion only (fades and small rises; "Remove animations" on the phone turns it
+all off).
 
 ## How it works
 
 ```
-:core   pure Kotlin, no Android — quaternions, head angles, triage, manoeuvre engine,
-        cue planner, after-care rules.  158 tests, runs on the JVM in seconds.
-:app    Android + Compose — sensor stream, voice and haptics, screens.  29 tests.
+:core   pure Kotlin, no Android dependency: quaternions, swing-twist decomposition, angle
+        unwrapping, the hold gate, triage, manoeuvre engine, cue planner, after-care rules.
+        Tested on the JVM in seconds, no emulator.
+:app    Android + Jetpack Compose: sensor stream, voice and haptics, screens, RevenueCat.
 ```
 
-The measurement is deliberately boring: `TYPE_GAME_ROTATION_VECTOR` (no magnetometer, so a steel
-bed frame cannot mislead it), quaternion **swing-twist decomposition** rather than Euler angles
-(the manoeuvre passes straight through the ±90° singularity where Euler pitch flips sign), and
-phase unwrapping so a pass through ±180° reads as motion rather than a 320° jump — which is what
-the first hardware recording actually produced.
+- **Sensor.** `TYPE_GAME_ROTATION_VECTOR` (gyroscope and accelerometer fused, about 50 Hz). No
+  magnetometer, so a steel bed frame cannot mislead it.
+- **Calibration-relative angles.** Every guided angle is measured relative to a calibration taken
+  on the user's own head, so a fixed sensor error appears in both the reference and the reading and
+  subtracts out. `SensorBiasTest` pushes offsets of 3°, 9.2° and 15° about all three axes through
+  the real code; the guided angles move by less than 1e-6°.
+- **Swing-twist decomposition, not Euler angles.** The manoeuvre passes straight through the ±90°
+  singularity where Euler pitch flips sign. Phase unwrapping makes a pass through ±180° read as
+  motion rather than a 320° jump.
+- **Published tolerance bands.** 26.1°, 31.0° and 18.9° for the three therapeutic positions, the
+  specialists' own measured ranges from Kwon et al. (*Sci Rep* 2023).
+- **Slip detection by speed.** A single sensor cannot tell "the head turned" from "the phone slid",
+  but it can tell them apart by speed: implausibly fast rotation latches a warning and demands
+  recalibration.
+- **Drift check.** The manoeuvre ends upright, the pose the calibration was taken in, so the app
+  checks itself against a known answer of zero and reports the drift it finds.
+- **3D head.** A real head model rendered with three.js: held frames are pre-rendered, the moving
+  figure runs live in a WebView.
 
-**The hold timer cannot lie.** It advances only while the head is inside the position's tolerance
-band *and* below the stillness threshold, with hysteresis so tremor does not break a hold that has
-started. A countdown that runs regardless is a stopwatch with extra steps.
+Measured on a Motorola Edge 40 Neo: 50.0 Hz sample rate, 0.006° drift at rest over 107 s, -4.2°
+drift while moving over 264 s, zero sensor glitches. Details in [`docs/RESEARCH.md`](docs/RESEARCH.md)
+and [`docs/SPEC.md`](docs/SPEC.md).
 
-**Tolerance bands are the published specialist ranges** — 26.1°, 31.0° and 18.9° for the three
-therapeutic positions (Kwon et al., *Scientific Reports* 2023), not numbers we picked. Holding a
-patient tighter than an experienced specialist manages would leave them hunting for a position that
-was already good enough.
+## RevenueCat integration
 
-## Design
+There is exactly **one paid thing: the doctor's PDF**, a one-time purchase.
 
-Dark `#121212` (pure black under off-white text causes halation), **no animation** except the hold
-bar (the WCAG rule on motion exists because moving interfaces make vestibular patients dizzy),
-and status colours from the **Okabe–Ito** colour-blind-safe palette with a word beside every colour.
-Buttons ≥ 56 dp, body text ≥ 16 sp, one action per screen. Sources in `docs/DESIGN.md`.
+- The paywall reads the **current offering** from RevenueCat and shows the **store's own price
+  string**. No hard-coded price.
+- The purchase grants the **`export` entitlement**. The app listens for customer-info updates, so
+  restores and other devices just work.
+- This build uses a **RevenueCat Test Store** key, so purchases are simulated and the paywall says
+  so on screen. A guard stops a Test Store key from ever shipping in a release build.
 
-## Build and run
+> **Nothing that treats you is ever behind the paywall.**
+
+The safety check, the six questions, every guided run, practice mode, after-care and the history on
+the phone are free. A one-time purchase rather than a subscription, because a condition that
+resolves in one to three sessions does not justify recurring billing. `Entitlements` is read by
+exactly one thing, the export; no clinical code path depends on a purchase, a network call or a
+store.
+
+## Try it
+
+**Download the APK from the [Releases page](https://github.com/Anuj7411/epley-coach/releases)**
+(if a release is published) and install it on an Android phone (API 24 or newer).
+
+- **Practise in hand mode.** Practice mode lets you try a run with the phone in your hand, no lying
+  down needed.
+- **Test the paid feature** (simulated, no real payment):
+  **Home** → **Settings** → **Your runs** → **Share with your doctor** → **Unlock the PDF** →
+  **Test valid purchase**. The `export` entitlement activates and the PDF opens in the share sheet.
+
+## Build from source
+
+No Android Studio needed; everything builds from the command line. Requires JDK 21+ and the Android
+SDK (compileSdk 37). Point `JAVA_HOME` at the JDK, then use the committed Gradle wrapper:
 
 ```bash
-gradle :app:assembleDebug          # needs JDK 21+ and the Android SDK (compileSdk 37)
-gradle :core:test :app:testDebugUnitTest
+./gradlew :app:assembleDebug
+./gradlew :core:test :app:testDebugUnitTest
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-## Documents
+Optional keys go in `local.properties` (git-ignored), or the matching environment variable:
 
-| File | What it holds |
-|---|---|
-| `docs/RESEARCH.md` | Every clinical claim, its source, and the claims of our own we had to correct |
-| `docs/DESIGN.md` | Who the user is, competitor teardown, the visual system and its sources |
-| `docs/SPEC.md` | Requirements, architecture, validation plan, known weaknesses |
-| `DECISIONS.md` | Every idea considered and killed, with the evidence that killed it |
+```properties
+# Optional. Blank or missing falls back to the placeholder paywall, so the app builds and runs
+# without a RevenueCat account.
+revenuecat.apiKey=
+```
 
-## Sources
+## Tests
 
-- [Kim et al., *JAMA Neurology* 2023 — self-treatment of recurrent BPPV, n=585](https://pmc.ncbi.nlm.nih.gov/articles/PMC10011937/)
-- [Kim et al., *Neurology* 2020 — the six-question questionnaire, n=578](https://doi.org/10.1212/WNL.0000000000008876)
-- [Kim et al., *Neurology* 2020 — questionnaire-based diagnosis of BPPV](https://www.neurology.org/doi/10.1212/WNL.0000000000008876)
-- [Subtype questionnaire reliability in older patients](https://pmc.ncbi.nlm.nih.gov/articles/PMC10318130/)
-- [Kwon et al., *Scientific Reports* 2023 — IMU-guided repositioning](https://pmc.ncbi.nlm.nih.gov/articles/PMC9950366/)
-- [*Clinical and Experimental Otorhinolaryngology* 2026 — wearable IMU-guided CRP, n=88](https://www.e-ceo.org/journal/view.php?doi=10.21053%2Fceo.2026-00070)
-- [AAO-HNS clinical practice guideline: BPPV (update), 2017](https://aao-hnsfjournals.onlinelibrary.wiley.com/doi/10.1177/0194599816689667)
-- [Nunez et al. 2000 — recurrence after canalith repositioning](https://pubmed.ncbi.nlm.nih.gov/10793340/)
+**212 automated tests**, no emulator and no device farm:
 
-Written with Claude Code. Every clinical number in this README is linked to its source, and the
-ones that turned out to be overstated are listed in `docs/RESEARCH.md` §5.
+- `:core` unit tests on the JVM cover the angle maths, hold gate, triage and after-care rules. The
+  angle maths was proven before the phone was ever plugged in.
+- `:app` tests use **Robolectric** and **Roborazzi** screenshot tests, comparing every screen with
+  the design's own renders (72 states, day and night).
+
+## Research and honest limits
+
+**Not a medical device. It claims angle accuracy, measured on one phone, and nothing about cure
+rates.**
+
+- No trial of this app exists. The outcome studies used a dedicated head-worn sensor, not a phone.
+- The questionnaire is about 71% accurate against a specialist, and the app says so on screen.
+- It is for people already diagnosed with BPPV. Positional vertigo can be a stroke, hence the
+  safety check before every run.
+- Orientation-dependent sensor error is bounded, not eliminated: about 1° on the test device.
+
+Every clinical number traces to a citation in [`docs/RESEARCH.md`](docs/RESEARCH.md), including the
+claims that had to be corrected. Design sources are in [`docs/DESIGN.md`](docs/DESIGN.md).
+
+## License and credits
+
+[MIT](LICENSE). Built by Anuj, a student, for RevenueCat Shipaton 2026, with
+[Claude Code](https://claude.com/claude-code) as pair programmer.

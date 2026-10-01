@@ -42,7 +42,7 @@ their doctor.
 
 ## Why it matters
 
-2.4% of people get BPPV in their lifetime, up to 10% of over-70s. **8% of them receive effective
+2.4% of adults get BPPV in their lifetime. **8% of them receive effective
 treatment.** Half recur within about three and a half years. The cure is free and takes five
 minutes; the bottleneck is doing it correctly, alone, at 3 a.m., while the room is spinning.
 
@@ -135,12 +135,12 @@ weakened the pitch.
 
 ### RevenueCat Peace Prize (social good)
 
-Vertigo from BPPV sends people to emergency rooms, causes falls in older adults, and has a cure
-that takes five minutes and costs nothing, yet only 8% of sufferers ever receive it. The reason is
-not access to medicine; it is access to a trained pair of hands to get the head angles right.
-Epley Coach puts that guidance in a phone people already own (90% of 50 to 64 year olds), screens
-for the dangerous look-alikes first, and keeps everything that treats you free forever. The only
-paid feature is a PDF for your doctor.
+For 86% of people who get BPPV, it means a doctor visit, sick leave or lost days, yet the
+treatment takes about five minutes and costs nothing. In a German population study only 8% of
+people with BPPV received effective treatment (von Brevern 2007), and people treating themselves
+from a video get their head angles wrong by 40 to 51 degrees. Epley Coach puts angle guidance
+into a phone most people already own, screens for the dangerous look-alikes first, and keeps
+everything that treats you free forever. The only paid feature is a PDF for your doctor.
 
 ### Design Award
 
